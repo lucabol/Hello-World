@@ -1,0 +1,8 @@
+# Compiled binaries
+hello
+*.exe
+*.o
+*.out
+
+# Build artifacts
+a.out
