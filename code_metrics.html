@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Metrics Spreadsheet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .file-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .metrics-table th,
+        .metrics-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .metrics-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+        }
+        
+        .metrics-table th:hover {
+            background-color: #e9ecef;
+        }
+        
+        .metrics-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .metrics-table tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .refresh-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .sort-indicator {
+            margin-left: 5px;
+            font-size: 12px;
+        }
+        
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .code-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Code Metrics Spreadsheet</h1>
+        
+        <button class="refresh-btn" onclick="analyzeCode()">Refresh Analysis</button>
+        
+        <div class="file-info">
+            <h3>File: <span id="filename">hello.c</span></h3>
+            <p>Last analyzed: <span id="lastAnalyzed">-</span></p>
+        </div>
+        
+        <div id="error-container"></div>
+        
+        <table class="metrics-table" id="metricsTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Metric <span class="sort-indicator"></span></th>
+                    <th onclick="sortTable(1)">Value <span class="sort-indicator"></span></th>
+                    <th onclick="sortTable(2)">Description <span class="sort-indicator"></span></th>
+                </tr>
+            </thead>
+            <tbody id="metricsBody">
+                <!-- Metrics will be populated here -->
+            </tbody>
+        </table>
+        
+        <div class="code-preview">
+            <h4>Code Preview:</h4>
+            <div id="codeContent">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentSort = { column: -1, ascending: true };
+        let metricsData = [];
+
+        // Code metrics analyzer
+        async function analyzeCode() {
+            const filename = 'hello.c';
+            
+            try {
+                // Try to fetch the file content
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${filename}: ${response.status}`);
+                }
+                const codeContent = await response.text();
+                
+                document.getElementById('codeContent').textContent = codeContent;
+                document.getElementById('lastAnalyzed').textContent = new Date().toLocaleString();
+                
+                const metrics = calculateMetrics(codeContent);
+                displayMetrics(metrics);
+                clearError();
+            } catch (error) {
+                // Fallback to embedded content if file reading fails
+                console.warn('Could not fetch file, using embedded content:', error.message);
+                const codeContent = `# include <stdio.h>
+ 
+int main(){
+    printf("Hello, World!");
+ 
+    return 0;
+}
+`;
+                
+                document.getElementById('codeContent').textContent = codeContent;
+                document.getElementById('lastAnalyzed').textContent = new Date().toLocaleString();
+                
+                const metrics = calculateMetrics(codeContent);
+                displayMetrics(metrics);
+                clearError();
+            }
+        }
+        
+        function calculateMetrics(code) {
+            const lines = code.split('\n');
+            const metrics = [];
+            
+            // Basic line metrics
+            const totalLines = lines.length;
+            const nonEmptyLines = lines.filter(line => line.trim().length > 0).length;
+            const emptyLines = totalLines - nonEmptyLines;
+            const commentLines = lines.filter(line => line.trim().startsWith('//') || line.trim().startsWith('/*')).length;
+            const codeLines = nonEmptyLines - commentLines;
+            
+            // Character metrics
+            const totalCharacters = code.length;
+            const totalCharactersNoSpaces = code.replace(/\s/g, '').length;
+            
+            // Function metrics
+            const functionCount = (code.match(/\w+\s+\w+\s*\([^)]*\)\s*\{/g) || []).length;
+            
+            // Include statements
+            const includeCount = (code.match(/#\s*include/g) || []).length;
+            
+            // Variable declarations (simple heuristic)
+            const variableDeclarations = (code.match(/\b(int|char|float|double|void|long|short)\s+\w+/g) || []).length;
+            
+            // Control structures
+            const ifStatements = (code.match(/\bif\s*\(/g) || []).length;
+            const forLoops = (code.match(/\bfor\s*\(/g) || []).length;
+            const whileLoops = (code.match(/\bwhile\s*\(/g) || []).length;
+            const switchStatements = (code.match(/\bswitch\s*\(/g) || []).length;
+            
+            // Cyclomatic complexity (basic calculation)
+            const cyclomaticComplexity = 1 + ifStatements + forLoops + whileLoops + switchStatements;
+            
+            // Function calls
+            const functionCalls = (code.match(/\w+\s*\(/g) || []).length - functionCount;
+            
+            // String literals
+            const stringLiterals = (code.match(/"[^"]*"/g) || []).length;
+            
+            // Add metrics to array
+            metrics.push(['Total Lines', totalLines, 'Total number of lines in the file']);
+            metrics.push(['Code Lines', codeLines, 'Lines containing actual code (excluding empty lines and comments)']);
+            metrics.push(['Empty Lines', emptyLines, 'Lines that are empty or contain only whitespace']);
+            metrics.push(['Comment Lines', commentLines, 'Lines containing comments']);
+            metrics.push(['Total Characters', totalCharacters, 'Total number of characters including whitespace']);
+            metrics.push(['Characters (no spaces)', totalCharactersNoSpaces, 'Total characters excluding whitespace']);
+            metrics.push(['Functions', functionCount, 'Number of function definitions']);
+            metrics.push(['Include Statements', includeCount, 'Number of #include preprocessor directives']);
+            metrics.push(['Variable Declarations', variableDeclarations, 'Number of variable declarations (estimated)']);
+            metrics.push(['If Statements', ifStatements, 'Number of if conditional statements']);
+            metrics.push(['For Loops', forLoops, 'Number of for loop statements']);
+            metrics.push(['While Loops', whileLoops, 'Number of while loop statements']);
+            metrics.push(['Switch Statements', switchStatements, 'Number of switch statements']);
+            metrics.push(['Cyclomatic Complexity', cyclomaticComplexity, 'Measure of code complexity based on control flow']);
+            metrics.push(['Function Calls', Math.max(0, functionCalls), 'Number of function calls (estimated)']);
+            metrics.push(['String Literals', stringLiterals, 'Number of string literals in the code']);
+            
+            return metrics;
+        }
+        
+        function displayMetrics(metrics) {
+            metricsData = metrics;
+            const tbody = document.getElementById('metricsBody');
+            tbody.innerHTML = '';
+            
+            metrics.forEach(([metric, value, description]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${metric}</td>
+                    <td class="metric-value">${value}</td>
+                    <td>${description}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function sortTable(columnIndex) {
+            if (currentSort.column === columnIndex) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = columnIndex;
+                currentSort.ascending = true;
+            }
+            
+            // Update sort indicators
+            document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                indicator.textContent = '';
+            });
+            
+            const indicator = document.querySelectorAll('.sort-indicator')[columnIndex];
+            indicator.textContent = currentSort.ascending ? '▲' : '▼';
+            
+            // Sort the data
+            const sortedData = [...metricsData].sort((a, b) => {
+                let valueA = a[columnIndex];
+                let valueB = b[columnIndex];
+                
+                // Handle numeric values
+                if (columnIndex === 1) {
+                    valueA = Number(valueA) || 0;
+                    valueB = Number(valueB) || 0;
+                }
+                
+                if (valueA < valueB) return currentSort.ascending ? -1 : 1;
+                if (valueA > valueB) return currentSort.ascending ? 1 : -1;
+                return 0;
+            });
+            
+            displayMetrics(sortedData);
+        }
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        function clearError() {
+            document.getElementById('error-container').innerHTML = '';
+        }
+        
+        // Initialize the analysis when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            analyzeCode();
+        });
+    </script>
+</body>
+</html>

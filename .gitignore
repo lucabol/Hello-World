@@ -1,0 +1,13 @@
+# Compiled C programs
+hello
+*.o
+*.exe
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*~
+*.swp
+*.swo
