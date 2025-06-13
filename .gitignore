@@ -1,0 +1,14 @@
+# Compiled C programs
+hello
+*.exe
+*.out
+*.o
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary files
+*.tmp
+*.temp
