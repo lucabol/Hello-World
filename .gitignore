@@ -1,0 +1,4 @@
+# Compiled C binaries
+hello
+*.o
+*.exe
