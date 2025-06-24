@@ -2,6 +2,7 @@
  
 int main(){
     printf("Hello, World!");
+    printf("\nExit code: 0");
  
     return 0;
 }
