@@ -1,0 +1,9 @@
+# Build artifacts
+hello
+*.o
+*.exe
+*.out
+
+# Temporary files
+*.tmp
+/tmp/
