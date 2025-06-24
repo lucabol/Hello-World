@@ -1,0 +1,23 @@
+# Compiled binaries
+hello
+*.exe
+*.o
+*.so
+*.dylib
+
+# Build artifacts
+build/
+dist/
+
+# Temporary files
+*.tmp
+*~
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Node modules
+node_modules/

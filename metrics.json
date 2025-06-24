@@ -1,0 +1,31 @@
+{
+  "file_name": "hello.c",
+  "file_path": "/home/runner/work/Hello-World/Hello-World/hello.c",
+  "file_size_bytes": 81,
+  "total_lines": 8,
+  "code_lines": 5,
+  "blank_lines": 3,
+  "comment_lines": 0,
+  "character_count": 81,
+  "word_count": 10,
+  "function_count": 1,
+  "functions": [
+    {
+      "name": "main",
+      "return_type": "int",
+      "line_start": 3,
+      "line_count": 5
+    }
+  ],
+  "include_count": 1,
+  "includes": [
+    {
+      "header": "stdio.h",
+      "line_number": 1,
+      "full_statement": "# include <stdio.h>"
+    }
+  ],
+  "variable_count": 0,
+  "variables": [],
+  "cyclomatic_complexity": 1
+}
