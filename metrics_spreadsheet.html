@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Metrics Spreadsheet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button.refresh {
+            background-color: #28a745;
+        }
+        
+        button.refresh:hover {
+            background-color: #1e7e34;
+        }
+        
+        select, input[type="text"] {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+        
+        th {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #0056b3;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        th:hover {
+            background-color: #0056b3;
+        }
+        
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+        }
+        
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        .metric-cell {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .filename-cell {
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .summary h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .stat-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+            margin-top: 2px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .filter-info {
+            margin: 10px 0;
+            padding: 8px;
+            background-color: #fff3cd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Code Metrics Spreadsheet</h1>
+        
+        <div class="controls">
+            <button class="refresh" onclick="loadMetrics()">🔄 Refresh Data</button>
+            
+            <div class="control-group">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy" onchange="sortTable()">
+                    <option value="filename">File Name</option>
+                    <option value="total_lines">Total Lines</option>
+                    <option value="code_lines">Code Lines</option>
+                    <option value="file_size_bytes">File Size</option>
+                    <option value="cyclomatic_complexity">Complexity</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="sortOrder">Order:</label>
+                <select id="sortOrder" onchange="sortTable()">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="filterText">Filter:</label>
+                <input type="text" id="filterText" placeholder="Filter files..." onkeyup="filterTable()">
+            </div>
+        </div>
+        
+        <div id="filterInfo" class="filter-info" style="display: none;"></div>
+        
+        <div class="table-container">
+            <table id="metricsTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" onclick="sortByColumn('filename')">File Name</th>
+                        <th class="sortable" onclick="sortByColumn('total_lines')">Total Lines</th>
+                        <th class="sortable" onclick="sortByColumn('code_lines')">Code Lines</th>
+                        <th class="sortable" onclick="sortByColumn('comment_lines')">Comment Lines</th>
+                        <th class="sortable" onclick="sortByColumn('non_empty_lines')">Non-Empty Lines</th>
+                        <th class="sortable" onclick="sortByColumn('file_size_bytes')">File Size (bytes)</th>
+                        <th class="sortable" onclick="sortByColumn('include_statements')">Includes</th>
+                        <th class="sortable" onclick="sortByColumn('function_count')">Functions</th>
+                        <th class="sortable" onclick="sortByColumn('variable_declarations')">Variables</th>
+                        <th class="sortable" onclick="sortByColumn('printf_statements')">Printf Calls</th>
+                        <th class="sortable" onclick="sortByColumn('cyclomatic_complexity')">Complexity</th>
+                        <th class="sortable" onclick="sortByColumn('opening_braces')">Opening Braces</th>
+                        <th class="sortable" onclick="sortByColumn('closing_braces')">Closing Braces</th>
+                        <th class="sortable" onclick="sortByColumn('semicolons')">Semicolons</th>
+                    </tr>
+                </thead>
+                <tbody id="metricsTableBody">
+                    <tr>
+                        <td colspan="14" class="no-data">Loading metrics data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="summary" id="summary" style="display: none;">
+            <h3>📈 Summary Statistics</h3>
+            <div class="summary-stats" id="summaryStats">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let metricsData = [];
+        let filteredData = [];
+        let currentSort = { column: 'filename', order: 'asc' };
+
+        // Load metrics data from JSON file
+        async function loadMetrics() {
+            try {
+                const response = await fetch('code_metrics.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                metricsData = await response.json();
+                filteredData = [...metricsData];
+                renderTable();
+                updateSummary();
+                document.getElementById('summary').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+                document.getElementById('metricsTableBody').innerHTML = 
+                    `<tr><td colspan="14" class="error">
+                        Error loading metrics data. Please make sure to run the Python script first: 
+                        <code>python3 code_metrics.py</code>
+                    </td></tr>`;
+            }
+        }
+
+        // Render the table with current data
+        function renderTable() {
+            const tbody = document.getElementById('metricsTableBody');
+            
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" class="no-data">No data matches the current filter</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(metrics => `
+                <tr>
+                    <td class="filename-cell">${metrics.filename || 'N/A'}</td>
+                    <td class="metric-cell">${metrics.total_lines || 0}</td>
+                    <td class="metric-cell">${metrics.code_lines || 0}</td>
+                    <td class="metric-cell">${metrics.comment_lines || 0}</td>
+                    <td class="metric-cell">${metrics.non_empty_lines || 0}</td>
+                    <td class="metric-cell">${metrics.file_size_bytes || 0}</td>
+                    <td class="metric-cell">${metrics.include_statements || 0}</td>
+                    <td class="metric-cell">${metrics.function_count || 0}</td>
+                    <td class="metric-cell">${metrics.variable_declarations || 0}</td>
+                    <td class="metric-cell">${metrics.printf_statements || 0}</td>
+                    <td class="metric-cell">${metrics.cyclomatic_complexity || 0}</td>
+                    <td class="metric-cell">${metrics.opening_braces || 0}</td>
+                    <td class="metric-cell">${metrics.closing_braces || 0}</td>
+                    <td class="metric-cell">${metrics.semicolons || 0}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Sort table by column
+        function sortByColumn(column) {
+            if (currentSort.column === column) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.order = 'asc';
+            }
+            
+            document.getElementById('sortBy').value = column;
+            document.getElementById('sortOrder').value = currentSort.order;
+            
+            sortTable();
+            updateSortIndicators();
+        }
+
+        // Sort table based on current sort settings
+        function sortTable() {
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            
+            currentSort.column = sortBy;
+            currentSort.order = sortOrder;
+            
+            filteredData.sort((a, b) => {
+                let aVal = a[sortBy] || 0;
+                let bVal = b[sortBy] || 0;
+                
+                // Handle string sorting for filename
+                if (sortBy === 'filename') {
+                    aVal = aVal.toString().toLowerCase();
+                    bVal = bVal.toString().toLowerCase();
+                    return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                
+                // Numeric sorting
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+                
+                return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+            
+            renderTable();
+            updateSortIndicators();
+        }
+
+        // Update sort indicators in table headers
+        function updateSortIndicators() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            const currentHeader = document.querySelector(`th[onclick*="${currentSort.column}"]`);
+            if (currentHeader) {
+                currentHeader.classList.add(`sort-${currentSort.order}`);
+            }
+        }
+
+        // Filter table based on search text
+        function filterTable() {
+            const filterText = document.getElementById('filterText').value.toLowerCase();
+            const filterInfo = document.getElementById('filterInfo');
+            
+            if (filterText === '') {
+                filteredData = [...metricsData];
+                filterInfo.style.display = 'none';
+            } else {
+                filteredData = metricsData.filter(metrics => 
+                    metrics.filename.toLowerCase().includes(filterText)
+                );
+                filterInfo.innerHTML = `Showing ${filteredData.length} of ${metricsData.length} files matching "${filterText}"`;
+                filterInfo.style.display = 'block';
+            }
+            
+            sortTable();
+            updateSummary();
+        }
+
+        // Update summary statistics
+        function updateSummary() {
+            if (filteredData.length === 0) return;
+            
+            const stats = {
+                'Total Files': filteredData.length,
+                'Total Lines': filteredData.reduce((sum, m) => sum + (m.total_lines || 0), 0),
+                'Code Lines': filteredData.reduce((sum, m) => sum + (m.code_lines || 0), 0),
+                'Comment Lines': filteredData.reduce((sum, m) => sum + (m.comment_lines || 0), 0),
+                'Total Functions': filteredData.reduce((sum, m) => sum + (m.function_count || 0), 0),
+                'Total Variables': filteredData.reduce((sum, m) => sum + (m.variable_declarations || 0), 0),
+                'Avg Complexity': Math.round((filteredData.reduce((sum, m) => sum + (m.cyclomatic_complexity || 0), 0) / filteredData.length) * 10) / 10,
+                'Total File Size': filteredData.reduce((sum, m) => sum + (m.file_size_bytes || 0), 0) + ' bytes'
+            };
+            
+            const summaryHtml = Object.entries(stats).map(([label, value]) => `
+                <div class="stat-item">
+                    <div class="stat-label">${label}</div>
+                    <div class="stat-value">${value}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('summaryStats').innerHTML = summaryHtml;
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', loadMetrics);
+    </script>
+</body>
+</html>
