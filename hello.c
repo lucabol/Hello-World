@@ -1,7 +1,7 @@
 # include <stdio.h>
  
 int main(){
-    printf("Ciao, Mondo!\n");
+    puts("Ciao, Mondo!");
  
     return 0;
 }
