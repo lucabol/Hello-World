@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Metrics Spreadsheet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .controls label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .controls input:focus, .controls select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .summary {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+
+        .summary-item .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .label {
+            font-size: 0.9em;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:hover {
+            background: #5a6fd8;
+        }
+
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+        }
+
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .category-File\ Info { background-color: #e3f2fd; }
+        .category-Size { background-color: #f3e5f5; }
+        .category-Quality { background-color: #e8f5e8; }
+        .category-Complexity { background-color: #fff3e0; }
+        .category-Style { background-color: #fce4ec; }
+        .category-Structure { background-color: #e0f2f1; }
+        .category-Functions { background-color: #fff8e1; }
+        .category-Includes { background-color: #f1f8e9; }
+        .category-Keywords { background-color: #e8eaf6; }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls > div {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            th, td {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Code Metrics Spreadsheet</h1>
+            <p>Interactive analysis of code quality and structure metrics</p>
+        </div>
+
+        <div class="controls">
+            <div>
+                <label for="searchInput">Search:</label>
+                <input type="text" id="searchInput" placeholder="Filter metrics...">
+            </div>
+            <div>
+                <label for="categoryFilter">Category:</label>
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+            <button class="refresh-btn" onclick="loadMetrics()">🔄 Refresh Data</button>
+        </div>
+
+        <div class="summary" id="summary">
+            <h3>📈 Summary</h3>
+            <div class="summary-grid" id="summaryGrid">
+                <!-- Summary items will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="metricsTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-column="metric">Metric</th>
+                        <th class="sortable" data-column="value">Value</th>
+                        <th class="sortable" data-column="category">Category</th>
+                        <th class="sortable" data-column="unit">Unit</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="4" class="no-data">Loading metrics...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let metricsData = [];
+        let currentSort = { column: null, direction: 'asc' };
+
+        // Load metrics from JSON file
+        async function loadMetrics() {
+            try {
+                const response = await fetch('metrics.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                metricsData = data.spreadsheet_data || [];
+                
+                populateCategoryFilter(data.summary?.categories || []);
+                populateSummary(data);
+                renderTable();
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+                document.getElementById('tableBody').innerHTML = 
+                    `<tr><td colspan="4" class="error">Error loading metrics: ${error.message}. Make sure metrics.json exists and run "python3 code_metrics.py" to generate it.</td></tr>`;
+            }
+        }
+
+        // Populate category filter dropdown
+        function populateCategoryFilter(categories) {
+            const categoryFilter = document.getElementById('categoryFilter');
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categoryFilter.appendChild(option);
+            });
+        }
+
+        // Populate summary section
+        function populateSummary(data) {
+            const summaryGrid = document.getElementById('summaryGrid');
+            const rawMetrics = data.raw_metrics || {};
+            
+            const summaryItems = [
+                { label: 'Total Lines', value: rawMetrics.total_lines || 0 },
+                { label: 'Code Lines', value: rawMetrics.code_lines || 0 },
+                { label: 'Functions', value: rawMetrics.functions?.length || 0 },
+                { label: 'Complexity', value: rawMetrics.cyclomatic_complexity || 0 },
+                { label: 'Code Density', value: `${rawMetrics.code_density || 0}%` },
+                { label: 'Total Metrics', value: data.summary?.total_metrics || 0 }
+            ];
+
+            summaryGrid.innerHTML = summaryItems.map(item => 
+                `<div class="summary-item">
+                    <div class="value">${item.value}</div>
+                    <div class="label">${item.label}</div>
+                </div>`
+            ).join('');
+        }
+
+        // Render the table with current data and filters
+        function renderTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
+            let filteredData = metricsData.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.metric.toLowerCase().includes(searchTerm) ||
+                    item.value.toString().toLowerCase().includes(searchTerm) ||
+                    item.category.toLowerCase().includes(searchTerm);
+                
+                const matchesCategory = !categoryFilter || item.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+
+            // Apply sorting
+            if (currentSort.column) {
+                filteredData.sort((a, b) => {
+                    let aVal = a[currentSort.column];
+                    let bVal = b[currentSort.column];
+                    
+                    // Handle numeric values
+                    if (typeof aVal === 'number' && typeof bVal === 'number') {
+                        return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                    }
+                    
+                    // Handle string values
+                    aVal = aVal.toString().toLowerCase();
+                    bVal = bVal.toString().toLowerCase();
+                    
+                    if (currentSort.direction === 'asc') {
+                        return aVal.localeCompare(bVal);
+                    } else {
+                        return bVal.localeCompare(aVal);
+                    }
+                });
+            }
+
+            const tableBody = document.getElementById('tableBody');
+            
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="no-data">No metrics match your filters</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = filteredData.map(item => 
+                `<tr class="category-${item.category.replace(/\s+/g, '\\ ')}">
+                    <td><strong>${item.metric}</strong></td>
+                    <td>${item.value}</td>
+                    <td><span class="category-badge">${item.category}</span></td>
+                    <td>${item.unit}</td>
+                </tr>`
+            ).join('');
+        }
+
+        // Handle table sorting
+        function setupSorting() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const column = th.dataset.column;
+                    
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'asc';
+                    }
+                    
+                    // Update sort indicators
+                    document.querySelectorAll('th.sortable').forEach(header => {
+                        header.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    
+                    th.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                    
+                    renderTable();
+                });
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', renderTable);
+            document.getElementById('categoryFilter').addEventListener('change', renderTable);
+            setupSorting();
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            loadMetrics();
+        });
+    </script>
+</body>
+</html>

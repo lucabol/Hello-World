@@ -10,3 +10,6 @@ hello
 # Debug files
 *.dSYM/
 *.pdb
+
+# Generated metrics data
+metrics.json
