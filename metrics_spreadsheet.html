@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Metrics Spreadsheet</title>
     <style>
+        /* === GLOBAL RESET AND BASE STYLES === */
+        /* Remove default browser styling and establish consistent box model */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        /* Main body styling with modern font stack and layout */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             background-color: #f5f5f5;
@@ -18,6 +21,8 @@
             padding: 20px;
         }
 
+        /* === MAIN CONTAINER LAYOUT === */
+        /* Central container with shadow and rounded corners for modern appearance */
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -27,6 +32,8 @@
             overflow: hidden;
         }
 
+        /* === HEADER SECTION === */
+        /* Gradient header with centered content and attractive typography */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -45,6 +52,8 @@
             opacity: 0.9;
         }
 
+        /* === CONTROLS SECTION === */
+        /* Flexible layout for search, filter, and action controls */
         .controls {
             padding: 20px;
             background: #f8f9fa;
@@ -60,6 +69,7 @@
             color: #495057;
         }
 
+        /* Consistent styling for form inputs */
         .controls input, .controls select {
             padding: 8px 12px;
             border: 1px solid #ced4da;
@@ -67,12 +77,14 @@
             font-size: 14px;
         }
 
+        /* Focus states for better accessibility */
         .controls input:focus, .controls select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
         }
 
+        /* Styled button with hover effects */
         .refresh-btn {
             background: #667eea;
             color: white;
@@ -88,12 +100,15 @@
             background: #5a6fd8;
         }
 
+        /* === SUMMARY DASHBOARD SECTION === */
+        /* Summary section showing key metrics at a glance */
         .summary {
             padding: 20px;
             background: #f8f9fa;
             border-bottom: 1px solid #e9ecef;
         }
 
+        /* Responsive grid layout for summary items */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -101,6 +116,7 @@
             margin-top: 10px;
         }
 
+        /* Individual summary metric cards */
         .summary-item {
             background: white;
             padding: 15px;
@@ -109,6 +125,7 @@
             border: 1px solid #e9ecef;
         }
 
+        /* Large numeric values in summary cards */
         .summary-item .value {
             font-size: 1.8em;
             font-weight: bold;
@@ -116,6 +133,7 @@
             margin-bottom: 5px;
         }
 
+        /* Descriptive labels for summary values */
         .summary-item .label {
             font-size: 0.9em;
             color: #6c757d;
@@ -123,23 +141,28 @@
             letter-spacing: 0.5px;
         }
 
+        /* === DATA TABLE SECTION === */
+        /* Container for the main metrics table with horizontal scrolling */
         .table-container {
             padding: 20px;
             overflow-x: auto;
         }
 
+        /* Main data table styling */
         table {
             width: 100%;
             border-collapse: collapse;
             background: white;
         }
 
+        /* Table cell styling for consistent spacing and borders */
         th, td {
             padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #e9ecef;
         }
 
+        /* Table header styling with sticky positioning and interactivity */
         th {
             background: #667eea;
             color: white;
@@ -155,6 +178,8 @@
             background: #5a6fd8;
         }
 
+        /* === SORTING INDICATORS === */
+        /* Visual indicators for table column sorting state */
         th.sortable::after {
             content: ' ↕';
             opacity: 0.5;
@@ -170,10 +195,14 @@
             opacity: 1;
         }
 
+        /* Table row hover effects for better UX */
         tbody tr:hover {
             background: #f8f9fa;
         }
 
+        /* === CATEGORY COLOR CODING === */
+        /* Color-coded background for different metric categories */
+        /* This helps users quickly identify related metrics visually */
         .category-File\ Info { background-color: #e3f2fd; }
         .category-Size { background-color: #f3e5f5; }
         .category-Quality { background-color: #e8f5e8; }
@@ -184,6 +213,8 @@
         .category-Includes { background-color: #f1f8e9; }
         .category-Keywords { background-color: #e8eaf6; }
 
+        /* === STATE AND ERROR MESSAGING === */
+        /* Styling for empty state when no data matches filters */
         .no-data {
             text-align: center;
             padding: 40px;
@@ -191,6 +222,7 @@
             font-style: italic;
         }
 
+        /* Error message styling for data loading failures */
         .error {
             background: #f8d7da;
             color: #721c24;
@@ -200,22 +232,28 @@
             border: 1px solid #f5c6cb;
         }
 
+        /* === RESPONSIVE DESIGN === */
+        /* Mobile-first responsive design for smaller screens */
         @media (max-width: 768px) {
+            /* Stack controls vertically on mobile */
             .controls {
                 flex-direction: column;
                 align-items: stretch;
             }
             
+            /* Full-width control groups on mobile */
             .controls > div {
                 display: flex;
                 flex-direction: column;
                 gap: 5px;
             }
             
+            /* Single column summary on mobile */
             .summary-grid {
                 grid-template-columns: 1fr;
             }
             
+            /* Reduced padding and font size for mobile tables */
             th, td {
                 padding: 8px;
                 font-size: 14px;
@@ -271,34 +309,57 @@
     </div>
 
     <script>
+        // === GLOBAL STATE VARIABLES === 
+        // Store the loaded metrics data for filtering and sorting
         let metricsData = [];
+        // Track current sorting state (column and direction)
         let currentSort = { column: null, direction: 'asc' };
 
-        // Load metrics from JSON file
+        // === DATA LOADING FUNCTIONS ===
+        
+        /**
+         * Load metrics from JSON file and initialize the interface
+         * This is the main data loading function that:
+         * 1. Fetches the metrics.json file generated by the Python script
+         * 2. Updates the UI with the loaded data
+         * 3. Handles errors gracefully with user feedback
+         */
         async function loadMetrics() {
             try {
+                // Fetch the metrics JSON file
                 const response = await fetch('metrics.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                // Parse the JSON response
                 const data = await response.json();
                 metricsData = data.spreadsheet_data || [];
                 
+                // Update UI components with the loaded data
                 populateCategoryFilter(data.summary?.categories || []);
                 populateSummary(data);
                 renderTable();
             } catch (error) {
+                // Display user-friendly error message
                 console.error('Error loading metrics:', error);
                 document.getElementById('tableBody').innerHTML = 
                     `<tr><td colspan="4" class="error">Error loading metrics: ${error.message}. Make sure metrics.json exists and run "python3 code_metrics.py" to generate it.</td></tr>`;
             }
         }
 
-        // Populate category filter dropdown
+        // === UI POPULATION FUNCTIONS ===
+        
+        /**
+         * Populate the category filter dropdown with available categories
+         * @param {Array} categories - Array of category names from the metrics data
+         */
         function populateCategoryFilter(categories) {
             const categoryFilter = document.getElementById('categoryFilter');
+            // Reset with default "All Categories" option
             categoryFilter.innerHTML = '<option value="">All Categories</option>';
             
+            // Add each category as a filter option
             categories.forEach(category => {
                 const option = document.createElement('option');
                 option.value = category;
@@ -307,11 +368,16 @@
             });
         }
 
-        // Populate summary section
+        /**
+         * Populate the summary dashboard with key metrics
+         * Creates visual summary cards showing the most important statistics
+         * @param {Object} data - Complete metrics data object from JSON
+         */
         function populateSummary(data) {
             const summaryGrid = document.getElementById('summaryGrid');
             const rawMetrics = data.raw_metrics || {};
             
+            // Define the key metrics to display in the summary dashboard
             const summaryItems = [
                 { label: 'Total Lines', value: rawMetrics.total_lines || 0 },
                 { label: 'Code Lines', value: rawMetrics.code_lines || 0 },
@@ -321,6 +387,7 @@
                 { label: 'Total Metrics', value: data.summary?.total_metrics || 0 }
             ];
 
+            // Generate HTML for summary cards and insert into DOM
             summaryGrid.innerHTML = summaryItems.map(item => 
                 `<div class="summary-item">
                     <div class="value">${item.value}</div>
@@ -329,34 +396,46 @@
             ).join('');
         }
 
-        // Render the table with current data and filters
+        // === TABLE RENDERING AND FILTERING ===
+        
+        /**
+         * Render the main metrics table with current filters and sorting applied
+         * This is the core function that updates the table display based on:
+         * - Current search filter text
+         * - Selected category filter
+         * - Current sorting column and direction
+         */
         function renderTable() {
+            // Get current filter values from the UI
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const categoryFilter = document.getElementById('categoryFilter').value;
             
+            // Apply filters to the metrics data
             let filteredData = metricsData.filter(item => {
+                // Check if item matches the search term (searches metric name, value, and category)
                 const matchesSearch = !searchTerm || 
                     item.metric.toLowerCase().includes(searchTerm) ||
                     item.value.toString().toLowerCase().includes(searchTerm) ||
                     item.category.toLowerCase().includes(searchTerm);
                 
+                // Check if item matches the selected category (empty string means "All Categories")
                 const matchesCategory = !categoryFilter || item.category === categoryFilter;
                 
                 return matchesSearch && matchesCategory;
             });
 
-            // Apply sorting
+            // Apply sorting if a column is currently selected
             if (currentSort.column) {
                 filteredData.sort((a, b) => {
                     let aVal = a[currentSort.column];
                     let bVal = b[currentSort.column];
                     
-                    // Handle numeric values
+                    // Handle numeric values with proper numeric comparison
                     if (typeof aVal === 'number' && typeof bVal === 'number') {
                         return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
                     }
                     
-                    // Handle string values
+                    // Handle string values with case-insensitive comparison
                     aVal = aVal.toString().toLowerCase();
                     bVal = bVal.toString().toLowerCase();
                     
@@ -368,13 +447,16 @@
                 });
             }
 
+            // Update the table body with filtered and sorted data
             const tableBody = document.getElementById('tableBody');
             
+            // Handle empty results
             if (filteredData.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="4" class="no-data">No metrics match your filters</td></tr>';
                 return;
             }
 
+            // Generate table rows with category-based styling
             tableBody.innerHTML = filteredData.map(item => 
                 `<tr class="category-${item.category.replace(/\s+/g, '\\ ')}">
                     <td><strong>${item.metric}</strong></td>
@@ -385,12 +467,19 @@
             ).join('');
         }
 
-        // Handle table sorting
+        // === SORTING FUNCTIONALITY ===
+        
+        /**
+         * Setup click handlers for table column sorting
+         * Makes table headers interactive and manages sort state
+         */
         function setupSorting() {
+            // Add click listeners to all sortable column headers
             document.querySelectorAll('th.sortable').forEach(th => {
                 th.addEventListener('click', () => {
                     const column = th.dataset.column;
                     
+                    // Toggle sort direction if clicking the same column, otherwise start with ascending
                     if (currentSort.column === column) {
                         currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
                     } else {
@@ -398,26 +487,41 @@
                         currentSort.direction = 'asc';
                     }
                     
-                    // Update sort indicators
+                    // Update visual indicators for sort direction
                     document.querySelectorAll('th.sortable').forEach(header => {
                         header.classList.remove('sort-asc', 'sort-desc');
                     });
                     
+                    // Add appropriate sort class to the clicked header
                     th.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
                     
+                    // Re-render the table with new sorting applied
                     renderTable();
                 });
             });
         }
 
-        // Setup event listeners
+        // === EVENT LISTENER SETUP ===
+        
+        /**
+         * Setup all event listeners for interactive elements
+         * This includes search input, category filter, and table sorting
+         */
         function setupEventListeners() {
+            // Real-time search as user types
             document.getElementById('searchInput').addEventListener('input', renderTable);
+            // Category filter change handler
             document.getElementById('categoryFilter').addEventListener('change', renderTable);
+            // Table column sorting setup
             setupSorting();
         }
 
-        // Initialize the application
+        // === APPLICATION INITIALIZATION ===
+        
+        /**
+         * Initialize the application when the DOM is fully loaded
+         * Sets up event listeners and loads the initial data
+         */
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             loadMetrics();
