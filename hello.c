@@ -1,7 +1,7 @@
 # include <stdio.h>
  
 int main(){
-    printf("Ciao, Mondo!\n");
+    printf("Ciao, Mondo!\n\n");
     
     int exit_code = 0;
     printf("Exit code: %d\n", exit_code);
