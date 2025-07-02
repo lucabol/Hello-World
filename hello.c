@@ -5,7 +5,7 @@ void print_message(const char* message){
 }
  
 int main(){
-    print_message("Ciao, Mondo!");
+    print_message("Ciao, Mondo!\n");
  
     return 0;
 }
