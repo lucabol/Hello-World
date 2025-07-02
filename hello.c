@@ -7,5 +7,7 @@ void print_message(const char* message){
 int main(){
     print_message("Ciao, Mondo!");
  
-    return 0;
+    int exit_code = 0;
+    printf("Exit code: %d\n", exit_code);
+    return exit_code;
 }
