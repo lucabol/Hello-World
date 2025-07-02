@@ -1,7 +1,11 @@
 # include <stdio.h>
+
+void print_message(const char* message){
+    printf("%s\n", message);
+}
  
 int main(){
-    printf("Ciao, Mondo!\n");
+    print_message("Ciao, Mondo!");
  
     return 0;
 }
