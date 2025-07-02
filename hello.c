@@ -2,6 +2,7 @@
  
 int main(){
     puts("Ciao, Mondo!");
- 
+    puts("");
+
     return 0;
 }
