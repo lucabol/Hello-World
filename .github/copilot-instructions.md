@@ -1,6 +1,6 @@
 # Hello-World C Program
 
-This is a simple C "Hello World" program that prints "Ciao, Mondo!" and displays an exit code. The repository contains a single C source file with minimal dependencies.
+This is a simple C "Hello World" program. The repository contains a single C source file with minimal dependencies.
 
 **ALWAYS follow these instructions first** and only fall back to additional search or bash commands if the information here is incomplete or found to be in error.
 
@@ -8,7 +8,7 @@ This is a simple C "Hello World" program that prints "Ciao, Mondo!" and displays
 
 ### Quick Start - Build and Run
 - `gcc -o hello hello.c` -- compiles in under 1 second
-- `./hello` -- runs the program and displays "Ciao, Mondo!" followed by "Exit code: 0"
+- `./hello` -- runs the program and displays an hello world style of message.
 
 ### Development Workflow
 - **Primary build command:** `gcc -o hello hello.c`
@@ -33,7 +33,6 @@ This is a simple C "Hello World" program that prints "Ciao, Mondo!" and displays
 1. **Compile the program:** `gcc -Wall -Wextra -o hello hello.c`
 2. **Run the program:** `./hello`
 3. **Verify output contains:**
-   - "Ciao, Mondo!" on the first line
    - "Exit code: 0" on the third line (after blank line)
 4. **Check exit code:** `echo $?` should return 0
 
@@ -82,7 +81,7 @@ gcc -Wall -Wextra -o hello hello.c && ./hello
 ### Source Code Overview
 - **hello.c:** Contains main() function that prints greeting and exit code
 - **Language:** C (uses stdio.h)
-- **Functionality:** Prints "Ciao, Mondo!" followed by exit code 0
+- **Functionality:** Prints an Hello World style message
 
 ## Dependencies and Environment
 
@@ -114,11 +113,7 @@ gcc -o hello hello.c && ./hello && echo "Build successful"
 ```
 
 ### Expected Output Format
-```
-Ciao, Mondo!
-
-Exit code: 0
-```
+An Hello World style message
 
 ## Development Guidelines
 
