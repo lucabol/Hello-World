@@ -1,5 +1,6 @@
 # include <stdio.h>
 
 int main(){
-    printf("Hello world!");
+    printf("Ciao, Mondo!\n\nExit code: 0\n");
+    return 0;
 }
