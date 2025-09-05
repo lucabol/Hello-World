@@ -3,6 +3,9 @@ hello
 *.exe
 *.out
 
+# Test binaries
+test_hello
+
 # Object files
 *.o
 *.obj
