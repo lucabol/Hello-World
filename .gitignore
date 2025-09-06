@@ -4,6 +4,8 @@ hello_debug
 hello_optimized
 hello_strict
 hello_test*
+test_plugin_system
+test_security
 *.exe
 *.out
 
@@ -17,3 +19,7 @@ plugins/*.so
 # Debug files
 *.dSYM/
 *.pdb
+
+# Temporary test files
+/tmp/test_*
+/tmp/*_plugin*
