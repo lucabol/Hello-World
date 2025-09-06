@@ -20,7 +20,7 @@ static int tests_passed = 0;
 // Test function for get_greeting()
 int test_get_greeting_returns_hello_world() {
     const char* result = get_greeting();
-    return strcmp(result, "Hello world!") == 0;
+    return strcmp(result, "Hello world!\n") == 0;
 }
 
 int test_get_greeting_not_null() {

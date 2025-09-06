@@ -1,22 +1,82 @@
+# Makefile for Hello World C program
+# Provides build automation for compiling, cleaning, and testing
+
+# Compiler and flags
 CC = gcc
 CFLAGS = -Wall -Wextra
+CFLAGS_DEBUG = -g -Wall -Wextra
+CFLAGS_OPTIMIZED = -O2 -Wall -Wextra
+CFLAGS_STRICT = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion
+
+# Source and target files
+SRC = hello.c hello_lib.c
+HEADERS = hello.h
+TARGET = hello
+TARGET_DEBUG = hello_debug
+TARGET_OPTIMIZED = hello_optimized
+TARGET_STRICT = hello_strict
 
 # Default target
-all: hello
+all: $(TARGET)
 
-# Main program
-hello: hello.c hello_lib.c hello.h
-	$(CC) $(CFLAGS) -o hello hello.c hello_lib.c
+# Standard build
+$(TARGET): $(SRC) $(HEADERS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+
+# Debug build
+debug: $(TARGET_DEBUG)
+$(TARGET_DEBUG): $(SRC) $(HEADERS)
+	$(CC) $(CFLAGS_DEBUG) -o $(TARGET_DEBUG) $(SRC)
+
+# Optimized build
+optimized: $(TARGET_OPTIMIZED)
+$(TARGET_OPTIMIZED): $(SRC) $(HEADERS)
+	$(CC) $(CFLAGS_OPTIMIZED) -o $(TARGET_OPTIMIZED) $(SRC)
+
+# Strict compilation build
+strict: $(TARGET_STRICT)
+$(TARGET_STRICT): $(SRC) $(HEADERS)
+	$(CC) $(CFLAGS_STRICT) -o $(TARGET_STRICT) $(SRC)
+
+# Build all variants
+build-all: $(TARGET) $(TARGET_DEBUG) $(TARGET_OPTIMIZED) $(TARGET_STRICT)
 
 # Unit tests
-test: hello_test
+unittest: hello_test
 	./hello_test
 
-hello_test: test_hello.c hello_lib.c hello.h
+hello_test: test_hello.c hello_lib.c $(HEADERS)
 	$(CC) $(CFLAGS) -o hello_test test_hello.c hello_lib.c
 
-# Clean compiled files
-clean:
-	rm -f hello hello_test *.o
+# Test target - build and run the program
+test: $(TARGET)
+	@echo "Running $(TARGET)..."
+	@./$(TARGET)
+	@echo ""
+	@echo "Exit code: $$?"
 
-.PHONY: all test clean
+# Clean compiled binaries
+clean:
+	rm -f $(TARGET) $(TARGET_DEBUG) $(TARGET_OPTIMIZED) $(TARGET_STRICT) hello_test
+	rm -f *.exe *.out *.o *.obj
+
+# Alternative compiler support
+clang:
+	$(MAKE) CC=clang
+
+# Help target
+help:
+	@echo "Available targets:"
+	@echo "  all (default) - Build standard version"
+	@echo "  debug         - Build debug version with -g flag"
+	@echo "  optimized     - Build optimized version with -O2"
+	@echo "  strict        - Build with strict warning flags"
+	@echo "  build-all     - Build all variants"
+	@echo "  test          - Build and run the program"
+	@echo "  unittest      - Build and run unit tests"
+	@echo "  clean         - Remove all compiled binaries"
+	@echo "  clang         - Build using clang compiler"
+	@echo "  help          - Show this help message"
+
+# Declare phony targets
+.PHONY: all debug optimized strict build-all test unittest clean clang help
