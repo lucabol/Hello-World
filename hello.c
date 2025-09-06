@@ -1,5 +1,6 @@
-# include <stdio.h>
+#include <stdio.h>
+#include "hello.h"
 
-int main(){
-    printf("Hello world!");
+int main(void) {
+    return print_greeting();
 }
