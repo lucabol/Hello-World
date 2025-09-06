@@ -4,6 +4,9 @@ hello_debug
 hello_optimized
 hello_strict
 hello_test*
+metrics
+metrics_debug
+metrics_optimized
 *.exe
 *.out
 
