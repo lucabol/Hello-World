@@ -1,37 +1,56 @@
-# Makefile for hello.c project
-# Provides automated builds and testing
+# Makefile for Hello World C Program
+# Provides automated build targets for different compilation scenarios and comprehensive testing
 
+# Compiler and basic settings
 CC = gcc
-CFLAGS = -Wall -Wextra
 TARGET = hello
 SOURCE = hello.c
 
-# Default target
+# Compiler flags for different build types
+CFLAGS_STANDARD = 
+CFLAGS_DEV = -Wall -Wextra
+CFLAGS_DEBUG = -g -Wall -Wextra
+CFLAGS_OPTIMIZED = -O2 -Wall -Wextra
+CFLAGS_STRICT = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion
+
+# Default target - standard build
 all: $(TARGET)
 
-# Build the main executable
+# Standard build
 $(TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCE)
+	$(CC) $(CFLAGS_STANDARD) -o $(TARGET) $(SOURCE)
 
-# Build with debug information
+# Development build with warnings
+dev development: $(SOURCE)
+	$(CC) $(CFLAGS_DEV) -o $(TARGET) $(SOURCE)
+
+# Debug build with debug symbols and warnings
 debug: $(SOURCE)
-	$(CC) -g $(CFLAGS) -o hello_debug $(SOURCE)
+	$(CC) $(CFLAGS_DEBUG) -o hello_debug $(SOURCE)
 
-# Build optimized version
-optimized: $(SOURCE)
-	$(CC) -O2 $(CFLAGS) -o hello_optimized $(SOURCE)
+# Optimized/release build
+optimized release: $(SOURCE)
+	$(CC) $(CFLAGS_OPTIMIZED) -o hello_optimized $(SOURCE)
 
-# Build with strict warnings
+# Strict compilation with all warnings
 strict: $(SOURCE)
-	$(CC) $(CFLAGS) -Wpedantic -Wformat=2 -o hello_strict $(SOURCE)
+	$(CC) $(CFLAGS_STRICT) -o hello_strict $(SOURCE)
 
-# Run automated tests
+# Clean compiled binaries
+clean:
+	rm -f $(TARGET) hello_debug hello_optimized hello_strict hello_clang hello_test* *.exe *.out *.o
+
+# Build and run the program
+run: $(TARGET)
+	./$(TARGET)
+
+# Run comprehensive automated tests
 test: test_hello.sh
 	./test_hello.sh
 
-# Clean build artifacts
-clean:
-	rm -f $(TARGET) hello_debug hello_optimized hello_strict hello_test*
+# Alternative compiler build (clang)
+clang: $(SOURCE)
+	clang -o hello_clang $(SOURCE)
 
 # Install dependencies (none needed for this simple project)
 install:
@@ -40,12 +59,17 @@ install:
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  all       - Build the main executable (default)"
-	@echo "  debug     - Build with debug information"
-	@echo "  optimized - Build optimized version"
-	@echo "  strict    - Build with strict warnings"
-	@echo "  test      - Run automated tests"
-	@echo "  clean     - Remove build artifacts"
-	@echo "  help      - Show this help message"
+	@echo "  all (default) - Standard build"
+	@echo "  dev           - Development build with warnings"
+	@echo "  debug         - Debug build with symbols"
+	@echo "  optimized     - Optimized build with -O2"
+	@echo "  strict        - Strict build with all warnings"
+	@echo "  clean         - Remove compiled binaries"
+	@echo "  run           - Build and run the program"
+	@echo "  test          - Run comprehensive automated tests"
+	@echo "  clang         - Build with clang compiler"
+	@echo "  install       - Install dependencies (none needed)"
+	@echo "  help          - Show this help message"
 
-.PHONY: all debug optimized strict test clean install help
+# Declare phony targets
+.PHONY: all dev development debug optimized release strict clean run test clang install help

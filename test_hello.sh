@@ -83,7 +83,7 @@ compile_and_test() {
         print_test_result "$test_name - Compilation" "PASS"
         
         # Run the test
-        run_test "$test_name" "$binary_name" "Hello world!" 0
+        run_test "$test_name" "$binary_name" "Ciao, Mondo!" 0
     else
         print_test_result "$test_name - Compilation" "FAIL"
     fi
