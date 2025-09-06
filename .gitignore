@@ -1,6 +1,8 @@
 # Compiled binaries
 hello
 hello_debug
+hello_with_*
+hello_*
 *.exe
 *.out
 
