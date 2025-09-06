@@ -7,6 +7,9 @@ hello_test*
 *.exe
 *.out
 
+# Plugin binaries
+plugins/*.so
+
 # Object files
 *.o
 *.obj
