@@ -14,7 +14,7 @@
  */
 int main(void) {
     // Define the greeting message for better maintainability
-    const char* greeting_message = "Hello world!";
+    const char* greeting_message = "Ciao, Mondo!";
     
     // Print the greeting message to standard output
     printf("%s\n", greeting_message);
