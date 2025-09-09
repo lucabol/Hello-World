@@ -11,12 +11,12 @@
 /**
  * @brief Main entry point of the program
  * 
- * Prints "Hello world!" to standard output and returns success status.
+ * Prints "Ciao, Mondo!" to standard output and returns success status.
  * 
  * @return 0 on successful execution
  */
 int main(void)
 {
-    printf("Hello world!");
+    printf("Ciao, Mondo!");
     return 0;
 }
