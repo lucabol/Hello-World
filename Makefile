@@ -40,15 +40,21 @@ strict: $(SRC)
 clang: $(SRC)
 	$(CLANG) -o $(TARGET_CLANG) $(SRC)
 
-# Build and test - compiles and runs the program
+# Build and test target - compiles the program and executes it immediately
+# Useful for quick development workflow: build + run in one command
 test: $(TARGET)
 	./$(TARGET)
 
-# Clean compiled binaries
+# Clean all compiled binaries, object files, and temporary files
+# Removes: executables, object files, Windows binaries, and any test artifacts
 clean:
-	rm -f $(TARGET) $(TARGET_DEBUG) $(TARGET_CLANG) hello_optimized hello_strict hello_warnings hello_test* *.exe *.out *.o *.obj
+	rm -f $(TARGET) $(TARGET_DEBUG) $(TARGET_CLANG)
+	rm -f hello_optimized hello_strict hello_warnings hello_test*
+	rm -f *.exe *.out *.o *.obj
+	rm -f core core.* *~ *.tmp
 
-# Show help
+# Show usage help and available targets
+# Displays all make targets with brief descriptions
 help:
 	@echo "Available targets:"
 	@echo "  all      - Build with warnings (default)"
