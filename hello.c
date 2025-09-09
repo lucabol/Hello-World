@@ -1,9 +1,9 @@
 # include <stdio.h>
 
 void print_custom_message(const char* message){
-    printf("%s", message);
+    puts(message);
 }
 
 int main(){
-    print_custom_message("Hello world!");
+    print_custom_message("Ciao, Mondo!");
 }
