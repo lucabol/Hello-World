@@ -6,6 +6,7 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+metrics_analyzer
 *.exe
 *.out
 
@@ -16,3 +17,6 @@ hello_test*
 # Debug files
 *.dSYM/
 *.pdb
+
+# Generated reports
+code_metrics.html
