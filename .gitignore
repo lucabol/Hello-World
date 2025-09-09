@@ -7,6 +7,7 @@ hello_clang
 hello_warnings
 hello_test*
 metrics_analyzer
+test_metrics
 *.exe
 *.out
 
@@ -20,3 +21,9 @@ metrics_analyzer
 
 # Generated reports
 code_metrics.html
+
+# Temporary test files (not the test source)
+test_empty.c
+test_hello.c
+test_comments.c
+test_vars.c

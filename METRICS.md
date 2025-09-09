@@ -99,6 +99,51 @@ The tool generates a complete HTML document with:
 - Responsive table layout
 - Professional color scheme
 
+## Testing
+
+### Running Unit Tests
+
+The project includes comprehensive unit tests to validate the functionality of the metrics analyzer:
+
+1. **Build and run the test suite:**
+   ```bash
+   gcc -Wall -Wextra -o test_metrics test_metrics.c
+   ./test_metrics
+   ```
+
+2. **Test coverage includes:**
+   - Empty file handling
+   - Basic hello world program analysis
+   - Comment detection (single-line and multi-line)
+   - Variable counting
+   - Error handling for nonexistent files
+
+3. **Expected output:**
+   ```
+   Running Code Metrics Analyzer Unit Tests
+   ========================================
+   Running test_empty_file...
+   ✓ test_empty_file passed
+   Running test_simple_hello_world...
+   ✓ test_simple_hello_world passed
+   Running test_comments...
+   ✓ test_comments passed
+   Running test_variables...
+   ✓ test_variables passed
+   Running test_nonexistent_file...
+   ✓ test_nonexistent_file passed
+
+   ✓ All tests passed successfully!
+   ```
+
+### Error Handling
+
+The analyzer includes robust error handling:
+
+- **File not found**: Gracefully handles missing files by initializing metrics to zero
+- **Memory safety**: Uses fixed-size buffers with overflow protection
+- **Invalid input**: Continues processing even with malformed code lines
+
 ## Integration
 
 This tool can be integrated into build processes or used for code quality analysis:

@@ -17,6 +17,9 @@ typedef struct {
 } CodeMetrics;
 
 void analyze_file(const char* filename, CodeMetrics* metrics) {
+    // Initialize metrics first to ensure they're always in a known state
+    memset(metrics, 0, sizeof(CodeMetrics));
+    
     FILE* file = fopen(filename, "r");
     if (!file) {
         printf("Error: Cannot open file %s\n", filename);
@@ -26,11 +29,11 @@ void analyze_file(const char* filename, CodeMetrics* metrics) {
     char line[1024];
     int in_multiline_comment = 0;
     
-    // Initialize metrics
-    memset(metrics, 0, sizeof(CodeMetrics));
-    
     while (fgets(line, sizeof(line), file)) {
         metrics->total_lines++;
+        
+        // Ensure null termination and handle potential overflow
+        line[sizeof(line) - 1] = '\0';
         
         // Trim whitespace
         char* trimmed = line;
