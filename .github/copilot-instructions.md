@@ -7,18 +7,29 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 ## Working Effectively
 
 ### Quick Start - Build and Run
-- `gcc -o hello hello.c` -- compiles in under 1 second
-- `./hello` -- runs the program and displays an hello world style of message.
+- `make test` -- builds with warnings and runs the program (recommended)
+- `make dev && ./hello` -- builds with warnings then runs manually
+- Manual: `gcc -Wall -Wextra -o hello hello.c && ./hello`
 
-### Development Workflow
-- **Primary build command:** `gcc -o hello hello.c`
-- **Build with warnings:** `gcc -Wall -Wextra -o hello hello.c` -- recommended for development
-- **Debug build:** `gcc -g -Wall -Wextra -o hello_debug hello.c`
-- **Optimized build:** `gcc -O2 -Wall -Wextra -o hello hello.c`
-- **Strict compilation:** `gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -o hello hello.c`
+### Development Workflow (Consolidated)
+All compilation commands are now consolidated in the Makefile:
+- **Primary build command:** `make` or `make all` (basic build)
+- **Development build:** `make dev` -- recommended for development (includes warnings)
+- **Debug build:** `make debug` -- creates hello_debug with symbols
+- **Optimized build:** `make optimized` -- production build with -O2
+- **Strict compilation:** `make strict` -- all warnings and pedantic checks
+- **Test build:** `make test` -- build and run in one command
+
+### Legacy Manual Commands (if Makefile unavailable)
+- **Basic:** `gcc -o hello hello.c`
+- **With warnings:** `gcc -Wall -Wextra -o hello hello.c`
+- **Debug:** `gcc -g -Wall -Wextra -o hello_debug hello.c`
+- **Optimized:** `gcc -O2 -Wall -Wextra -o hello hello.c`
+- **Strict:** `gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -o hello hello.c`
 
 ### Alternative Compilers
-- **Clang:** `clang -o hello hello.c` -- takes ~4 seconds, produces identical output
+- **Clang:** `make clang` -- consolidated clang build, produces hello_clang
+- **Manual Clang:** `clang -o hello hello.c` -- takes ~4 seconds, produces identical output
 - **Both GCC and Clang are available** and work correctly with this codebase
 
 ### Timing Expectations
@@ -30,41 +41,44 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 
 ### Manual Testing Scenarios
 **ALWAYS run these validation steps after making any changes:**
-1. **Compile the program:** `gcc -Wall -Wextra -o hello hello.c`
+1. **Compile the program:** `make dev` or `gcc -Wall -Wextra -o hello hello.c`
 2. **Run the program:** `./hello`
 3. **Verify output contains:**
    - "Exit code: 0" on the third line (after blank line)
 4. **Check exit code:** `echo $?` should return 0
 
 ### Additional Validation
-- **Test with strict warnings:** `gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -o hello hello.c` -- should compile without warnings
-- **Test alternative compiler:** `clang -o hello_clang hello.c && ./hello_clang` -- should produce identical output
-- **Debug build test:** `gcc -g -o hello_debug hello.c && ./hello_debug` -- should work identically
+- **Test with strict warnings:** `make strict` -- should compile without warnings
+- **Test alternative compiler:** `make clang && ./hello_clang` -- should produce identical output
+- **Debug build test:** `make debug && ./hello_debug` -- should work identically
 
 ## Common Tasks
 
 ### Building
 ```bash
 # Standard build
-gcc -o hello hello.c
+make
 
 # Development build (recommended)
-gcc -Wall -Wextra -o hello hello.c
+make dev
 
 # Production build
-gcc -O2 -Wall -Wextra -o hello hello.c
+make optimized
+
+# All build types available
+make help
 ```
 
 ### Cleaning
 ```bash
-# Remove compiled binaries
-rm -f hello hello_debug hello_clang *.exe *.out
+# Remove compiled binaries (consolidated)
+make clean
 ```
 
 ### Testing Changes
 ```bash
-# Quick validation workflow
-gcc -Wall -Wextra -o hello hello.c && ./hello
+# Quick validation workflow (consolidated)
+make test
 ```
 
 ## Repository Structure
@@ -74,8 +88,9 @@ gcc -Wall -Wextra -o hello hello.c && ./hello
 .
 ├── .git/              # Git repository data
 ├── .gitignore         # Excludes compiled binaries (hello, *.exe, *.out, *.o, etc.)
-├── README.md          # Basic repository description: "Test repo for JediMaster"
-└── hello.c            # Main C source file (157 bytes)
+├── Makefile           # Consolidated build commands for all compilation options
+├── README.md          # Updated with consolidated build instructions
+└── hello.c            # Main C source file (63 bytes)
 ```
 
 ### Source Code Overview
@@ -87,13 +102,13 @@ gcc -Wall -Wextra -o hello hello.c && ./hello
 
 ### Required Tools
 - **GCC compiler** (available at `/usr/bin/gcc`, version 13.3.0)
-- **GNU Make** (available at `/usr/bin/make`) - optional, no Makefile provided
+- **GNU Make** (available at `/usr/bin/make`) - now required for consolidated build commands
 - **Clang compiler** (available at `/usr/bin/clang`) - alternative option
 
 ### No Additional Dependencies
 - **No package managers** (npm, pip, etc.) required
 - **No external libraries** beyond standard C library
-- **No build configuration files** (CMakeLists.txt, Makefile, etc.)
+- **Build configuration:** Makefile provided for consolidated compilation commands
 - **No CI/CD workflows** currently configured
 
 ## Troubleshooting
@@ -108,8 +123,8 @@ gcc -Wall -Wextra -o hello hello.c && ./hello
 # Verify compiler availability
 which gcc && gcc --version
 
-# Test compilation and execution
-gcc -o hello hello.c && ./hello && echo "Build successful"
+# Test compilation and execution (consolidated)
+make test && echo "Build successful"
 ```
 
 ### Expected Output Format
@@ -118,8 +133,8 @@ An Hello World style message
 ## Development Guidelines
 
 ### Code Changes
-- **Always compile with warnings:** Use `-Wall -Wextra` flags
-- **Test immediately:** Run `./hello` after any compilation
+- **Always compile with warnings:** Use `make dev` or `-Wall -Wextra` flags
+- **Test immediately:** Run `make test` after any compilation
 - **Validate output format:** Ensure the exact output format is maintained
 - **Check exit code:** Program should always return 0
 
@@ -132,14 +147,14 @@ An Hello World style message
 
 ### One-Line Commands
 ```bash
-# Build and test
-gcc -Wall -Wextra -o hello hello.c && ./hello
+# Build and test (consolidated)
+make test
 
 # Clean and rebuild
-rm -f hello && gcc -o hello hello.c
+make clean && make dev
 
 # Strict compilation check
-gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -o hello hello.c
+make strict
 ```
 
 ### Expected Timings
