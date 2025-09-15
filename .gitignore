@@ -4,6 +4,7 @@ hello-plugins
 hello_debug
 hello_optimized
 hello_strict
+hello_strict_plugins
 hello_clang
 hello_warnings
 hello_test*
