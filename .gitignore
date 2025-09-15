@@ -1,5 +1,6 @@
 # Compiled binaries
 hello
+hello-plugins
 hello_debug
 hello_optimized
 hello_strict
@@ -12,6 +13,11 @@ hello_test*
 # Object files
 *.o
 *.obj
+
+# Plugin shared libraries
+plugins/*.so
+*.dylib
+*.dll
 
 # Debug files
 *.dSYM/
