@@ -1,11 +1,13 @@
 # Compiled binaries
 hello
+hello_dev
 hello_debug
 hello_optimized
 hello_strict
 hello_clang
 hello_warnings
 hello_test*
+test_hello
 *.exe
 *.out
 
