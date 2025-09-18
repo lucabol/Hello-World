@@ -47,6 +47,10 @@ clean:
 test: $(TARGET)
 	./$(TARGET)
 
+# Comprehensive automated testing
+test-all:
+	./test.sh
+
 # Help target - show available targets
 help:
 	@echo "Available targets:"
@@ -56,8 +60,9 @@ help:
 	@echo "  strict     - Strict compilation with maximum warnings"
 	@echo "  debug      - Debug build with -g flag"
 	@echo "  test       - Build and run the program"
+	@echo "  test-all   - Run comprehensive automated testing"
 	@echo "  clean      - Remove all compiled binaries"
 	@echo "  help       - Show this help message"
 
 # Declare phony targets
-.PHONY: all dev optimized strict debug clean test help
+.PHONY: all dev optimized strict debug clean test test-all help
