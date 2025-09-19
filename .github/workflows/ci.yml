@@ -20,14 +20,23 @@ jobs:
     - name: Run GCC build
       run: ./hello
       
+    - name: Test program output and exit code
+      run: ./tests/test_output.sh
+      
     - name: Build with Clang (optional)
       run: clang -Wall -Wextra -o hello_clang hello.c
       
     - name: Run Clang build
       run: ./hello_clang
       
+    - name: Test Clang build output and exit code
+      run: mv hello_clang hello && ./tests/test_output.sh && mv hello hello_clang
+      
     - name: Build with strict flags (fail on warnings)
       run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
       
     - name: Run strict build
       run: ./hello_strict
+      
+    - name: Test strict build output and exit code
+      run: mv hello_strict hello && ./tests/test_output.sh && mv hello hello_strict
