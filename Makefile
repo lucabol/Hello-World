@@ -1,16 +1,22 @@
 # Makefile for Hello World C Program
 # Provides build automation for standard, development, and optimized builds
 
+# Default goal
+.DEFAULT_GOAL := all
+
 # Compiler settings
 CC = gcc
 TARGET = hello
 SOURCE = hello.c
 
+# Base compiler flags (can be overridden with make CFLAGS=...)
+CFLAGS ?= 
+
 # Compiler flags for different build types
-CFLAGS_STANDARD = 
-CFLAGS_DEV = -Wall -Wextra
-CFLAGS_OPTIMIZED = -O2 -Wall -Wextra
-CFLAGS_STRICT = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion
+CFLAGS_STANDARD = $(CFLAGS)
+CFLAGS_DEV = -Wall -Wextra $(CFLAGS)
+CFLAGS_OPTIMIZED = -O2 -Wall -Wextra $(CFLAGS)
+CFLAGS_STRICT = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c11 $(CFLAGS)
 
 # Default target (standard build)
 all: $(TARGET)
@@ -41,11 +47,11 @@ hello_debug: $(SOURCE)
 
 # Clean target - remove all compiled binaries
 clean:
-	rm -f $(TARGET) hello_dev hello_optimized hello_strict hello_debug hello_clang *.exe *.out *.o
+	$(RM) $(TARGET) hello_dev hello_optimized hello_strict hello_debug *.exe *.out *.o
 
 # Test target - build and run the program
 test: $(TARGET)
-	./$(TARGET)
+	@./$(TARGET) || exit 1
 
 # Help target - show available targets
 help:
@@ -53,11 +59,13 @@ help:
 	@echo "  all        - Standard build (default)"
 	@echo "  dev        - Development build with warnings (-Wall -Wextra)"
 	@echo "  optimized  - Optimized build (-O2 -Wall -Wextra)"
-	@echo "  strict     - Strict compilation with maximum warnings"
+	@echo "  strict     - Strict compilation with maximum warnings and C11 standard"
 	@echo "  debug      - Debug build with -g flag"
 	@echo "  test       - Build and run the program"
 	@echo "  clean      - Remove all compiled binaries"
 	@echo "  help       - Show this help message"
+	@echo ""
+	@echo "Override compiler flags with: make CFLAGS=\"your flags\""
 
 # Declare phony targets
 .PHONY: all dev optimized strict debug clean test help
