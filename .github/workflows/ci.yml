@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build with ${{ matrix.compiler }}
+      run: ${{ matrix.compiler }} -Wall -Wextra -o hello hello.c
+      
+    - name: Test program
+      run: |
+        ./hello
+        # Verify exit code is 0
+        if [ $? -eq 0 ]; then
+          echo "✓ Program exited successfully"
+        else
+          echo "✗ Program failed"
+          exit 1
+        fi
+        
+    - name: Build optimized
+      run: ${{ matrix.compiler }} -O2 -Wall -Wextra -o hello_opt hello.c
+      
+    - name: Test optimized build
+      run: ./hello_opt
