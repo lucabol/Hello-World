@@ -37,7 +37,7 @@ strict: $(SRC)
 
 # Clean compiled binaries and temporary files (respecting .gitignore)
 clean:
-	rm -f hello hello_debug hello_optimized hello_strict hello_clang hello_warnings hello_test* *.exe *.out *.o *.obj
+	rm -f $(TARGET) $(TARGET_DEBUG) *.exe *.out *.o *.obj
 
 # Phony targets
 .PHONY: all dev debug strict clean

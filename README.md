@@ -7,7 +7,7 @@ This project includes a Makefile for convenient building with different configur
 
 ### Available targets:
 
-- `make` or `make all` - Build optimized binary (default target)
+- `make` or `make all` - Build optimized binary with `-O2 -Wall -Wextra` (default target)
 - `make dev` - Build with development flags (-Wall -Wextra)
 - `make debug` - Build debug version with symbols (-g -Wall -Wextra)
 - `make strict` - Build with strict warning flags
@@ -16,7 +16,7 @@ This project includes a Makefile for convenient building with different configur
 ### Example usage:
 
 ```bash
-# Build optimized version (default)
+# Build optimized version (default - same as 'make all')
 make
 
 # Build for development
