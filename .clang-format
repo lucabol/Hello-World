@@ -1,0 +1,38 @@
+---
+# clang-format configuration for Hello World C project
+BasedOnStyle: LLVM
+Language: Cpp
+
+# Basic formatting
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 80
+
+# Braces
+BreakBeforeBraces: Linux
+SpaceBeforeParens: ControlStatements
+
+# Spacing
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpacesBeforeTrailingComments: 1
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Line endings
+InsertTrailingCommas: None
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+
+# Include formatting
+SortIncludes: true
+IncludeBlocks: Preserve
+
+# Function formatting
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Pointer alignment
+PointerAlignment: Right

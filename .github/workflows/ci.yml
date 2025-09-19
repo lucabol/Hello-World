@@ -7,8 +7,39 @@ on:
     branches: [ main ]
 
 jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check code formatting
+      run: |
+        # Verify that code is properly formatted
+        if ! clang-format --dry-run --Werror *.c; then
+          echo "❌ Code formatting check failed!"
+          echo "Please run './format.sh' to fix formatting issues."
+          exit 1
+        else
+          echo "✅ Code formatting check passed!"
+        fi
+      
+    - name: Lint with compiler warnings (GCC)
+      run: |
+        # Build with strict warning flags - treat warnings as errors
+        gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_gcc_lint hello.c
+        echo "✅ GCC lint check passed!"
+        
+    - name: Lint with compiler warnings (Clang)
+      run: |
+        # Also check with Clang for additional warnings
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_clang_lint hello.c
+        echo "✅ Clang lint check passed!"
+
   build-and-test:
     runs-on: ubuntu-latest
+    needs: code-quality
     
     steps:
     - name: Checkout code
@@ -20,13 +51,13 @@ jobs:
     - name: Run GCC build
       run: ./hello
       
-    - name: Build with Clang (optional)
+    - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
       
     - name: Run Clang build
       run: ./hello_clang
       
-    - name: Build with strict flags (fail on warnings)
+    - name: Build with strict flags (final verification)
       run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
       
     - name: Run strict build
