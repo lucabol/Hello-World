@@ -26,6 +26,8 @@ gcc -o hello hello.c
 **Output:**
 ```
 Hello world!
+
+Exit code: 0
 ```
 
 The program exits with code 0 (success).
@@ -90,6 +92,8 @@ After making any changes, verify the program works correctly:
 3. **Expected output:**
    ```
    Hello world!
+
+   Exit code: 0
    ```
 
 4. **Check exit code:**

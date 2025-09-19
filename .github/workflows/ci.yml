@@ -15,7 +15,8 @@ jobs:
         compiler: [gcc, clang]
         
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Build with ${{ matrix.compiler }}
       run: ${{ matrix.compiler }} -Wall -Wextra -o hello hello.c
@@ -36,3 +37,11 @@ jobs:
       
     - name: Test optimized build
       run: ./hello_opt
+      
+    - name: Build with strict flags (GCC only)
+      if: matrix.compiler == 'gcc'
+      run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
+      
+    - name: Test strict build (GCC only)
+      if: matrix.compiler == 'gcc'
+      run: ./hello_strict
