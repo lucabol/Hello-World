@@ -1,0 +1,34 @@
+name: Test and Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup build environment
+      run: |
+        gcc --version
+        clang --version
+    
+    - name: Run automated tests
+      run: |
+        chmod +x tests/run_tests.sh
+        ./tests/run_tests.sh
+    
+    - name: Archive test binaries
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: compiled-binaries
+        path: |
+          tests/hello_gcc
+          tests/hello_clang
+        retention-days: 7

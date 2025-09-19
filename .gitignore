@@ -6,6 +6,8 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+tests/hello_gcc
+tests/hello_clang
 *.exe
 *.out
 
