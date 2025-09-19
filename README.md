@@ -23,7 +23,7 @@ When you run the program, it produces the following exact output:
 Hello world!
 ```
 
-Note: The program outputs "Hello world!" without a trailing newline character, so the shell prompt appears immediately after the text.
+Note: The program outputs "Hello world!" without a trailing newline character, so the shell prompt appears immediately after the text. This behavior is consistent across POSIX-compliant systems, though the visual presentation may vary slightly depending on your terminal configuration.
 
 The program exits with status code 0, which you can verify with:
 
@@ -82,21 +82,47 @@ Hello world!$ echo $?
 
 To verify the program works correctly:
 
-1. Compile with warnings enabled:
+1. **Manual verification:**
    ```bash
    gcc -Wall -Wextra -o hello hello.c
-   ```
-
-2. Run the program:
-   ```bash
    ./hello
-   ```
-
-3. Check that output is exactly "Hello world!" (no trailing newline)
-
-4. Verify exit code is 0:
-   ```bash
    echo $?
    ```
 
-The compilation should complete without warnings, and the program should run successfully with exit code 0.
+2. **Automated testing:**
+   Run the included test script:
+   ```bash
+   ./test.sh
+   ```
+
+The compilation should complete without warnings, and the program should produce exactly "Hello world!" (12 bytes, no trailing newline) with exit code 0.
+
+### Automated Validation
+
+For automated testing, you can use this shell script to verify exact output:
+
+```bash
+#!/bin/bash
+# Compile and test the program
+gcc -Wall -Wextra -o hello hello.c
+if [ $? -ne 0 ]; then
+    echo "FAIL: Compilation failed"
+    exit 1
+fi
+
+# Capture output and exit code
+output=$(./hello)
+exit_code=$?
+
+# Verify exact output (12 bytes, no newline)
+expected="Hello world!"
+if [ "$output" = "$expected" ] && [ $exit_code -eq 0 ]; then
+    echo "PASS: Output and exit code correct"
+    exit 0
+else
+    echo "FAIL: Expected '$expected' with exit code 0, got '$output' with exit code $exit_code"
+    exit 1
+fi
+```
+
+You can save this as `test.sh` and run `chmod +x test.sh && ./test.sh` to validate the program.
