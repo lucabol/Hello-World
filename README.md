@@ -9,15 +9,21 @@ Build and run the program using Make:
 # Build optimized version (default)
 make
 
-# Run the program
+# Run the optimized program
 ./hello
 
 # Other build targets
-make dev      # Development build with warnings
+make dev      # Development build with warnings (creates hello_dev)
 make debug    # Debug build (creates hello_debug)
-make strict   # Strict compilation with maximum warnings
+make strict   # Strict compilation with maximum warnings (creates hello_strict)
 make clang    # Build with clang compiler (creates hello_clang)
 make clean    # Remove all compiled binaries
+
+# Run specific versions
+./hello_dev     # Run development build
+./hello_debug   # Run debug build
+./hello_strict  # Run strict build
+./hello_clang   # Run clang build
 ```
 
 ## Manual Compilation
