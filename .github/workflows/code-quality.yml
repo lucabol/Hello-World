@@ -1,0 +1,56 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  strict-compilation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc clang clang-tidy cppcheck
+    
+    - name: Compile with strict warnings (GCC)
+      run: |
+        gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
+    
+    - name: Test the compiled program
+      run: |
+        ./hello_strict
+        echo "Program executed successfully"
+    
+    - name: Compile with strict warnings (Clang)
+      run: |
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_clang hello.c
+    
+    - name: Test clang-compiled program
+      run: |
+        ./hello_clang
+        echo "Clang-compiled program executed successfully"
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install static analysis tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-tidy cppcheck
+    
+    - name: Run clang-tidy
+      run: |
+        clang-tidy hello.c -- -std=c99
+    
+    - name: Run cppcheck
+      run: |
+        cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem hello.c
