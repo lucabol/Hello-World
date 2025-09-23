@@ -67,6 +67,7 @@ validate-all: all strict clang
 	@echo ""
 	@echo "=== Validating Clang build ==="
 	@./validate.sh ./$(CLANG_TARGET)
+
 # Clean build artifacts
 clean:
 	rm -f $(TARGET) $(DEBUG_TARGET) $(CLANG_TARGET) $(STRICT_TARGET) *.exe *.out *.o
