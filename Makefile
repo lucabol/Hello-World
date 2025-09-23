@@ -14,7 +14,6 @@ STRICT_FLAGS = -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
 STRICT_CFLAGS = $(CFLAGS) $(STRICT_FLAGS)
 DEBUG_CFLAGS = $(CFLAGS) $(DEBUGFLAGS)
 OPT_CFLAGS = $(CFLAGS) $(OPTFLAGS)
-
 # Source files and targets
 SOURCE = hello.c
 TARGET = hello
@@ -59,6 +58,24 @@ test:
 test-quiet:
 	bash test/validate.sh --quiet
 
+# Validate target: run validation script on built binaries (compatibility with main branch)
+validate: strict
+	@chmod +x validate.sh
+	@echo "=== Validating strict build ==="
+	@./validate.sh ./$(STRICT_TARGET)
+
+# Comprehensive validation target: test all build variants (for CI)
+validate-all: all strict clang
+	@chmod +x validate.sh
+	@echo "=== Validating optimized build ==="
+	@./validate.sh ./$(TARGET)
+	@echo ""
+	@echo "=== Validating strict build ==="
+	@./validate.sh ./$(STRICT_TARGET)
+	@echo ""
+	@echo "=== Validating Clang build ==="
+	@./validate.sh ./$(CLANG_TARGET)
+
 # Clean build artifacts
 clean:
 	rm -f $(TARGET) $(DEBUG_TARGET) $(CLANG_TARGET) $(STRICT_TARGET) *.exe *.out *.o
@@ -73,8 +90,10 @@ help:
 	@echo "  run      - Run the default binary"
 	@echo "  test     - Build strict and run (for CI/validation)"
 	@echo "  test-quiet - Same as test but with minimal output"
+	@echo "  validate - Validate strict build output and exit code"
+	@echo "  validate-all - Validate all build variants"
 	@echo "  clean    - Remove all build artifacts"
 	@echo "  help     - Show this help message"
 
 # Declare phony targets
-.PHONY: all debug strict clang run test test-quiet clean help
+.PHONY: all debug strict clang run test test-quiet validate validate-all clean help
