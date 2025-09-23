@@ -47,12 +47,22 @@ gcc -Wall -Wextra -o hello hello.c
 ./hello
 ```
 
+**Sample run:**
+```
+$ ./hello
+Hello world!
+
+Exit code: 0
+```
+
 ## Expected Output
 
 When you run the program, it will produce the following exact output:
 
 ```
 Hello world!
+
+Exit code: 0
 ```
 
-**Note:** The program outputs "Hello world!" without a trailing newline and exits with code 0.
+**Note:** The program outputs "Hello world!" on the first line, followed by a blank line, and then "Exit code: 0" on the third line. The program explicitly returns 0 to indicate successful execution.
