@@ -19,3 +19,6 @@ jobs:
       
     - name: Test alternative compiler (Clang)
       run: make clang && ./hello_clang
+      
+    - name: Validate program output and exit code
+      run: make validate-all
