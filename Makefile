@@ -51,9 +51,13 @@ $(CLANG_TARGET): $(SOURCE)
 run: $(TARGET)
 	./$(TARGET)
 
-# Test target: build strict and run validation script  
-test: strict
+# Test target: run validation script (which will call make strict)
+test:
 	bash test/validate.sh
+
+# Test target with quiet output for CI environments
+test-quiet:
+	bash test/validate.sh --quiet
 
 # Clean build artifacts
 clean:
@@ -68,8 +72,9 @@ help:
 	@echo "  clang    - Build with clang compiler"
 	@echo "  run      - Run the default binary"
 	@echo "  test     - Build strict and run (for CI/validation)"
+	@echo "  test-quiet - Same as test but with minimal output"
 	@echo "  clean    - Remove all build artifacts"
 	@echo "  help     - Show this help message"
 
 # Declare phony targets
-.PHONY: all debug strict clang run test clean help
+.PHONY: all debug strict clang run test test-quiet clean help
