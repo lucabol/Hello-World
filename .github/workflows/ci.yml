@@ -14,20 +14,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Build with GCC
-      run: gcc -Wall -Wextra -o hello hello.c
+    - name: Run standardized tests
+      run: make test
       
-    - name: Run GCC build
-      run: ./hello
-      
-    - name: Build with Clang (optional)
-      run: clang -Wall -Wextra -o hello_clang hello.c
-      
-    - name: Run Clang build
-      run: ./hello_clang
-      
-    - name: Build with strict flags (fail on warnings)
-      run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
-      
-    - name: Run strict build
-      run: ./hello_strict
+    - name: Test alternative compiler (Clang)
+      run: make clang && ./hello_clang
