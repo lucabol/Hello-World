@@ -32,6 +32,18 @@ make clean
 make help
 ```
 
+### Validation Script
+
+Run the validation script to ensure the program builds and works correctly:
+
+```bash
+# Run validation (builds with strict flags and tests output)
+./validate.sh
+
+# Alternative path
+./test/validate.sh
+```
+
 ### Manual Build Commands
 
 You can also build manually if needed:
@@ -55,4 +67,4 @@ When you run the program, it will produce the following exact output:
 Hello world!
 ```
 
-**Note:** The program outputs "Hello world!" without a trailing newline and exits with code 0.
+**Important:** The program intentionally outputs "Hello world!" **without a trailing newline** and exits with code 0. This behavior is validated by the test scripts to ensure exact byte-level output compliance.
