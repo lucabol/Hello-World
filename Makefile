@@ -45,9 +45,9 @@ $(CLANG_TARGET): $(SOURCE)
 run: $(TARGET)
 	./$(TARGET)
 
-# Test target: build strict and run validation script
+# Test target: build strict and run validation script  
 test: strict
-	./test/validate.sh
+	bash test/validate.sh
 
 # Clean build artifacts
 clean:
