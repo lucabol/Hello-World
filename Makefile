@@ -4,7 +4,7 @@
 # Compiler and flags configuration
 CC ?= gcc
 CLANG ?= clang
-CFLAGS ?= -Wall -Wextra
+CFLAGS ?= -Wall -Wextra -std=c99
 OPTFLAGS = -O2
 DEBUGFLAGS = -g
 STRICT_FLAGS = -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
@@ -39,16 +39,15 @@ $(STRICT_TARGET): $(SOURCE)
 clang: $(CLANG_TARGET)
 
 $(CLANG_TARGET): $(SOURCE)
-	$(CLANG) -o $(CLANG_TARGET) $(SOURCE)
+	$(CLANG) $(CFLAGS) $(OPTFLAGS) -o $(CLANG_TARGET) $(SOURCE)
 
 # Run the default binary
 run: $(TARGET)
 	./$(TARGET)
 
-# Test target: build with strict flags and run, return non-zero on failure
+# Test target: build strict and run validation script
 test: strict
-	./$(STRICT_TARGET)
-	@echo "All tests passed successfully!"
+	./test/validate.sh
 
 # Clean build artifacts
 clean:

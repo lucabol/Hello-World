@@ -4,6 +4,9 @@
 
 set -e  # Exit on any error
 
+# Compiler configuration - use same CC as Makefile, default to gcc
+CC=${CC:-gcc}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,15 +18,15 @@ EXPECTED_OUTPUT="Hello world!"
 
 # Function to print colored messages
 print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
+    printf "${GREEN}✓ %s${NC}\n" "$1"
 }
 
 print_error() {
-    echo -e "${RED}✗ $1${NC}"
+    printf "${RED}✗ %s${NC}\n" "$1"
 }
 
 print_info() {
-    echo -e "${YELLOW}ℹ $1${NC}"
+    printf "${YELLOW}ℹ %s${NC}\n" "$1"
 }
 
 # Clean up function
@@ -40,7 +43,7 @@ print_info "Starting validation of Hello World program..."
 
 # Step 1: Build with strict flags
 print_info "Building with strict compilation flags..."
-if gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c; then
+if "$CC" -Wall -Wextra -std=c99 -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c; then
     print_success "Strict compilation passed"
 else
     print_error "Strict compilation failed"
@@ -55,10 +58,13 @@ fi
 
 # Step 3: Run the program and capture output and exit code
 print_info "Running program and capturing output..."
+# Temporarily disable set -e to capture exit code properly
+set +e
 # Use a more robust method to capture output that preserves trailing whitespace
 OUTPUT_WITH_NEWLINE=$(./hello_strict 2>&1; echo x)
-OUTPUT="${OUTPUT_WITH_NEWLINE%x}"
 EXIT_CODE=$?
+set -e
+OUTPUT="${OUTPUT_WITH_NEWLINE%x}"
 
 # Step 4: Verify exit code
 if [[ $EXIT_CODE -ne 0 ]]; then
@@ -70,10 +76,10 @@ print_success "Program exited with correct exit code (0)"
 # Step 5: Verify output format
 if [[ "$OUTPUT" != "$EXPECTED_OUTPUT" ]]; then
     print_error "Output mismatch!"
-    echo "Expected: '$EXPECTED_OUTPUT'"
-    echo "Actual:   '$OUTPUT'"
-    echo "Expected length: ${#EXPECTED_OUTPUT}"
-    echo "Actual length:   ${#OUTPUT}"
+    printf "Expected: '%s'\n" "$EXPECTED_OUTPUT"
+    printf "Actual:   '%s'\n" "$OUTPUT"
+    printf "Expected length: %d\n" "${#EXPECTED_OUTPUT}"
+    printf "Actual length:   %d\n" "${#OUTPUT}"
     exit 1
 fi
 print_success "Output format is correct"
@@ -86,9 +92,9 @@ fi
 print_success "No trailing newline confirmed"
 
 print_success "All validation checks passed!"
-echo ""
+printf "\n"
 print_info "Summary:"
-echo "  - Strict compilation: PASSED"
-echo "  - Exit code (0): PASSED"
-echo "  - Output format: PASSED"
-echo "  - No trailing newline: PASSED"
+printf "  - Strict compilation: PASSED\n"
+printf "  - Exit code (0): PASSED\n"
+printf "  - Output format: PASSED\n"
+printf "  - No trailing newline: PASSED\n"
