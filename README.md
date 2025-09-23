@@ -62,4 +62,10 @@ gcc -o hello hello.c
 ./scripts/validate_output.sh ./hello "local"
 ```
 
+### Debugging Output Mismatches
+When validation fails, the script provides detailed diagnostics including `xxd` hexadecimal output. In the byte-level comparison:
+- Each line shows: `offset: hex_bytes ascii_representation`
+- Look for differences in hex values (e.g., `0a` indicates a newline character)
+- Byte count differences help identify extra/missing characters
+
 **Why precise formatting matters:** The exact output format is part of the program specification. Any deviation could indicate code changes that break compatibility or introduce unintended behavior changes.

@@ -8,6 +8,20 @@ set -e
 EXECUTABLE="$1"
 BUILD_TYPE="${2:-build}"
 
+# Create temporary directory for test files
+TEMP_DIR=$(mktemp -d)
+ACTUAL_OUTPUT="$TEMP_DIR/actual_output.txt"
+ACTUAL_STDERR="$TEMP_DIR/actual_stderr.txt"
+EXPECTED_OUTPUT="$TEMP_DIR/expected_output.txt"
+
+# Cleanup function
+cleanup() {
+    rm -rf "$TEMP_DIR"
+}
+
+# Set trap to cleanup on exit
+trap cleanup EXIT
+
 if [[ ! -f "$EXECUTABLE" ]]; then
     echo "ERROR: Executable '$EXECUTABLE' not found"
     exit 1
@@ -20,34 +34,43 @@ fi
 
 echo "Validating output for $BUILD_TYPE..."
 
-# Capture actual output
-"$EXECUTABLE" > actual_output.txt
+# Capture actual output and stderr, but don't let set -e abort on non-zero exit
+set +e
+"$EXECUTABLE" > "$ACTUAL_OUTPUT" 2> "$ACTUAL_STDERR"
 EXIT_CODE=$?
+set -e
 
 # Check exit code
 if [[ $EXIT_CODE -ne 0 ]]; then
     echo "ERROR: Program exited with code $EXIT_CODE, expected 0"
-    rm -f actual_output.txt
+    echo "Standard output:"
+    cat "$ACTUAL_OUTPUT"
+    echo "Standard error:"
+    cat "$ACTUAL_STDERR"
     exit 1
 fi
 
-# Generate expected output using printf for precise control
-printf "Hello world!" > expected_output.txt
+# Check if there was any stderr output (unexpected)
+if [[ -s "$ACTUAL_STDERR" ]]; then
+    echo "WARNING: Program produced stderr output:"
+    cat "$ACTUAL_STDERR"
+fi
 
-# Compare outputs
-if ! cmp -s actual_output.txt expected_output.txt; then
+# Generate expected output using printf for precise control
+printf "Hello world!" > "$EXPECTED_OUTPUT"
+
+# Compare outputs byte-for-byte
+if ! cmp -s "$ACTUAL_OUTPUT" "$EXPECTED_OUTPUT"; then
     echo "ERROR: Output does not match expected format for $BUILD_TYPE"
     echo "Expected: 'Hello world!' (12 bytes, no trailing newline)"
     echo -n "Actual: '"
-    cat actual_output.txt
-    echo "' ($(wc -c < actual_output.txt) bytes)"
+    cat "$ACTUAL_OUTPUT"
+    echo "' ($(wc -c < "$ACTUAL_OUTPUT") bytes)"
     echo
     echo "Byte-level comparison:"
-    echo "Expected:" && xxd expected_output.txt
-    echo "Actual:" && xxd actual_output.txt
-    rm -f actual_output.txt expected_output.txt
+    echo "Expected:" && xxd "$EXPECTED_OUTPUT"
+    echo "Actual:" && xxd "$ACTUAL_OUTPUT"
     exit 1
 fi
 
 echo "✓ Output validation passed for $BUILD_TYPE"
-rm -f actual_output.txt expected_output.txt
