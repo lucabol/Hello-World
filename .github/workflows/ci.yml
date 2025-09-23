@@ -34,3 +34,6 @@ jobs:
       
     - name: Validate strict build output
       run: ./scripts/validate_output.sh ./hello_strict "strict"
+      
+    - name: Run validation script tests
+      run: ./scripts/test_validation.sh

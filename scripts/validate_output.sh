@@ -1,7 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # validate_output.sh - Validates program output format
+# 
 # Usage: ./validate_output.sh <executable_path> [build_type]
+#
+# This script validates that a compiled program outputs exactly "Hello world!" 
+# (12 bytes, no trailing newline) and exits with code 0.
+#
+# Arguments:
+#   executable_path - Path to the executable to test
+#   build_type      - Optional build type label for error reporting (default: "build")
+#
+# Exit codes:
+#   0 - Validation passed (correct output and exit code)
+#   1 - Validation failed (wrong output, non-zero exit, or script error)
+#
+# Expected output: Exactly "Hello world!" (12 bytes, no trailing newline)
+# Expected exit code: 0
+#
+# The script captures both stdout and stderr, warns about stderr output,
+# and provides detailed byte-level comparison on mismatch using xxd.
 
 set -e
 

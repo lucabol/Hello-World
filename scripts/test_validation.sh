@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # test_validation.sh - Tests for the validate_output.sh script
 # This script tests various scenarios to ensure validate_output.sh works correctly
@@ -12,7 +12,8 @@ TEST_DIR=$(mktemp -d)
 # Cleanup function
 cleanup() {
     rm -rf "$TEST_DIR"
-    rm -f test_*
+    # Clean up any test binaries created in current directory
+    rm -f test_correct test_wrong test_exit_fail test_newline test_stderr
 }
 
 # Set trap to cleanup on exit
