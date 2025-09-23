@@ -50,6 +50,24 @@ test: strict
 	./$(STRICT_TARGET)
 	@echo "All tests passed successfully!"
 
+# Validate target: run validation script on built binaries
+validate: strict
+	@chmod +x validate.sh
+	@echo "=== Validating strict build ==="
+	@./validate.sh ./$(STRICT_TARGET)
+
+# Comprehensive validation target: test all build variants
+validate-all: all strict clang
+	@chmod +x validate.sh
+	@echo "=== Validating optimized build ==="
+	@./validate.sh ./$(TARGET)
+	@echo ""
+	@echo "=== Validating strict build ==="
+	@./validate.sh ./$(STRICT_TARGET)
+	@echo ""
+	@echo "=== Validating Clang build ==="
+	@./validate.sh ./$(CLANG_TARGET)
+
 # Clean build artifacts
 clean:
 	rm -f $(TARGET) $(DEBUG_TARGET) $(CLANG_TARGET) $(STRICT_TARGET) *.exe *.out *.o
@@ -63,8 +81,10 @@ help:
 	@echo "  clang    - Build with clang compiler"
 	@echo "  run      - Run the default binary"
 	@echo "  test     - Build strict and run (for CI/validation)"
+	@echo "  validate - Validate strict build output and exit code"
+	@echo "  validate-all - Validate all build variants"
 	@echo "  clean    - Remove all build artifacts"
 	@echo "  help     - Show this help message"
 
 # Declare phony targets
-.PHONY: all debug strict clang run test clean help
+.PHONY: all debug strict clang run test validate validate-all clean help
