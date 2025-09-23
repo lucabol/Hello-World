@@ -20,74 +20,17 @@ jobs:
     - name: Build with GCC
       run: gcc -Wall -Wextra -o hello hello.c
       
-    - name: Run GCC build
-      run: ./hello
+    - name: Validate GCC output
+      run: ./scripts/validate_output.sh ./hello "GCC"
       
-    - name: Validate output format
-      run: |
-        ./hello > output.txt
-        echo "Expected: 'Hello world!'"
-        echo -n "Actual: '"
-        cat output.txt
-        echo "'"
-        # Verify exact output match
-        echo -n "Hello world!" > expected.txt
-        if ! cmp -s output.txt expected.txt; then
-          echo "ERROR: Output does not match expected format"
-          echo "Expected: 'Hello world!' (no trailing newline)"
-          echo -n "Got: '"
-          cat output.txt
-          echo "'"
-          exit 1
-        fi
-        echo "✓ Output format validation passed"
-      
-    - name: Build with Clang (optional)
+    - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
       
-    - name: Run Clang build
-      run: ./hello_clang
-      
-    - name: Validate Clang output format
-      run: |
-        ./hello_clang > output_clang.txt
-        echo "Expected: 'Hello world!'"
-        echo -n "Actual: '"
-        cat output_clang.txt
-        echo "'"
-        # Verify exact output match
-        echo -n "Hello world!" > expected.txt
-        if ! cmp -s output_clang.txt expected.txt; then
-          echo "ERROR: Clang output does not match expected format"
-          echo "Expected: 'Hello world!' (no trailing newline)"
-          echo -n "Got: '"
-          cat output_clang.txt
-          echo "'"
-          exit 1
-        fi
-        echo "✓ Clang output format validation passed"
+    - name: Validate Clang output
+      run: ./scripts/validate_output.sh ./hello_clang "Clang"
       
     - name: Build with strict flags (fail on warnings)
       run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
       
-    - name: Run strict build
-      run: ./hello_strict
-      
-    - name: Validate strict build output format
-      run: |
-        ./hello_strict > output_strict.txt
-        echo "Expected: 'Hello world!'"
-        echo -n "Actual: '"
-        cat output_strict.txt
-        echo "'"
-        # Verify exact output match
-        echo -n "Hello world!" > expected.txt
-        if ! cmp -s output_strict.txt expected.txt; then
-          echo "ERROR: Strict build output does not match expected format"
-          echo "Expected: 'Hello world!' (no trailing newline)"
-          echo -n "Got: '"
-          cat output_strict.txt
-          echo "'"
-          exit 1
-        fi
-        echo "✓ Strict build output format validation passed"
+    - name: Validate strict build output
+      run: ./scripts/validate_output.sh ./hello_strict "strict"

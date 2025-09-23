@@ -16,3 +16,8 @@ hello_test*
 # Debug files
 *.dSYM/
 *.pdb
+
+# Validation artifacts
+actual_output.txt
+expected_output.txt
+output*.txt
