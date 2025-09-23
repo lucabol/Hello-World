@@ -7,7 +7,13 @@ CLANG ?= clang
 CFLAGS ?= -Wall -Wextra -std=c99
 OPTFLAGS = -O2
 DEBUGFLAGS = -g
+# STRICT_FLAGS: includes -Werror to fail on any warnings, ensuring code quality
 STRICT_FLAGS = -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
+
+# Combined flag sets for cleaner target definitions
+STRICT_CFLAGS = $(CFLAGS) $(STRICT_FLAGS)
+DEBUG_CFLAGS = $(CFLAGS) $(DEBUGFLAGS)
+OPT_CFLAGS = $(CFLAGS) $(OPTFLAGS)
 
 # Source files and targets
 SOURCE = hello.c
@@ -21,25 +27,25 @@ all: $(TARGET)
 
 # Optimized build target
 $(TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) $(OPTFLAGS) -o $(TARGET) $(SOURCE)
+	$(CC) $(OPT_CFLAGS) -o $(TARGET) $(SOURCE)
 
-# Debug build target
+# Debug build target (debug info without optimization)
 debug: $(DEBUG_TARGET)
 
 $(DEBUG_TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) -o $(DEBUG_TARGET) $(SOURCE)
+	$(CC) $(DEBUG_CFLAGS) -o $(DEBUG_TARGET) $(SOURCE)
 
-# Strict compilation target (with -Werror)
+# Strict compilation target (with -Werror for CI/quality assurance)
 strict: $(STRICT_TARGET)
 
 $(STRICT_TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) $(STRICT_FLAGS) -o $(STRICT_TARGET) $(SOURCE)
+	$(CC) $(STRICT_CFLAGS) -o $(STRICT_TARGET) $(SOURCE)
 
-# Clang build target
+# Clang build target (with optimization)
 clang: $(CLANG_TARGET)
 
 $(CLANG_TARGET): $(SOURCE)
-	$(CLANG) $(CFLAGS) $(OPTFLAGS) -o $(CLANG_TARGET) $(SOURCE)
+	$(CLANG) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE)
 
 # Run the default binary
 run: $(TARGET)

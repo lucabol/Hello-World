@@ -67,4 +67,4 @@ When you run the program, it will produce the following exact output:
 Hello world!
 ```
 
-**Note:** The program outputs "Hello world!" without a trailing newline and exits with code 0.
+**Important:** The program intentionally outputs "Hello world!" **without a trailing newline** and exits with code 0. This behavior is validated by the test scripts to ensure exact byte-level output compliance.
