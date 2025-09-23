@@ -1,4 +1,5 @@
 #!/bin/bash
+<<<<<<< HEAD
 
 # Validation script for Hello World program
 # Validates program output and exit code against expected values
@@ -64,3 +65,12 @@ fi
 echo "SUCCESS: All validations passed!"
 echo "  ✓ Output matches expected: '$EXPECTED_OUTPUT'"
 echo "  ✓ Exit code matches expected: $EXPECTED_EXIT_CODE"
+=======
+# Top-level validation script wrapper
+# Calls the actual validation script in the test directory
+#
+# This script provides compatibility with both the simple validation
+# and the comprehensive test suite in the test/ directory.
+
+exec "$(dirname "$0")/test/validate.sh" "$@"
+>>>>>>> 3467337fe53fa4b352ac3706bfa2889cec515d5a

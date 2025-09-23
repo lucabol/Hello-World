@@ -32,6 +32,21 @@ make clean
 make help
 ```
 
+<<<<<<< HEAD
+=======
+### Validation Script
+
+Run the validation script to ensure the program builds and works correctly:
+
+```bash
+# Run validation (builds with strict flags and tests output)
+./validate.sh
+
+# Alternative path
+./test/validate.sh
+```
+
+>>>>>>> 3467337fe53fa4b352ac3706bfa2889cec515d5a
 ### Manual Build Commands
 
 You can also build manually if needed:
