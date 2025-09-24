@@ -141,3 +141,63 @@ if [[ "${QUIET_MODE}" == "false" ]]; then
 else
     printf "Validation: All tests PASSED\n"
 fi
+
+# Additional tests for voice command functionality if voice.c exists
+if [[ -f voice.c && -f voice.h ]]; then
+    print_info "Testing voice command functionality..."
+    
+    # Test building voice demo
+    if gcc -Wall -Wextra -Werror -o voice_demo_test voice_demo.c voice.c 2>/dev/null; then
+        print_success "Voice demo compilation passed"
+        
+        # Test voice demo execution 
+        if DEMO_OUTPUT=$(./voice_demo_test 2>&1); then
+            print_success "Voice demo execution passed"
+            
+            # Test specific voice command outputs
+            if echo "${DEMO_OUTPUT}" | grep -q "Hello world!"; then
+                print_success "Voice command 'say hello' works correctly"
+            else
+                print_error "Voice command 'say hello' output missing"
+                exit 1
+            fi
+            
+            if echo "${DEMO_OUTPUT}" | grep -q "Would change message to:"; then
+                print_success "Voice command 'change message' works correctly"  
+            else
+                print_error "Voice command 'change message' output missing"
+                exit 1
+            fi
+            
+            if echo "${DEMO_OUTPUT}" | grep -q "Showing current code structure"; then
+                print_success "Voice command 'show code' works correctly"
+            else
+                print_error "Voice command 'show code' output missing" 
+                exit 1
+            fi
+            
+            if echo "${DEMO_OUTPUT}" | grep -q "Voice command not recognized:"; then
+                print_success "Voice command error handling works correctly"
+            else
+                print_error "Voice command error handling missing"
+                exit 1
+            fi
+            
+        else
+            print_error "Voice demo execution failed"
+            exit 1
+        fi
+        
+        # Clean up test binary
+        rm -f voice_demo_test
+        print_success "Voice command tests completed successfully"
+        
+        if [[ "${QUIET_MODE}" == "false" ]]; then
+            printf "  - Voice command parsing: PASSED\n"
+            printf "  - Voice demo execution: PASSED\n"
+        fi
+    else
+        print_error "Voice demo compilation failed"
+        exit 1
+    fi
+fi

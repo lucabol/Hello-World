@@ -17,10 +17,14 @@ This implementation adds a conceptual framework for voice-driven code editing to
 
 ### Editing Commands  
 - `say hello` - Execute the main greeting functionality
-- `change message <text>` - Simulate changing the output message (demonstration only)
+- `change message <text>` - Simulate changing the output message (**NOTE: This is simulation only - no source files are modified. Output shows what would change but does not perform actual file edits.**)
 
 ### Error Handling
 - Unrecognized commands are reported with feedback
+
+## Important: Simulation Only
+
+**This implementation simulates voice-driven code editing concepts only.** No source files are modified by any voice commands. The "change message" command displays what the new message would be, but does not rewrite any files or maintain persistent state. This is a conceptual demonstration of how voice commands could be processed for code editing operations.
 
 ## Usage
 

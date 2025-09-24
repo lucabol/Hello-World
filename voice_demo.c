@@ -1,25 +1,8 @@
-# include <stdio.h>
-# include <string.h>
+#include <stdio.h>
+#include "voice.h"
 
 // Voice-driven code editing demonstration
 // This version activates the voice command simulation for testing
-
-void process_voice_command(const char* command) {
-    // Simulate voice command processing for code editing
-    if (strcmp(command, "say hello") == 0) {
-        printf("Hello world!\n");
-    } else if (strncmp(command, "change message ", 15) == 0) {
-        // Extract new message from command
-        const char* new_message = command + 15;
-        printf("Voice command: Would change message to: %s\n", new_message);
-    } else if (strcmp(command, "show code") == 0) {
-        printf("Voice command: Showing current code structure\n");
-        printf("- main() function with printf statement\n");
-        printf("- Voice command processing framework\n");
-    } else {
-        printf("Voice command not recognized: %s\n", command);
-    }
-}
 
 int main(){
     printf("=== Voice-Driven Code Editing Demo ===\n");
