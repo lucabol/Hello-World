@@ -5,6 +5,14 @@
 set -e
 set -u
 
+# Cleanup function to remove test files
+cleanup() {
+    rm -f test_good test_bad_exit test_bad_output test_good.c test_bad_exit.c test_bad_output.c
+}
+
+# Set up cleanup trap for both normal exit and error conditions
+trap cleanup EXIT
+
 echo "=== Testing validate-binary.sh ==="
 
 # Create test binaries
@@ -65,8 +73,5 @@ if bash test/validate-binary.sh ./test_bad_output --quiet; then
 else
     echo "✓ Bad output test FAILED as expected"
 fi
-
-# Cleanup
-rm -f test_good test_bad_exit test_bad_output test_good.c test_bad_exit.c test_bad_output.c
 
 echo "=== All validator tests PASSED ==="

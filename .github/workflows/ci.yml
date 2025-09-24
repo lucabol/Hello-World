@@ -49,6 +49,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Run validator self-tests
+      run: bash test/test-validator.sh
+      
     - name: Build with ${{ matrix.compiler.name }} (strict warnings)
       run: ${{ matrix.compiler.command }}
       
