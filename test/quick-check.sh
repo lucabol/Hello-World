@@ -25,8 +25,8 @@ print_info() {
 
 print_info "Running quick checks for common pitfalls..."
 
-# Check 1: Presence of #include <stdio.h> (allowing for spaces)
-if ! grep -q "#\s*include\s*<stdio.h>" hello.c; then
+# Check 1: Presence of #include <stdio.h> (allowing for spaces - portable regex)
+if ! grep -q "#[[:space:]]*include[[:space:]]*<stdio.h>" hello.c; then
     print_error "Missing #include <stdio.h> in hello.c"
     exit 1
 fi
