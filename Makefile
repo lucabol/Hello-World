@@ -125,6 +125,18 @@ validate: strict
 	@echo "=== Validating strict build ==="
 	@bash test/validate.sh --strict ./$(STRICT_TARGET)
 
+# Comprehensive validation target: test all build variants (for CI)
+validate-all: all strict clang
+	@chmod +x validate.sh
+	@echo "=== Validating optimized build ==="
+	@./validate.sh ./$(TARGET)
+	@echo ""
+	@echo "=== Validating strict build ==="
+	@./validate.sh ./$(STRICT_TARGET)
+	@echo ""
+	@echo "=== Validating Clang build ==="
+	@./validate.sh ./$(CLANG_TARGET)
+
 # Clean build artifacts
 clean:
 	rm -f $(TARGET) $(DEBUG_TARGET) $(CLANG_TARGET) $(STRICT_TARGET) *.exe *.out *.o
