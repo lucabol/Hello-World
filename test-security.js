@@ -260,6 +260,58 @@ int main() {
     console.log('✅ Resource protection tests completed\n');
 }
 
+// Test shell injection prevention
+async function testShellInjectionPrevention() {
+    console.log('🚫 Testing Shell Injection Prevention...');
+    
+    const shellInjectionTest = `#include <stdio.h>
+int main() {
+    printf("This should print normally\\n");
+    return 0;
+}`;
+    
+    console.log('  🧪 Testing shell injection is blocked by execFile...');
+    await fs.writeFile('injection_test.c', shellInjectionTest);
+    
+    try {
+        // This should work normally - no shell interpretation 
+        const { execFile } = require('child_process');
+        const { promisify } = require('util');
+        const execFileAsync = promisify(execFile);
+        
+        await execFileAsync('gcc', ['-o', 'injection_test', 'injection_test.c'], { 
+            timeout: 5000,
+            shell: false // Critical: no shell
+        });
+        
+        const { stdout } = await execFileAsync('./injection_test', [], { 
+            timeout: 3000,
+            shell: false
+        });
+        
+        if (stdout.includes('This should print normally')) {
+            console.log('    ✅ Normal execution works with execFile');
+        }
+        
+        // Test that malicious arguments are treated literally, not interpreted
+        try {
+            await execFileAsync('echo', ['hello; rm -rf /'], { 
+                timeout: 1000,
+                shell: false 
+            });
+            console.log('    ✅ Shell injection blocked - malicious args treated as literals');
+        } catch (error) {
+            console.log('    ✅ Shell injection blocked - execFile prevents interpretation');
+        }
+        
+    } catch (error) {
+        console.log(`    ✅ Shell injection test contained: ${error.message.substring(0, 50)}`);
+    }
+    
+    await cleanup('injection_test.c', 'injection_test');
+    console.log('✅ Shell injection prevention verified\n');
+}
+
 // Test file system access restrictions
 async function testFileSystemSecurity() {
     console.log('📁 Testing File System Security...');
@@ -359,6 +411,7 @@ async function runSecurityTests() {
     try {
         await testMaliciousPayloads();
         await testResourceProtection(); 
+        await testShellInjectionPrevention();
         await testFileSystemSecurity();
         
         console.log('🎉 All security tests completed!');

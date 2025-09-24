@@ -8,10 +8,10 @@ const WebSocket = require('ws');
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const { promisify } = require('util');
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const app = express();
 
 // Configuration with environment variables and defaults
@@ -307,9 +307,10 @@ int main(void){
 
     async buildCode() {
         try {
-            // SECURITY: Sandboxed build execution with strict limits
-            const { stdout, stderr } = await execAsync(
-                'timeout 10s gcc -Wall -Wextra -Wpedantic -o hello hello.c', 
+            // SECURITY: Sandboxed build execution with strict limits - NO SHELL INTERPOLATION
+            const { stdout, stderr } = await execFileAsync(
+                'timeout',
+                ['10s', 'gcc', '-Wall', '-Wextra', '-Wpedantic', '-o', 'hello', 'hello.c'],
                 {
                     cwd: __dirname,
                     timeout: CONFIG.BUILD_TIMEOUT,
@@ -319,7 +320,8 @@ int main(void){
                         HOME: '/tmp' // Sandboxed home
                     },
                     uid: process.getuid ? process.getuid() : undefined, // Run as current user (non-root in container)
-                    gid: process.getgid ? process.getgid() : undefined
+                    gid: process.getgid ? process.getgid() : undefined,
+                    shell: false // Explicitly disable shell to prevent injection
                 }
             );
             
@@ -347,9 +349,10 @@ int main(void){
 
     async runCode() {
         try {
-            // SECURITY: Highly restricted execution environment
-            const { stdout, stderr } = await execAsync(
-                'timeout 5s ./hello', 
+            // SECURITY: Highly restricted execution environment - NO SHELL INTERPOLATION
+            const { stdout, stderr } = await execFileAsync(
+                'timeout',
+                ['5s', './hello'],
                 {
                     cwd: __dirname,
                     timeout: CONFIG.RUN_TIMEOUT,  
@@ -360,7 +363,8 @@ int main(void){
                         USER: 'sandbox' // Non-privileged user context
                     },
                     uid: process.getuid ? process.getuid() : undefined,
-                    gid: process.getgid ? process.getgid() : undefined
+                    gid: process.getgid ? process.getgid() : undefined,
+                    shell: false // Explicitly disable shell to prevent injection
                 }
             );
             
