@@ -15,6 +15,15 @@ voice_demo_test
 *.o
 *.obj
 
+# Plugin shared objects
+plugins/*.so
+
 # Debug files
 *.dSYM/
 *.pdb
+
+# Test artifacts
+test_plugins/
+build.log
+build_plugins.log
+test_output.txt
