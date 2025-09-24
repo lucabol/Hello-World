@@ -1,0 +1,47 @@
+name: Visual Editor CI
+
+on:
+  push:
+    branches: [ main, copilot/fix-1381 ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-visual-editor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc build-essential
+        
+    - name: Run visual editor security tests
+      run: |
+        chmod +x test/test-visual-editor.sh
+        ./test/test-visual-editor.sh
+        
+    - name: Run CI validation tests
+      run: |
+        chmod +x test/ci-visual-editor.sh
+        ./test/ci-visual-editor.sh
+        
+    - name: Run original validation tests
+      run: |
+        chmod +x test/validate.sh
+        ./test/validate.sh
+        
+    - name: Test manual compilation of examples
+      run: |
+        gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -o test_basic examples/hello_basic.c
+        ./test_basic
+        gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -o test_vars examples/hello_variables.c  
+        ./test_vars
+        rm -f test_basic test_vars
