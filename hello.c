@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "voice.h"
 
 // Voice-driven code editing simulation
 // This demonstrates how voice commands could theoretically be processed

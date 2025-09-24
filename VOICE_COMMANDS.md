@@ -45,13 +45,17 @@ This runs a simulation showing how voice commands would be processed.
 
 ### Manual Voice Command Testing
 
-To test individual voice commands, modify `hello.c` by uncommenting the voice command lines in main():
+To test individual voice commands, use the voice_demo program:
 
-```c
-// Uncomment these lines in hello.c:
-// process_voice_command("say hello");
-// process_voice_command("change message Custom greeting");
-// process_voice_command("show code");
+```bash
+# Test specific commands
+./voice_demo "say hello"
+./voice_demo "change message Custom greeting"
+./voice_demo "show code"
+./voice_demo "invalid command"
+
+# Run full interactive demonstration
+./voice_demo
 ```
 
 ## Technical Implementation

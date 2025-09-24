@@ -150,41 +150,73 @@ if [[ -f voice.c && -f voice.h ]]; then
     if gcc -Wall -Wextra -Werror -o voice_demo_test voice_demo.c voice.c 2>/dev/null; then
         print_success "Voice demo compilation passed"
         
-        # Test voice demo execution 
-        if DEMO_OUTPUT=$(./voice_demo_test 2>&1); then
-            print_success "Voice demo execution passed"
-            
-            # Test specific voice command outputs
-            if echo "${DEMO_OUTPUT}" | grep -q "Hello world!"; then
-                print_success "Voice command 'say hello' works correctly"
-            else
-                print_error "Voice command 'say hello' output missing"
-                exit 1
-            fi
-            
-            if echo "${DEMO_OUTPUT}" | grep -q "Would change message to:"; then
-                print_success "Voice command 'change message' works correctly"  
-            else
-                print_error "Voice command 'change message' output missing"
-                exit 1
-            fi
-            
-            if echo "${DEMO_OUTPUT}" | grep -q "Showing current code structure"; then
-                print_success "Voice command 'show code' works correctly"
-            else
-                print_error "Voice command 'show code' output missing" 
-                exit 1
-            fi
-            
-            if echo "${DEMO_OUTPUT}" | grep -q "Voice command not recognized:"; then
-                print_success "Voice command error handling works correctly"
-            else
-                print_error "Voice command error handling missing"
-                exit 1
-            fi
-            
+        # Store initial git state to verify no files are modified
+        INITIAL_GIT_STATUS=$(git status --porcelain 2>/dev/null || echo "")
+        
+        # Test individual voice commands non-interactively
+        print_info "Testing individual voice commands..."
+        
+        # Test 'say hello' command
+        if SAY_OUTPUT=$(./voice_demo_test "say hello" 2>&1) && echo "${SAY_OUTPUT}" | grep -q "Hello world!"; then
+            print_success "Voice command 'say hello' works correctly"
         else
-            print_error "Voice demo execution failed"
+            print_error "Voice command 'say hello' failed or output incorrect"
+            printf "Expected: Hello world!\nActual: %s\n" "${SAY_OUTPUT}"
+            exit 1
+        fi
+        
+        # Test 'change message' command  
+        if CHANGE_OUTPUT=$(./voice_demo_test "change message Test message" 2>&1) && echo "${CHANGE_OUTPUT}" | grep -q "Would change message to: Test message"; then
+            print_success "Voice command 'change message' works correctly"
+        else
+            print_error "Voice command 'change message' failed or output incorrect"
+            printf "Expected: Would change message to: Test message\nActual: %s\n" "${CHANGE_OUTPUT}"
+            exit 1
+        fi
+        
+        # Test 'show code' command
+        if SHOW_OUTPUT=$(./voice_demo_test "show code" 2>&1) && echo "${SHOW_OUTPUT}" | grep -q "Showing current code structure"; then
+            print_success "Voice command 'show code' works correctly"
+        else
+            print_error "Voice command 'show code' failed or output incorrect"
+            printf "Expected: Showing current code structure\nActual: %s\n" "${SHOW_OUTPUT}"
+            exit 1
+        fi
+        
+        # Test error handling with invalid command
+        if ERROR_OUTPUT=$(./voice_demo_test "invalid command" 2>&1) && echo "${ERROR_OUTPUT}" | grep -q "Voice command not recognized: invalid command"; then
+            print_success "Voice command error handling works correctly"
+        else
+            print_error "Voice command error handling failed or output incorrect"
+            printf "Expected: Voice command not recognized: invalid command\nActual: %s\n" "${ERROR_OUTPUT}"
+            exit 1
+        fi
+        
+        # Verify no files were modified during testing
+        FINAL_GIT_STATUS=$(git status --porcelain 2>/dev/null || echo "")
+        if [[ "${INITIAL_GIT_STATUS}" == "${FINAL_GIT_STATUS}" ]]; then
+            print_success "No source files modified during voice command testing"
+        else
+            print_error "Source files were unexpectedly modified during voice command testing"
+            printf "Git status changes:\n%s\n" "${FINAL_GIT_STATUS}"
+            exit 1
+        fi
+        
+        # Test interactive demo mode (full demo output)
+        if DEMO_OUTPUT=$(./voice_demo_test 2>&1); then
+            if echo "${DEMO_OUTPUT}" | grep -q "Voice-Driven Code Editing Demo" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Hello world!" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Would change message to:" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Showing current code structure" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Voice command not recognized:"; then
+                print_success "Interactive voice demo works correctly"
+            else
+                print_error "Interactive voice demo missing expected content"
+                printf "Demo output:\n%s\n" "${DEMO_OUTPUT}"
+                exit 1
+            fi
+        else
+            print_error "Interactive voice demo execution failed"
             exit 1
         fi
         
@@ -195,6 +227,7 @@ if [[ -f voice.c && -f voice.h ]]; then
         if [[ "${QUIET_MODE}" == "false" ]]; then
             printf "  - Voice command parsing: PASSED\n"
             printf "  - Voice demo execution: PASSED\n"
+            printf "  - File modification check: PASSED\n"
         fi
     else
         print_error "Voice demo compilation failed"

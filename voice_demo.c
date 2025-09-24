@@ -2,9 +2,18 @@
 #include "voice.h"
 
 // Voice-driven code editing demonstration
-// This version activates the voice command simulation for testing
+// Usage: ./voice_demo [command]
+// If no command provided, runs interactive demonstration
 
-int main(){
+int main(int argc, char *argv[]){
+    // If command-line argument provided, process single command for testing
+    if (argc > 1) {
+        // Non-interactive mode for CI testing
+        process_voice_command(argv[1]);
+        return 0;
+    }
+    
+    // Interactive demonstration mode
     printf("=== Voice-Driven Code Editing Demo ===\n");
     printf("Simulating voice commands for code editing:\n\n");
     
