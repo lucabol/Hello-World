@@ -5,7 +5,14 @@
 #
 # Usage: ./test/validate.sh [BINARY_PATH] [--quiet]
 #        BINARY_PATH: Optional path to binary to test (if not provided, builds hello_strict)
+#                     Supports formats: ./binary, binary, /path/to/binary
+#                     For optimized builds containing "optimized" in name, reports binary size
 #        --quiet: Reduce output verbosity for CI environments
+#        
+# Examples:
+#   ./test/validate.sh                    # Build and test hello_strict
+#   ./test/validate.sh hello_optimized    # Test existing hello_optimized binary
+#   ./test/validate.sh ./hello --quiet    # Test hello binary in quiet mode
 
 set -e  # Exit on any error
 set -u  # Exit on unset variables  

@@ -8,12 +8,18 @@
 
 # Compiler and flags configuration
 CC ?= gcc
-CLANG ?= clang
+CLANG ?= $(CC)
 CFLAGS ?= -Wall -Wextra -std=c99
 OPTFLAGS = -O2
 DEBUGFLAGS = -g
+# Size reduction flags for minimal binary size
+# -s: strip symbols (linker flag, safe for all builds)
+# -fno-exceptions and -fno-asynchronous-unwind-tables: reduce C++ overhead in C code
+# These flags are accepted by GCC 4.8+ and Clang 3.5+ but may be ignored in pure C
+SIZE_FLAGS ?= -s -fno-exceptions -fno-asynchronous-unwind-tables
 # STRICT_FLAGS: includes -Werror to fail on any warnings, ensuring code quality
-# Can be overridden to disable -Werror in development: make STRICT_FLAGS="-Wall -Wextra"
+# Can be overridden to disable -Werror in development:
+# Example: make strict STRICT_FLAGS="-Wpedantic -Wformat=2 -Wconversion -Wsign-conversion"
 STRICT_FLAGS ?= -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
 
 # Combined flag sets for cleaner target definitions
@@ -29,7 +35,7 @@ CLANG_TARGET = hello_clang
 STRICT_TARGET = hello_strict
 OPTIMIZED_TARGET = hello_optimized
 
-# Default target (optimized build)
+# Default target builds optimized hello binary (with -O2)
 all: $(TARGET)
 
 # Default optimized build target (hello binary with -O2)
@@ -48,17 +54,22 @@ strict: $(STRICT_TARGET)
 $(STRICT_TARGET): $(SOURCE)
 	$(CC) $(STRICT_CFLAGS) -o $(STRICT_TARGET) $(SOURCE)
 
-# Clang build target (with optimization)
+# Clang build target (with optimization) - falls back to CC if clang not available
 clang: $(CLANG_TARGET)
 
 $(CLANG_TARGET): $(SOURCE)
-	$(CLANG) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE)
+	@if ! command -v $(CLANG) >/dev/null 2>&1 && [ "$(CLANG)" != "$(CC)" ]; then \
+		echo "Warning: clang not found, using $(CC) instead"; \
+		$(CC) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE); \
+	else \
+		$(CLANG) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE); \
+	fi
 
 # Optimized build target with strip and size reduction flags for minimal size
 optimized: $(OPTIMIZED_TARGET)
 
 $(OPTIMIZED_TARGET): $(SOURCE)
-	$(CC) $(OPT_CFLAGS) -s -fno-exceptions -fno-asynchronous-unwind-tables -o $(OPTIMIZED_TARGET) $(SOURCE)
+	$(CC) $(OPT_CFLAGS) $(SIZE_FLAGS) -o $(OPTIMIZED_TARGET) $(SOURCE)
 
 # Run the default binary
 run: $(TARGET)
@@ -78,7 +89,8 @@ validate: strict
 	@bash test/validate.sh ./$(STRICT_TARGET)
 
 # Comprehensive validation target: test all build variants (for CI)
-validate-all: all debug strict clang optimized
+# Validates all available build variants, skipping unavailable ones with clear messages
+validate-all: all debug strict optimized
 	@echo "=== Validating default build ==="
 	@bash test/validate.sh ./$(TARGET)
 	@echo ""
@@ -88,11 +100,15 @@ validate-all: all debug strict clang optimized
 	@echo "=== Validating strict build ==="
 	@bash test/validate.sh ./$(STRICT_TARGET)
 	@echo ""
-	@echo "=== Validating Clang build ==="
-	@bash test/validate.sh ./$(CLANG_TARGET)
-	@echo ""
 	@echo "=== Validating optimized build ==="
 	@bash test/validate.sh ./$(OPTIMIZED_TARGET)
+	@echo ""
+	@echo "=== Validating Clang build ==="
+	@if $(MAKE) clang 2>/dev/null; then \
+		bash test/validate.sh ./$(CLANG_TARGET); \
+	else \
+		echo "Skipping Clang build - clang not available or build failed"; \
+	fi
 
 # Clean build artifacts
 clean:
