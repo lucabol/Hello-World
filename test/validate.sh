@@ -91,6 +91,11 @@ if [[ -n "${BINARY_TO_TEST}" ]]; then
     fi
     BINARY_PATH="${BINARY_TO_TEST}"
     print_info "Using provided binary: ${BINARY_PATH}"
+    # Report binary size for optimized builds
+    if [[ "${BINARY_PATH}" == *"optimized"* ]]; then
+        BINARY_SIZE=$(stat -c%s "${BINARY_PATH}" 2>/dev/null || echo "unknown")
+        print_info "Binary size: ${BINARY_SIZE} bytes"
+    fi
     USED_DIRECT_BUILD=false
 else
     # Build using direct GCC with strict flags for validation

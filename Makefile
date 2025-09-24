@@ -1,5 +1,10 @@
 # Makefile for Hello World C program
 # Standardizes build commands and provides consistent targets for development and CI
+#
+# Environment Requirements:
+# - GCC 4.8+ or Clang 3.5+ (tested with GCC 13.3.0, Clang 14.0)
+# - Linux/Unix environment (flags -fno-exceptions -fno-asynchronous-unwind-tables)
+# - Size reduction flags are for C code compatibility and minimal binary size
 
 # Compiler and flags configuration
 CC ?= gcc
@@ -8,7 +13,8 @@ CFLAGS ?= -Wall -Wextra -std=c99
 OPTFLAGS = -O2
 DEBUGFLAGS = -g
 # STRICT_FLAGS: includes -Werror to fail on any warnings, ensuring code quality
-STRICT_FLAGS = -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
+# Can be overridden to disable -Werror in development: make STRICT_FLAGS="-Wall -Wextra"
+STRICT_FLAGS ?= -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
 
 # Combined flag sets for cleaner target definitions
 STRICT_CFLAGS = $(CFLAGS) $(STRICT_FLAGS)
@@ -26,7 +32,7 @@ OPTIMIZED_TARGET = hello_optimized
 # Default target (optimized build)
 all: $(TARGET)
 
-# Optimized build target
+# Default optimized build target (hello binary with -O2)
 $(TARGET): $(SOURCE)
 	$(CC) $(OPT_CFLAGS) -o $(TARGET) $(SOURCE)
 
@@ -68,24 +74,25 @@ test-quiet:
 
 # Validate target: run validation script on built binaries (compatibility with main branch)
 validate: strict
-	@chmod +x validate.sh
 	@echo "=== Validating strict build ==="
-	@./validate.sh ./$(STRICT_TARGET)
+	@bash test/validate.sh ./$(STRICT_TARGET)
 
 # Comprehensive validation target: test all build variants (for CI)
-validate-all: all strict clang optimized
-	@chmod +x validate.sh
-	@echo "=== Validating optimized build ==="
-	@./validate.sh ./$(TARGET)
+validate-all: all debug strict clang optimized
+	@echo "=== Validating default build ==="
+	@bash test/validate.sh ./$(TARGET)
+	@echo ""
+	@echo "=== Validating debug build ==="
+	@bash test/validate.sh ./$(DEBUG_TARGET)
 	@echo ""
 	@echo "=== Validating strict build ==="
-	@./validate.sh ./$(STRICT_TARGET)
+	@bash test/validate.sh ./$(STRICT_TARGET)
 	@echo ""
 	@echo "=== Validating Clang build ==="
-	@./validate.sh ./$(CLANG_TARGET)
+	@bash test/validate.sh ./$(CLANG_TARGET)
 	@echo ""
 	@echo "=== Validating optimized build ==="
-	@./validate.sh ./$(OPTIMIZED_TARGET)
+	@bash test/validate.sh ./$(OPTIMIZED_TARGET)
 
 # Clean build artifacts
 clean:
@@ -94,7 +101,7 @@ clean:
 # Help target to show available commands
 help:
 	@echo "Available targets:"
-	@echo "  all      - Build optimized hello (default)"
+	@echo "  all      - Build default optimized hello (default)"
 	@echo "  debug    - Build with debug flags (-g)"
 	@echo "  strict   - Build with strict warnings and -Werror"
 	@echo "  clang    - Build with clang compiler"
