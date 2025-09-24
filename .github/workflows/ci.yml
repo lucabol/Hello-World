@@ -27,8 +27,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Build with Clang
+    - name: Build with Clang (with warnings)
       run: clang -Wall -Wextra -o hello_clang hello.c
       
-    - name: Test Clang build
-      run: ./hello_clang
+    - name: Run validation tests (Clang)
+      run: bash test/validate-binary.sh ./hello_clang --quiet
+
+  cross-compiler-validation:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: 
+          - { name: gcc, binary: hello_gcc, command: "gcc -Wall -Wextra -Wpedantic -Werror -o hello_gcc hello.c" }
+          - { name: clang, binary: hello_clang_matrix, command: "clang -Wall -Wextra -Wpedantic -Werror -o hello_clang_matrix hello.c" }
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build with ${{ matrix.compiler.name }} (strict)
+      run: ${{ matrix.compiler.command }}
+      
+    - name: Run comprehensive validation (${{ matrix.compiler.name }})
+      run: bash test/validate-binary.sh ./${{ matrix.compiler.binary }} --quiet
