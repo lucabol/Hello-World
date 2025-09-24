@@ -214,6 +214,43 @@ The editor implements three comprehensive security functions to prevent code inj
 - Responsive design adapts to mobile screens
 - Alternative keyboard navigation for accessibility
 
+## Educational Scope and Limitations
+
+### Intended Use
+**This visual editor is designed specifically for educational purposes and C programming learning.** It is NOT intended for production code development or as a replacement for professional development tools.
+
+### Educational Focus
+- **Learning Tool**: Helps students understand C program structure visually
+- **Concept Introduction**: Introduces programming concepts through drag-and-drop interface  
+- **Safe Environment**: Conservative validation prevents students from encountering complex errors
+- **Simplified Syntax**: Focuses on fundamental C constructs without advanced features
+
+### Explicit Limitations
+**The editor intentionally restricts advanced C features to maintain educational focus:**
+
+#### Not Supported (By Design)
+- **Complex Expressions**: Function calls, pointer operations, type casting
+- **Advanced Data Types**: Structures, unions, enums, complex pointer types
+- **Memory Management**: malloc/free, dynamic allocation
+- **String Manipulation**: String literals in expressions, string functions
+- **Preprocessor**: Advanced macros, conditional compilation  
+- **Error Handling**: Complex error checking, exception handling patterns
+
+#### Why These Limitations Exist
+1. **Cognitive Load**: Reduces complexity for beginners learning core concepts
+2. **Security**: Prevents potentially dangerous operations in educational context
+3. **Focus**: Concentrates on fundamental programming logic rather than language intricacies
+4. **Safety**: Ensures generated code compiles successfully with minimal errors
+
+### Production Development Recommendation
+For professional C development, use:
+- **IDEs**: Visual Studio, CLion, Code::Blocks, Dev-C++
+- **Text Editors**: VS Code, Vim, Emacs with C extensions
+- **Command Line Tools**: GCC/Clang directly with makefiles
+- **Professional Linters**: Static analysis tools, memory checkers
+
+This visual editor serves as a stepping stone toward these professional tools.
+
 ## Technical Details
 
 ### Generated Code Structure
