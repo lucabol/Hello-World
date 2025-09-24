@@ -16,3 +16,7 @@ hello_test*
 # Debug files
 *.dSYM/
 *.pdb
+
+# Generated metrics files
+code_metrics_spreadsheet.html
+metrics.json
