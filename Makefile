@@ -56,7 +56,7 @@ $(PLUGINS_DIR):
 	mkdir -p $(PLUGINS_DIR)
 
 # Example plugins
-plugins: $(PLUGINS_DIR)/uppercase.so $(PLUGINS_DIR)/exclamation.so
+plugins: $(PLUGINS_DIR)/uppercase.so $(PLUGINS_DIR)/exclamation.so $(PLUGINS_DIR)/reverse.so
 
 $(PLUGINS_DIR)/uppercase.so: plugins/uppercase.c plugin.h
 	@mkdir -p $(PLUGINS_DIR)
@@ -65,6 +65,10 @@ $(PLUGINS_DIR)/uppercase.so: plugins/uppercase.c plugin.h
 $(PLUGINS_DIR)/exclamation.so: plugins/exclamation.c plugin.h
 	@mkdir -p $(PLUGINS_DIR) 
 	$(CC) $(CFLAGS) $(PLUGIN_FLAGS) -o $(PLUGINS_DIR)/exclamation.so plugins/exclamation.c
+
+$(PLUGINS_DIR)/reverse.so: plugins/reverse.c plugin.h
+	@mkdir -p $(PLUGINS_DIR) 
+	$(CC) $(CFLAGS) $(PLUGIN_FLAGS) -o $(PLUGINS_DIR)/reverse.so plugins/reverse.c
 
 # Run the default binary
 run: $(TARGET)

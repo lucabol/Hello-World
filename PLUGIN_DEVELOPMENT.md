@@ -76,7 +76,27 @@ gcc -Wall -Wextra -std=c99 -fPIC -shared -o plugins/my_plugin.so my_plugin.c
 - `MAX_MESSAGE_SIZE`: Maximum message buffer size (256)
 - `MAX_PLUGINS`: Maximum number of plugins (32)
 
-## Example Plugins
+### Reverse Plugin
+Reverses the character order:
+```c
+static int reverse_transform(const char* input, char* output, size_t output_size) {
+    size_t len = strlen(input);
+    if (len >= output_size) return -1;
+    
+    for (size_t i = 0; i < len; i++) {
+        output[i] = input[len - 1 - i];
+    }
+    output[len] = '\0';
+    return 0;
+}
+```
+
+## Example Combinations
+
+- `uppercase.so` only: "Hello world!" → "HELLO WORLD!"
+- `reverse.so` only: "Hello world!" → "!dlrow olleH"  
+- `uppercase.so` + `exclamation.so`: "Hello world!" → "HELLO WORLD!!!"
+- All plugins: "Hello world!" → "!!!DLROW OLLEH" (order depends on loading sequence)
 
 ### Uppercase Plugin
 Converts the message to uppercase:

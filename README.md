@@ -36,7 +36,8 @@ rm plugins/*.so && make test
 ### Available Plugins
 
 - **uppercase.so**: Converts message to uppercase
-- **exclamation.so**: Adds extra exclamation marks
+- **exclamation.so**: Adds extra exclamation marks  
+- **reverse.so**: Reverses the character order
 
 ## Development
 
