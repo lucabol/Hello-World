@@ -66,7 +66,7 @@ print_info "Starting validation of Hello World program..."
 print_info "Building with strict compilation flags..."
 # Use GCC directly with strict flags to ensure code quality
 STRICT_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
-if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -o hello_strict hello.c 2>&1); then
+if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -ldl -rdynamic -o hello_strict hello.c plugin.c 2>&1); then
     print_success "Strict compilation passed with GCC"
     USED_DIRECT_BUILD=true
 else
