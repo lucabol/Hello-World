@@ -1,10 +1,9 @@
 name: Visual Editor CI
 
 on:
-  push:
-    branches: [ main, copilot/fix-1381 ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   test-visual-editor:
