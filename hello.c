@@ -9,6 +9,8 @@ void print_message(const char* message){
 }
 
 int main(void){
+    int rc = 0;
     print_message("Hello world!");
-    return 0;
+    printf("Exit code: %d\n", rc);
+    return rc;
 }
