@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Editor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .editor-area {
+            display: flex;
+            height: 600px;
+        }
+        
+        .blocks-panel {
+            width: 250px;
+            background: #ecf0f1;
+            border-right: 1px solid #bdc3c7;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .blocks-panel h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .block-item {
+            background: #3498db;
+            color: white;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        
+        .block-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .block-item:active {
+            cursor: grabbing;
+        }
+        
+        .workspace {
+            flex: 1;
+            padding: 20px;
+            background: #ffffff;
+            position: relative;
+            overflow: auto;
+        }
+        
+        .workspace-title {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .drop-zone {
+            min-height: 400px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 4px;
+            padding: 20px;
+            background: #fafafa;
+            position: relative;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #3498db;
+            background: #ebf3fd;
+        }
+        
+        .placed-block {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            cursor: move;
+            position: relative;
+            border-left: 4px solid #1e8449;
+        }
+        
+        .placed-block .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+        
+        .code-preview {
+            width: 350px;
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-left: 1px solid #bdc3c7;
+        }
+        
+        .code-preview h3 {
+            color: #ecf0f1;
+            padding: 20px 20px 0;
+            margin: 0;
+        }
+        
+        .code-output {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 20px;
+            white-space: pre;
+            line-height: 1.4;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #34495e;
+            text-align: center;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn.export {
+            background: #27ae60;
+        }
+        
+        .btn.export:hover {
+            background: #1e8449;
+        }
+        
+        .btn.clear {
+            background: #e74c3c;
+        }
+        
+        .btn.clear:hover {
+            background: #c0392b;
+        }
+        
+        .empty-workspace {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 100px;
+        }
+        
+        .success-message, .error-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧩 Visual C Code Editor</h1>
+            <p>Drag and drop blocks to create your C program</p>
+        </div>
+        
+        <div class="editor-area">
+            <div class="blocks-panel">
+                <h3>Available Blocks</h3>
+                <div class="block-item" draggable="true" data-block="include">
+                    #include &lt;stdio.h&gt;
+                </div>
+                <div class="block-item" draggable="true" data-block="main-start">
+                    int main() {
+                </div>
+                <div class="block-item" draggable="true" data-block="printf">
+                    printf("Hello world!");
+                </div>
+                <div class="block-item" draggable="true" data-block="return">
+                    return 0;
+                </div>
+                <div class="block-item" draggable="true" data-block="main-end">
+                    }
+                </div>
+            </div>
+            
+            <div class="workspace">
+                <h3 class="workspace-title">Program Workspace</h3>
+                <div class="drop-zone" id="dropZone">
+                    <div class="empty-workspace">
+                        Drag blocks from the left panel to build your C program
+                    </div>
+                </div>
+            </div>
+            
+            <div class="code-preview">
+                <h3>Generated C Code</h3>
+                <div class="code-output" id="codeOutput">// Your C code will appear here</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="success-message" id="successMessage"></div>
+            <div class="error-message" id="errorMessage"></div>
+            <button class="btn clear" onclick="clearWorkspace()">🗑️ Clear All</button>
+            <button class="btn" onclick="generateCode()">🔄 Refresh Code</button>
+            <button class="btn export" onclick="exportCode()">💾 Export to hello.c</button>
+        </div>
+    </div>
+    
+    <script>
+        let blocks = [];
+        let draggedBlock = null;
+        
+        // Block templates
+        const blockTemplates = {
+            'include': '#include <stdio.h>',
+            'main-start': 'int main(){',
+            'printf': '    printf("Hello world!");',
+            'return': '    return 0;',
+            'main-end': '}'
+        };
+        
+        // Initialize drag and drop
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            generateCode();
+        });
+        
+        function setupDragAndDrop() {
+            const blockItems = document.querySelectorAll('.block-item');
+            const dropZone = document.getElementById('dropZone');
+            
+            blockItems.forEach(block => {
+                block.addEventListener('dragstart', handleDragStart);
+            });
+            
+            dropZone.addEventListener('dragover', handleDragOver);
+            dropZone.addEventListener('drop', handleDrop);
+            dropZone.addEventListener('dragenter', handleDragEnter);
+            dropZone.addEventListener('dragleave', handleDragLeave);
+        }
+        
+        function handleDragStart(e) {
+            draggedBlock = e.target.getAttribute('data-block');
+            e.dataTransfer.effectAllowed = 'copy';
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+        
+        function handleDragEnter(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.add('dragover');
+        }
+        
+        function handleDragLeave(e) {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+                document.getElementById('dropZone').classList.remove('dragover');
+            }
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('dragover');
+            
+            if (draggedBlock) {
+                addBlock(draggedBlock);
+                draggedBlock = null;
+            }
+        }
+        
+        function addBlock(blockType) {
+            blocks.push(blockType);
+            updateWorkspace();
+            generateCode();
+        }
+        
+        function removeBlock(index) {
+            blocks.splice(index, 1);
+            updateWorkspace();
+            generateCode();
+        }
+        
+        function updateWorkspace() {
+            const dropZone = document.getElementById('dropZone');
+            
+            if (blocks.length === 0) {
+                dropZone.innerHTML = '<div class="empty-workspace">Drag blocks from the left panel to build your C program</div>';
+                return;
+            }
+            
+            dropZone.innerHTML = '';
+            blocks.forEach((blockType, index) => {
+                const blockElement = document.createElement('div');
+                blockElement.className = 'placed-block';
+                blockElement.innerHTML = `
+                    ${blockTemplates[blockType]}
+                    <button class="remove-btn" onclick="removeBlock(${index})">×</button>
+                `;
+                dropZone.appendChild(blockElement);
+            });
+        }
+        
+        function generateCode() {
+            const codeLines = blocks.map(blockType => blockTemplates[blockType]);
+            const code = codeLines.join('\n');
+            document.getElementById('codeOutput').textContent = code || '// Your C code will appear here';
+        }
+        
+        function clearWorkspace() {
+            if (blocks.length === 0) return;
+            
+            if (confirm('Are you sure you want to clear all blocks?')) {
+                blocks = [];
+                updateWorkspace();
+                generateCode();
+                showMessage('Workspace cleared!', 'success');
+            }
+        }
+        
+        function exportCode() {
+            if (blocks.length === 0) {
+                showMessage('No blocks to export! Add some blocks first.', 'error');
+                return;
+            }
+            
+            const codeLines = blocks.map(blockType => blockTemplates[blockType]);
+            const code = codeLines.join('\n');
+            
+            // Create and trigger download
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showMessage('Code exported as hello.c!', 'success');
+        }
+        
+        function showMessage(text, type) {
+            const messageId = type === 'success' ? 'successMessage' : 'errorMessage';
+            const messageElement = document.getElementById(messageId);
+            
+            // Hide both messages first
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            // Show the appropriate message
+            messageElement.textContent = text;
+            messageElement.style.display = 'block';
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                messageElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
