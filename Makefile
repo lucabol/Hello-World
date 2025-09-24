@@ -94,25 +94,30 @@ validate: strict
 	@bash test/validate.sh ./$(STRICT_TARGET)
 
 # Comprehensive validation target: test all build variants (for CI)
+# Returns non-zero on genuine failures but skips unavailable toolchains gracefully
+# Supports individual target validation: make validate-all TARGET=optimized
 validate-all: all debug strict optimized
-	@echo "=== Validating default build ==="
-	@bash test/validate.sh ./$(TARGET)
+	@echo "=== Validating default build ($(TARGET)) ==="
+	@bash test/validate.sh ./$(TARGET) || exit 1
 	@echo ""
-	@echo "=== Validating debug build ==="
-	@bash test/validate.sh ./$(DEBUG_TARGET)
+	@echo "=== Validating debug build ($(DEBUG_TARGET)) ==="
+	@bash test/validate.sh ./$(DEBUG_TARGET) || exit 1
 	@echo ""
-	@echo "=== Validating strict build ==="
-	@bash test/validate.sh ./$(STRICT_TARGET)
+	@echo "=== Validating strict build ($(STRICT_TARGET)) ==="
+	@bash test/validate.sh ./$(STRICT_TARGET) || exit 1
 	@echo ""
-	@echo "=== Validating optimized build ==="
-	@bash test/validate.sh ./$(OPTIMIZED_TARGET)
+	@echo "=== Validating optimized build ($(OPTIMIZED_TARGET)) ==="
+	@bash test/validate.sh ./$(OPTIMIZED_TARGET) || exit 1
 	@echo ""
-	@echo "=== Validating Clang build ==="
+	@echo "=== Validating Clang build ($(CLANG_TARGET)) ==="
 	@if command -v $(CLANG) >/dev/null 2>&1; then \
-		$(MAKE) clang && bash test/validate.sh ./$(CLANG_TARGET); \
+		echo "Building with Clang..."; \
+		$(MAKE) clang && bash test/validate.sh ./$(CLANG_TARGET) || exit 1; \
 	else \
-		echo "Skipping Clang build - clang not available"; \
+		echo "Skipping Clang build - clang not available (not an error)"; \
 	fi
+	@echo ""
+	@echo "=== All validation checks completed successfully ==="
 
 # Clean build artifacts (compatible with main branch)
 clean:
@@ -124,15 +129,35 @@ help:
 	@echo "  all      - Build default optimized hello (default)"
 	@echo "  debug    - Build with debug flags (-g)"
 	@echo "  strict   - Build with strict warnings and -Werror"
-	@echo "  clang    - Build with clang compiler"
+	@echo "  clang    - Build with clang compiler (fallback to gcc if unavailable)"
 	@echo "  optimized - Build with -O2 -s and size reduction flags for minimal size"
 	@echo "  run      - Run the default binary"
 	@echo "  test     - Build strict and run (for CI/validation)"
 	@echo "  test-quiet - Same as test but with minimal output"
 	@echo "  validate - Validate strict build output and exit code"
-	@echo "  validate-all - Validate all build variants"
+	@echo "  validate-target - Validate specific binary: make validate-target TARGET_BINARY=hello_optimized"
+	@echo "  validate-all - Validate all build variants with proper error handling"
 	@echo "  clean    - Remove all build artifacts"
 	@echo "  help     - Show this help message"
+	@echo ""
+	@echo "Binary targets produced:"
+	@echo "  $(TARGET)           - Default optimized binary"
+	@echo "  $(DEBUG_TARGET)     - Debug build with symbols"
+	@echo "  $(STRICT_TARGET)    - Strict build with -Werror"
+	@echo "  $(CLANG_TARGET)     - Clang-compiled binary (or gcc fallback)"
+	@echo "  $(OPTIMIZED_TARGET) - Size-optimized production binary"
+	@echo ""
+	@echo "Configuration variables (override with make VAR=value):"
+	@echo "  CC           - C compiler (default: gcc)"
+	@echo "  CLANG        - Clang compiler (default: clang)"
+	@echo "  SIZE_FLAGS   - Size reduction flags (default: -s -fno-exceptions -fno-asynchronous-unwind-tables)"
+	@echo "  STRICT_FLAGS - Strict compilation flags (default: includes -Werror)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make optimized                                    # Build optimized binary"
+	@echo "  make validate-all                                 # Test all build variants"
+	@echo "  make strict STRICT_FLAGS=\"-Wall -Wextra\"          # Build strict without -Werror"
+	@echo "  make optimized SIZE_FLAGS=\"-s\"                   # Build optimized with only strip flag"
 
 # Declare phony targets
-.PHONY: all debug strict clang optimized run test test-quiet validate validate-all clean help
+.PHONY: all debug strict clang optimized run test test-quiet validate validate-target validate-all clean help

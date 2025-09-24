@@ -86,17 +86,39 @@ print_info "Starting validation of Hello World program..."
 
 # Step 1: Determine the binary to test
 if [[ -n "${BINARY_TO_TEST}" ]]; then
-    # Add ./ prefix if not already present
-    if [[ "${BINARY_TO_TEST}" != ./* && "${BINARY_TO_TEST}" != /* ]]; then
-        BINARY_TO_TEST="./${BINARY_TO_TEST}"
+    # Normalize path handling for different invocation contexts
+    BINARY_PATH="${BINARY_TO_TEST}"
+    
+    # Convert relative paths to absolute for robustness across different CWDs
+    if [[ "${BINARY_PATH}" != /* ]]; then
+        # Handle relative paths - add ./ prefix if not already present
+        if [[ "${BINARY_PATH}" != ./* ]]; then
+            BINARY_PATH="./${BINARY_PATH}"
+        fi
+        # Convert to absolute path for CI/CD robustness
+        if command -v realpath >/dev/null 2>&1; then
+            BINARY_PATH=$(realpath "${BINARY_PATH}" 2>/dev/null || echo "${BINARY_PATH}")
+        fi
     fi
     
     # Use provided binary
-    if [[ ! -f "${BINARY_TO_TEST}" ]]; then
-        print_error "Provided binary ${BINARY_TO_TEST} does not exist"
+    if [[ ! -f "${BINARY_PATH}" ]]; then
+        print_error "Provided binary ${BINARY_PATH} does not exist"
+        print_error "Current directory: $(pwd)"
+        print_error "Available files: $(ls -la . | head -5)"
         exit 1
     fi
-    BINARY_PATH="${BINARY_TO_TEST}"
+    
+    # Verify binary is executable
+    if [[ ! -x "${BINARY_PATH}" ]]; then
+        print_error "Binary ${BINARY_PATH} is not executable"
+        chmod +x "${BINARY_PATH}" 2>/dev/null || {
+            print_error "Failed to make binary executable"
+            exit 1
+        }
+        print_info "Made binary executable: ${BINARY_PATH}"
+    fi
+    
     print_info "Using provided binary: ${BINARY_PATH}"
     # Report binary size for optimized builds
     if [[ "${BINARY_PATH}" == *"optimized"* ]]; then
@@ -142,14 +164,18 @@ OUTPUT="${OUTPUT_WITH_SENTINEL%x}"
 # Step 4: Verify exit code
 if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
     print_error "Program exited with code ${PROGRAM_EXIT_CODE}, expected 0"
+    print_error "Binary path: ${BINARY_PATH}"
+    print_error "Command executed: ${BINARY_PATH}"
     printf "Program output:\n%s\n" "${OUTPUT}"
+    print_error "Current directory: $(pwd)"
     exit 1
 fi
 print_success "Program exited with correct exit code (0)"
 
-# Step 5: Verify exact output format (must match exactly: "Hello world!" with trailing newline)
+# Step 5: Verify exact output format (must match exactly: "Hello world!" with "Exit code: 0" and trailing newlines)
 if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     print_error "Output mismatch!"
+    print_error "Binary: ${BINARY_PATH}"
     printf "Expected: '%s'\n" "${EXPECTED_OUTPUT}"
     printf "Actual:   '%s'\n" "${OUTPUT}"
     printf "Expected length: %d\n" "${#EXPECTED_OUTPUT}"
