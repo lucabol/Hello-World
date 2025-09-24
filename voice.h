@@ -12,12 +12,14 @@
  *                Expected format: "say hello", "change message <text>", "show code"
  *                Input should be reasonable length (< 1024 chars) for safety
  * 
+ * @return 0 on success (recognized command), 1 on failure (unrecognized command or error)
+ * 
  * Supported commands:
  * - "say hello" - Execute the main greeting functionality
  * - "change message <text>" - Simulate changing output message (display only)
  * - "show code" - Display current code structure for navigation
  * - Any other input - Reports unrecognized command
  */
-void process_voice_command(const char* command);
+int process_voice_command(const char* command);
 
 #endif /* VOICE_H */

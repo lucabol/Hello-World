@@ -9,8 +9,8 @@ int main(int argc, char *argv[]){
     // If command-line argument provided, process single command for testing
     if (argc > 1) {
         // Non-interactive mode for CI testing
-        process_voice_command(argv[1]);
-        return 0;
+        int result = process_voice_command(argv[1]);
+        return result; // Return 0 for success, 1 for failure
     }
     
     // Interactive demonstration mode
