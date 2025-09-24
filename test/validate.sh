@@ -88,9 +88,9 @@ else
     COMPILE_FLAGS="-Wall -Wextra -std=c99"
 fi
 
-# Add dynamic linking flags (conditional -rdynamic support)
+# Add dynamic linking flags with conditional -rdynamic support
 DYNAMIC_FLAGS="-ldl"
-if gcc -rdynamic 2>&1 | grep -qv "unrecognized\|unknown"; then
+if gcc -rdynamic -E - </dev/null >/dev/null 2>&1; then
     DYNAMIC_FLAGS="$DYNAMIC_FLAGS -rdynamic"
 fi
 

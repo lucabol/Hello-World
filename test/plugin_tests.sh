@@ -214,8 +214,8 @@ test_abi_version() {
 #include "../plugin.h"
 
 static int dummy_transform(const char* input, char* output, size_t output_size) {
-    strncpy(output, input, output_size - 1);
-    output[output_size - 1] = '\0';
+    if (strlen(input) >= output_size) return -1;
+    strcpy(output, input);
     return 0;
 }
 
@@ -231,14 +231,26 @@ plugin_info_t plugin_init(void) {
 }
 EOF
     
-    gcc -fPIC -shared -o "$PLUGINS_DIR/wrong_abi.so" "$TEST_PLUGINS_DIR/wrong_abi.c" 2>/dev/null
+    # Build the wrong ABI plugin
+    if gcc -fPIC -shared -I. -o "$PLUGINS_DIR/wrong_abi.so" "$TEST_PLUGINS_DIR/wrong_abi.c" 2>/dev/null; then
+        print_success "Wrong ABI plugin compiled successfully"
+    else
+        print_failure "Failed to compile wrong ABI plugin"
+        return
+    fi
     
     # Program should reject plugin with wrong ABI version  
     if output=$(./hello 2>&1); then
         if [[ "$output" == "Hello world!" ]]; then
-            print_success "Rejected plugin with wrong ABI version"
+            print_success "Correctly rejected plugin with wrong ABI version"
+            # Check that error message was printed to stderr
+            if ./hello 2>&1 | grep -q "incompatible ABI version"; then
+                print_success "Correct error message for ABI version mismatch"
+            else
+                print_failure "Missing error message for ABI version mismatch"
+            fi
         else
-            print_failure "Accepted plugin with wrong ABI version: '$output'"
+            print_failure "Incorrectly accepted plugin with wrong ABI version: '$output'"
         fi
     else
         print_failure "Program crashed with wrong ABI version plugin"

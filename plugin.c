@@ -99,6 +99,12 @@ int load_plugins_from_directory(const char* dir_path) {
         return 0;
     }
     
+    /* Plugin loading order: Plugins are loaded in alphabetical order by filename.
+     * This is determined by readdir() behavior, which typically returns entries 
+     * in filesystem order. For deterministic behavior across systems, we rely on
+     * alphabetical filename ordering. Transformers are then applied in the order
+     * they were registered (which is typically the load order).
+     */
     while ((entry = readdir(dir)) != NULL) {
         /* Look for .so files - must end with .so, not just contain it */
         size_t name_len = strlen(entry->d_name);
