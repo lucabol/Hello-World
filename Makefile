@@ -1,5 +1,6 @@
 # Makefile for Hello World C program
-# Standardizes build commands and provides consistent targets for development and CI
+# Provides standard build targets as documented in README
+# Enhanced with comprehensive validation and CI robustness features
 #
 # IMPORTANT: The 'strict' target uses -Werror which causes builds to fail on any warning
 # Override with: make strict STRICT_FLAGS="-Wpedantic -Wformat=2 -Wconversion -Wsign-conversion"
@@ -39,7 +40,7 @@ CLANG_TARGET = hello_clang
 STRICT_TARGET = hello_strict
 OPTIMIZED_TARGET = hello_optimized
 
-# Default target builds optimized hello binary (with -O2)
+# Default target - optimized build (compatible with main branch)
 all: $(TARGET)
 
 # Default optimized build target (hello binary with -O2)
@@ -79,7 +80,7 @@ $(OPTIMIZED_TARGET): $(SOURCE)
 run: $(TARGET)
 	./$(TARGET)
 
-# Test target: run validation script (which will call make strict)
+# Test target: run validation script (compatible with main branch)
 test:
 	bash test/validate.sh
 
@@ -87,13 +88,12 @@ test:
 test-quiet:
 	bash test/validate.sh --quiet
 
-# Validate target: run validation script on built binaries (compatibility with main branch)
+# Validate target: run validation script on built binaries
 validate: strict
 	@echo "=== Validating strict build ==="
 	@bash test/validate.sh ./$(STRICT_TARGET)
 
 # Comprehensive validation target: test all build variants (for CI)
-# Validates all available build variants, skipping unavailable ones with clear messages
 validate-all: all debug strict optimized
 	@echo "=== Validating default build ==="
 	@bash test/validate.sh ./$(TARGET)
@@ -114,7 +114,7 @@ validate-all: all debug strict optimized
 		echo "Skipping Clang build - clang not available"; \
 	fi
 
-# Clean build artifacts
+# Clean build artifacts (compatible with main branch)
 clean:
 	rm -f $(TARGET) $(DEBUG_TARGET) $(CLANG_TARGET) $(STRICT_TARGET) $(OPTIMIZED_TARGET) *.exe *.out *.o
 
