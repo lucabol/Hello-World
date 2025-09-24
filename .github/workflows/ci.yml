@@ -32,3 +32,37 @@ jobs:
       
     - name: Test Clang build
       run: ./hello_clang
+
+  collaborative-editor-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run collaborative editor tests
+      run: ./test_collab.sh
+      
+    - name: Run comprehensive security tests
+      run: node test-comprehensive.js
+      
+    - name: Test backward compatibility
+      run: |
+        make test
+        echo "✅ Original functionality preserved"
+        
+    - name: Test server startup (smoke test)
+      run: |
+        timeout 10s npm start &
+        sleep 5
+        curl -f http://localhost:8082/health || exit 1
+        echo "✅ Server startup successful"

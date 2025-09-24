@@ -22,4 +22,12 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+
+# Package lock files (include for reproducible builds)
+# Uncomment the next line to ignore package-lock.json if needed
+# package-lock.json
+
+# Test artifacts and temporary files
+test-helpers/
+*.tmp
+*.temp
