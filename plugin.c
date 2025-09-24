@@ -168,6 +168,10 @@ int load_plugins_from_directory(const char* dir_path) {
         if (plugin_count < MAX_PLUGINS) {
             loaded_plugins[plugin_count++] = handle;
             loaded_count++;
+            /* Only show plugin loading messages when plugins are actually found */
+            if (loaded_count == 1) {
+                /* First plugin loaded - this means we're in plugin mode */
+            }
             printf("Loaded plugin: %s - %s\n", info.name, info.description);
         } else {
             fprintf(stderr, "Maximum number of plugins (%d) reached, skipping %s\n", 
