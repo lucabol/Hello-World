@@ -31,28 +31,86 @@ class VisualEditorHandler(http.server.SimpleHTTPRequestHandler):
     def handle_save_code(self):
         """Handle saving generated C code to hello.c"""
         try:
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
-            
-            code = data.get('code', '')
-            if not code.strip():
-                self.send_json_response({'error': 'No code provided'}, 400)
+            # Validate Content-Length header
+            content_length = self.headers.get('Content-Length')
+            if not content_length:
+                self.send_json_response({'error': 'Missing Content-Length header'}, 400)
+                return
+                
+            try:
+                content_length = int(content_length)
+            except ValueError:
+                self.send_json_response({'error': 'Invalid Content-Length header'}, 400)
+                return
+                
+            if content_length > 10240:  # Limit to 10KB for safety
+                self.send_json_response({'error': 'Content too large'}, 413)
                 return
             
-            # Write to hello.c
-            with open('hello.c', 'w') as f:
-                f.write(code)
+            # Read and parse POST data
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+            except json.JSONDecodeError as e:
+                self.send_json_response({'error': f'Invalid JSON: {str(e)}'}, 400)
+                return
+            except UnicodeDecodeError as e:
+                self.send_json_response({'error': f'Invalid UTF-8 encoding: {str(e)}'}, 400)
+                return
+            
+            # Validate the code content
+            code = data.get('code', '')
+            if not code or not code.strip():
+                self.send_json_response({'error': 'No code provided or code is empty'}, 400)
+                return
+            
+            # Basic validation - ensure it looks like C code
+            if not ('#include' in code or 'main' in code):
+                self.send_json_response({'error': 'Code does not appear to be valid C code'}, 400)
+                return
+            
+            # Write to hello.c with proper error handling
+            try:
+                with open('hello.c', 'w', encoding='utf-8') as f:
+                    f.write(code)
+                    f.flush()  # Ensure data is written
+                    os.fsync(f.fileno())  # Force write to disk
+            except IOError as e:
+                self.send_json_response({
+                    'error': f'Failed to write hello.c: {str(e)}'
+                }, 500)
+                return
+            except Exception as e:
+                self.send_json_response({
+                    'error': f'Unexpected error writing file: {str(e)}'
+                }, 500)
+                return
+            
+            # Verify the file was written correctly
+            try:
+                with open('hello.c', 'r', encoding='utf-8') as f:
+                    written_content = f.read()
+                if written_content != code:
+                    self.send_json_response({
+                        'error': 'File verification failed - content mismatch'
+                    }, 500)
+                    return
+            except Exception as e:
+                # File was written but verification failed - still report success
+                # as the main operation succeeded
+                print(f"Warning: File verification failed: {e}")
             
             self.send_json_response({
                 'success': True,
-                'message': 'Code saved to hello.c successfully!'
+                'message': 'Code saved to hello.c successfully!',
+                'bytes_written': len(code.encode('utf-8'))
             })
             
         except Exception as e:
-            print(f"Error saving code: {e}")
+            print(f"Unexpected error in handle_save_code: {e}")
             self.send_json_response({
-                'error': f'Failed to save code: {str(e)}'
+                'error': f'Server error: {str(e)}'
             }, 500)
     
     def send_json_response(self, data, status_code=200):

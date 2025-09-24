@@ -170,6 +170,14 @@
             background: #1e8449;
         }
         
+        .btn.save {
+            background: #9b59b6;
+        }
+        
+        .btn.save:hover {
+            background: #8e44ad;
+        }
+        
         .btn.clear {
             background: #e74c3c;
         }
@@ -252,7 +260,8 @@
             <div class="error-message" id="errorMessage"></div>
             <button class="btn clear" onclick="clearWorkspace()">🗑️ Clear All</button>
             <button class="btn" onclick="generateCode()">🔄 Refresh Code</button>
-            <button class="btn export" onclick="exportCode()">💾 Export to hello.c</button>
+            <button class="btn export" onclick="exportCode()">💾 Download hello.c</button>
+            <button class="btn save" onclick="saveToServer()">🔧 Save to Server</button>
         </div>
     </div>
     
@@ -389,7 +398,38 @@
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
             
-            showMessage('Code exported as hello.c!', 'success');
+            showMessage('Code downloaded as hello.c!', 'success');
+        }
+        
+        function saveToServer() {
+            if (blocks.length === 0) {
+                showMessage('No blocks to save! Add some blocks first.', 'error');
+                return;
+            }
+            
+            const codeLines = blocks.map(blockType => blockTemplates[blockType]);
+            const code = codeLines.join('\n');
+            
+            // Send code to server to save
+            fetch('/save-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Code saved to server hello.c successfully!', 'success');
+                } else {
+                    showMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Failed to save to server: ' + error.message, 'error');
+            });
         }
         
         function showMessage(text, type) {
