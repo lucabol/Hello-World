@@ -37,10 +37,11 @@ test_code_generation() {
     cat > /tmp/test-generator.js << 'EOF'
 // Load the escaping and validation functions from visual editor
 function escapeForC(input) {
-    if (typeof input !== 'string') {
-        return String(input);
+    if (input == null) {
+        return '';
     }
-    return input
+    const inputStr = String(input);
+    return inputStr
         .replace(/\\/g, '\\\\')    // Escape backslashes
         .replace(/"/g, '\\"')      // Escape quotes
         .replace(/\n/g, '\\n')     // Escape newlines
@@ -50,35 +51,90 @@ function escapeForC(input) {
 }
 
 function validateCIdentifier(input) {
+    if (input == null) {
+        return 'defaultVar';
+    }
     const identifier = String(input).trim();
     const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+    if (identifier.length > 63) {
+        return 'defaultVar';
+    }
     return validPattern.test(identifier) ? identifier : 'defaultVar';
 }
 
 function validateCExpression(input) {
+    if (input == null) {
+        return '1';
+    }
     const expression = String(input).trim();
-    const sanitized = expression.replace(/[^\w\s+\-*/<>=!&|()[\].,]/g, '');
-    return sanitized || '1';
+    
+    const dangerousTokens = [';', '#', '`', '$', '\\', '"', "'", '/*', '//'];
+    for (const token of dangerousTokens) {
+        if (expression.includes(token)) {
+            return '1';
+        }
+    }
+    
+    const allowedChars = /^[a-zA-Z0-9_\s+\-*\/\<>=!&|()[\].,]*$/;
+    if (!allowedChars.test(expression)) {
+        return '1';
+    }
+    
+    if (expression.length > 200) {
+        return '1';
+    }
+    
+    return expression || '1';
 }
 
 // Test cases
 const tests = [
-    // Test escapeForC
+    // Test escapeForC - basic cases
     { fn: 'escapeForC', input: 'Hello "world"', expected: 'Hello \\"world\\"' },
     { fn: 'escapeForC', input: 'Line 1\nLine 2', expected: 'Line 1\\nLine 2' },
     { fn: 'escapeForC', input: 'Format %s test', expected: 'Format %%s test' },
     { fn: 'escapeForC', input: 'Path\\file', expected: 'Path\\\\file' },
     
-    // Test validateCIdentifier  
-    { fn: 'validateCIdentifier', input: 'validVar', expected: 'validVar' },
-    { fn: 'validateCIdentifier', input: 'invalid-var', expected: 'defaultVar' },
-    { fn: 'validateCIdentifier', input: '_privateVar', expected: '_privateVar' },
-    { fn: 'validateCIdentifier', input: '123invalid', expected: 'defaultVar' },
+    // Test escapeForC - edge cases  
+    { fn: 'escapeForC', input: null, expected: '' },
+    { fn: 'escapeForC', input: undefined, expected: '' },
+    { fn: 'escapeForC', input: 123, expected: '123' },
+    { fn: 'escapeForC', input: '', expected: '' },
     
-    // Test validateCExpression
+    // Test validateCIdentifier - valid cases
+    { fn: 'validateCIdentifier', input: 'validVar', expected: 'validVar' },
+    { fn: 'validateCIdentifier', input: '_privateVar', expected: '_privateVar' },
+    { fn: 'validateCIdentifier', input: 'a', expected: 'a' },
+    { fn: 'validateCIdentifier', input: 'var123', expected: 'var123' },
+    
+    // Test validateCIdentifier - invalid cases  
+    { fn: 'validateCIdentifier', input: 'invalid-var', expected: 'defaultVar' },
+    { fn: 'validateCIdentifier', input: '123invalid', expected: 'defaultVar' },
+    { fn: 'validateCIdentifier', input: '', expected: 'defaultVar' },
+    { fn: 'validateCIdentifier', input: '   ', expected: 'defaultVar' },
+    { fn: 'validateCIdentifier', input: null, expected: 'defaultVar' },
+    { fn: 'validateCIdentifier', input: undefined, expected: 'defaultVar' },
+    { fn: 'validateCIdentifier', input: 'a'.repeat(70), expected: 'defaultVar' }, // Too long
+    
+    // Test validateCExpression - safe expressions
     { fn: 'validateCExpression', input: 'x > 0', expected: 'x > 0' },
     { fn: 'validateCExpression', input: 'a + b * c', expected: 'a + b * c' },
-    { fn: 'validateCExpression', input: 'dangerous$()', expected: 'dangerous()' }
+    { fn: 'validateCExpression', input: '(x && y) || z', expected: '(x && y) || z' },
+    { fn: 'validateCExpression', input: 'arr[0] + arr[1]', expected: 'arr[0] + arr[1]' },
+    
+    // Test validateCExpression - dangerous/invalid cases
+    { fn: 'validateCExpression', input: 'x; system("rm -rf /")', expected: '1' },
+    { fn: 'validateCExpression', input: '#include <evil.h>', expected: '1' },
+    { fn: 'validateCExpression', input: 'dangerous$()', expected: '1' },
+    { fn: 'validateCExpression', input: 'x "string"', expected: '1' },
+    { fn: 'validateCExpression', input: "x 'c'", expected: '1' },
+    { fn: 'validateCExpression', input: 'x /* comment */', expected: '1' },
+    { fn: 'validateCExpression', input: 'x // comment', expected: '1' },
+    { fn: 'validateCExpression', input: 'x\\escape', expected: '1' },
+    { fn: 'validateCExpression', input: null, expected: '1' },
+    { fn: 'validateCExpression', input: undefined, expected: '1' },
+    { fn: 'validateCExpression', input: '', expected: '1' },
+    { fn: 'validateCExpression', input: 'x'.repeat(300), expected: '1' }, // Too long
 ];
 
 let passed = 0;

@@ -35,10 +35,11 @@ test_security_edge_cases() {
     cat > /tmp/security-test.js << 'EOF'
 // Security functions from visual editor
 function escapeForC(input) {
-    if (typeof input !== 'string') {
-        return String(input);
+    if (input == null) {
+        return '';
     }
-    return input
+    const inputStr = String(input);
+    return inputStr
         .replace(/\\/g, '\\\\')
         .replace(/"/g, '\\"')
         .replace(/\n/g, '\\n')
@@ -48,15 +49,40 @@ function escapeForC(input) {
 }
 
 function validateCIdentifier(input) {
+    if (input == null) {
+        return 'defaultVar';
+    }
     const identifier = String(input).trim();
     const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+    if (identifier.length > 63) {
+        return 'defaultVar';
+    }
     return validPattern.test(identifier) ? identifier : 'defaultVar';
 }
 
 function validateCExpression(input) {
+    if (input == null) {
+        return '1';
+    }
     const expression = String(input).trim();
-    const sanitized = expression.replace(/[^\w\s+\-*/<>=!&|()[\].,]/g, '');
-    return sanitized || '1';
+    
+    const dangerousTokens = [';', '#', '`', '$', '\\', '"', "'", '/*', '//'];
+    for (const token of dangerousTokens) {
+        if (expression.includes(token)) {
+            return '1';
+        }
+    }
+    
+    const allowedChars = /^[a-zA-Z0-9_\s+\-*\/\<>=!&|()[\].,]*$/;
+    if (!allowedChars.test(expression)) {
+        return '1';
+    }
+    
+    if (expression.length > 200) {
+        return '1';
+    }
+    
+    return expression || '1';
 }
 
 // Edge case tests
@@ -90,9 +116,9 @@ const edgeCases = [
     { fn: 'validateCExpression', input: '(x && y) || z', expected: '(x && y) || z' },
     { fn: 'validateCExpression', input: 'arr[0] + arr[1]', expected: 'arr[0] + arr[1]' },
     { fn: 'validateCExpression', input: 'x < 10 && x > 0', expected: 'x < 10 && x > 0' },
-    { fn: 'validateCExpression', input: 'dangerous$()', expected: 'dangerous()' },
-    { fn: 'validateCExpression', input: 'system("rm -rf /")', expected: 'system("rm -rf /")' },
-    { fn: 'validateCExpression', input: 'x;system("evil")', expected: 'x;system("evil")' }
+    { fn: 'validateCExpression', input: 'dangerous$()', expected: '1' },
+    { fn: 'validateCExpression', input: 'system("rm -rf /")', expected: '1' },
+    { fn: 'validateCExpression', input: 'x;system("evil")', expected: '1' }
 ];
 
 let passed = 0;

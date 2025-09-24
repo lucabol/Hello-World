@@ -456,10 +456,12 @@
 
         // Security: Input sanitization functions
         function escapeForC(input) {
-            if (typeof input !== 'string') {
-                return String(input);
+            // Handle null, undefined, and non-string inputs safely
+            if (input == null) {
+                return '';  // Convert null/undefined to empty string
             }
-            return input
+            const inputStr = String(input);
+            return inputStr
                 .replace(/\\/g, '\\\\')    // Escape backslashes
                 .replace(/"/g, '\\"')      // Escape quotes
                 .replace(/\n/g, '\\n')     // Escape newlines
@@ -469,18 +471,59 @@
         }
 
         function validateCIdentifier(input) {
+            // Handle null, undefined, and non-string inputs safely
+            if (input == null) {
+                return 'defaultVar';
+            }
             // Allow only valid C identifiers: letters, digits, underscore, starting with letter or underscore
             const identifier = String(input).trim();
             const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+            // Also reject if it's too long (C99 allows at least 63 chars for internal identifiers)
+            if (identifier.length > 63) {
+                return 'defaultVar';
+            }
             return validPattern.test(identifier) ? identifier : 'defaultVar';
         }
 
         function validateCExpression(input) {
-            // Basic validation for C expressions - allow common patterns but escape dangerous characters
+            // Handle null, undefined, and non-string inputs safely
+            if (input == null) {
+                return '1';  // Safe default expression
+            }
+            // Basic validation for C expressions - conservative whitelist approach
             const expression = String(input).trim();
-            // Remove potentially dangerous characters but allow basic C operators
-            const sanitized = expression.replace(/[^\w\s+\-*/<>=!&|()[\].,]/g, '');
-            return sanitized || '1'; // Default to '1' if empty
+            
+            // Reject expressions containing dangerous tokens
+            const dangerousTokens = [
+                ';',     // Statement separator - could allow injection
+                '#',     // Preprocessor directive
+                '`',     // Backtick - not valid in C but could be dangerous
+                '$',     // Not valid in C identifiers
+                '\\',    // Escape sequences could be dangerous
+                '"',     // String literals not allowed in expressions for safety
+                "'",     // Character literals - keeping simple for now
+                '/*',    // Comments could hide malicious code
+                '//',    // Comments could hide malicious code
+            ];
+            
+            for (const token of dangerousTokens) {
+                if (expression.includes(token)) {
+                    return '1';  // Reject and return safe default
+                }
+            }
+            
+            // Whitelist allowed characters: alphanumeric, operators, parentheses, brackets, spaces
+            const allowedChars = /^[a-zA-Z0-9_\s+\-*\/\<>=!&|()[\].,]*$/;
+            if (!allowedChars.test(expression)) {
+                return '1';  // Reject if contains disallowed characters
+            }
+            
+            // Additional length check to prevent extremely long expressions
+            if (expression.length > 200) {
+                return '1';
+            }
+            
+            return expression || '1'; // Default to '1' if empty
         }
 
         // Initialize drag and drop

@@ -91,27 +91,68 @@ The Visual C Code Editor is a web-based drag-and-drop interface that allows user
 
 ## Security Features
 
-### Input Sanitization
-The editor implements comprehensive input sanitization to prevent code injection and ensure valid C output:
+### Input Sanitization Functions
 
-```javascript
-// Example of escaping dangerous input
-Input: Hello "world" %s
-Output: Hello \"world\" %%s
+The editor implements three comprehensive security functions to prevent code injection:
 
-// Example of identifier validation  
-Input: invalid-name
-Output: defaultVar (fallback)
+#### 1. `escapeForC(input)` - String Literal Escaping
+- **Purpose**: Safely escapes user input for inclusion in C string literals
+- **Handles**: Quotes, backslashes, newlines, tabs, printf format specifiers
+- **Null safety**: Converts null/undefined to empty string, coerces other types to strings
+- **Example**:
+  ```javascript
+  escapeForC('Hello "world" %s') → 'Hello \"world\" %%s'
+  escapeForC(null) → ''
+  escapeForC(123) → '123'
+  ```
 
-// Example of expression sanitization
-Input: dangerous$()
-Output: dangerous (cleaned)
-```
+#### 2. `validateCIdentifier(input)` - C Identifier Validation
+- **Purpose**: Ensures variable/function names follow C identifier rules
+- **Validation**: Must start with letter/underscore, contain only alphanumeric/underscore
+- **Length limit**: Maximum 63 characters (C99 standard)
+- **Fallback**: Returns 'defaultVar' for invalid input
+- **Example**:
+  ```javascript
+  validateCIdentifier('valid_name') → 'valid_name'
+  validateCIdentifier('invalid-name') → 'defaultVar'
+  validateCIdentifier(null) → 'defaultVar'
+  ```
+
+#### 3. `validateCExpression(input)` - Expression Sanitization
+- **Purpose**: Validates C expressions using conservative whitelist approach
+- **Security**: Rejects dangerous tokens (semicolons, preprocessor directives, strings, comments)
+- **Whitelist**: Only allows alphanumeric chars, operators, parentheses, brackets
+- **Length limit**: Maximum 200 characters
+- **Fallback**: Returns '1' (safe numeric literal) for invalid input
+- **Example**:
+  ```javascript
+  validateCExpression('x > 0') → 'x > 0'
+  validateCExpression('x; system("rm")') → '1'  // Rejected - contains semicolon
+  validateCExpression('#include <evil>') → '1'  // Rejected - preprocessor
+  ```
+
+### Security Limitations & Scope
+
+**Educational Use Only**: This editor is designed for learning C programming concepts, not production code generation.
+
+**Expression Validation Constraints**:
+- Does not support string literals in expressions (for safety)
+- Does not support character literals 
+- Does not support function calls in expressions
+- Does not support pointer dereferencing or casting
+- Conservative approach may reject some valid C expressions
+
+**Not a C Compiler**: The editor performs basic syntax validation but does not:
+- Check for undefined variables
+- Validate function signatures
+- Perform type checking
+- Detect runtime errors
 
 ### Safe File Generation
 - Uses browser Blob API for secure file creation
-- No server-side processing required
+- No server-side processing required  
 - Generated files contain only validated C code
+- UTF-8 encoding prevents encoding-based attacks
 
 ## Browser Compatibility
 
