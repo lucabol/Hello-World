@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Editor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            color: white;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .editor-container {
+            display: flex;
+            flex: 1;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .block-palette {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .palette-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .block-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-title {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .canvas {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            min-height: 400px;
+            overflow: auto;
+        }
+
+        .canvas-content {
+            padding: 2rem;
+            min-height: 100%;
+        }
+
+        .canvas-title {
+            text-align: center;
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .output-panel {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .code-output, .preview-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .code-display {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+        }
+
+        .block {
+            background: #4299e1;
+            color: white;
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .block:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        .block:active {
+            cursor: grabbing;
+        }
+
+        .block.statement {
+            background: #38a169;
+        }
+
+        .block.statement:hover {
+            background: #2f855a;
+        }
+
+        .block.control {
+            background: #ed8936;
+        }
+
+        .block.control:hover {
+            background: #dd6b20;
+        }
+
+        .block.function {
+            background: #9f7aea;
+        }
+
+        .block.function:hover {
+            background: #805ad5;
+        }
+
+        .placed-block {
+            background: #4299e1;
+            color: white;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            cursor: move;
+            position: relative;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .placed-block:hover {
+            border-color: #3182ce;
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        .placed-block.statement {
+            background: #38a169;
+        }
+
+        .placed-block.control {
+            background: #ed8936;
+        }
+
+        .placed-block.function {
+            background: #9f7aea;
+        }
+
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            color: #718096;
+            min-height: 100px;
+            margin: 1rem 0;
+            transition: all 0.2s ease;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #4299e1;
+            background: rgba(66, 153, 225, 0.1);
+            color: #2d3748;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #3182ce;
+            transform: translateY(-1px);
+        }
+
+        .btn.success {
+            background: #38a169;
+        }
+
+        .btn.success:hover {
+            background: #2f855a;
+        }
+
+        .btn.danger {
+            background: #e53e3e;
+        }
+
+        .btn.danger:hover {
+            background: #c53030;
+        }
+
+        .block-input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            color: white;
+            font-size: 0.9rem;
+            margin: 0.25rem;
+        }
+
+        .block-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid #38a169;
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                flex-direction: column;
+            }
+            
+            .block-palette, .output-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Visual C Code Editor</h1>
+        <p>Drag and drop blocks to create C code, then export to hello.c</p>
+    </div>
+
+    <div class="editor-container">
+        <!-- Block Palette -->
+        <div class="block-palette">
+            <h3 class="palette-title">Programming Blocks</h3>
+            
+            <div class="block-category">
+                <h4 class="category-title">Basic Statements</h4>
+                <div class="block statement" draggable="true" data-type="printf">
+                    <strong>Print</strong><br>
+                    printf("<input type="text" class="block-input" placeholder="text" value="Hello world!">")
+                </div>
+                <div class="block statement" draggable="true" data-type="variable">
+                    <strong>Variable</strong><br>
+                    <select class="block-input" style="width: auto;">
+                        <option>int</option>
+                        <option>char</option>
+                        <option>float</option>
+                        <option>double</option>
+                    </select>
+                    <input type="text" class="block-input" placeholder="name" value="x">
+                    = <input type="text" class="block-input" placeholder="value" value="0">
+                </div>
+            </div>
+
+            <div class="block-category">
+                <h4 class="category-title">Control Flow</h4>
+                <div class="block control" draggable="true" data-type="if">
+                    <strong>If Statement</strong><br>
+                    if (<input type="text" class="block-input" placeholder="condition" value="x > 0">)
+                </div>
+                <div class="block control" draggable="true" data-type="for">
+                    <strong>For Loop</strong><br>
+                    for (int <input type="text" class="block-input" placeholder="var" value="i"> = <input type="text" class="block-input" placeholder="start" value="0">; 
+                    <input type="text" class="block-input" placeholder="var" value="i"> < <input type="text" class="block-input" placeholder="end" value="10">; 
+                    <input type="text" class="block-input" placeholder="var" value="i">++)
+                </div>
+            </div>
+
+            <div class="block-category">
+                <h4 class="category-title">Functions</h4>
+                <div class="block function" draggable="true" data-type="main">
+                    <strong>Main Function</strong><br>
+                    int main()
+                </div>
+                <div class="block function" draggable="true" data-type="include">
+                    <strong>Include</strong><br>
+                    #include &lt;<input type="text" class="block-input" placeholder="header" value="stdio.h">&gt;
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas">
+            <div class="canvas-content">
+                <h3 class="canvas-title">Drop blocks here to build your program</h3>
+                <div id="drop-zone" class="drop-zone">
+                    <p>Start by dragging blocks from the left panel</p>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn" onclick="generateCode()">Generate Code</button>
+                    <button class="btn success" onclick="exportToFile()">Export to hello.c</button>
+                    <button class="btn danger" onclick="clearCanvas()">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Panel -->
+        <div class="output-panel">
+            <div class="code-output">
+                <h3 class="panel-title">Generated C Code</h3>
+                <div id="code-display" class="code-display">// Your generated C code will appear here</div>
+            </div>
+            
+            <div class="preview-panel">
+                <h3 class="panel-title">Actions</h3>
+                <button class="btn" onclick="testCompile()" style="width: 100%; margin-bottom: 0.5rem;">Test Compile</button>
+                <button class="btn" onclick="runProgram()" style="width: 100%; margin-bottom: 0.5rem;">Run Program</button>
+                <div id="output-messages"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let draggedElement = null;
+        let blockCounter = 0;
+        let placedBlocks = [];
+
+        // Initialize drag and drop
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+        });
+
+        function setupDragAndDrop() {
+            // Handle dragging from palette
+            document.querySelectorAll('.block').forEach(block => {
+                block.addEventListener('dragstart', function(e) {
+                    draggedElement = this;
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+            });
+
+            // Handle drop zone
+            const dropZone = document.getElementById('drop-zone');
+            
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                this.classList.add('drag-over');
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                this.classList.remove('drag-over');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                if (draggedElement) {
+                    addBlockToCanvas(draggedElement);
+                    draggedElement = null;
+                }
+            });
+        }
+
+        function addBlockToCanvas(sourceBlock) {
+            blockCounter++;
+            const blockType = sourceBlock.dataset.type;
+            const blockCategory = sourceBlock.classList.contains('statement') ? 'statement' : 
+                                 sourceBlock.classList.contains('control') ? 'control' : 'function';
+
+            const placedBlock = document.createElement('div');
+            placedBlock.className = `placed-block ${blockCategory}`;
+            placedBlock.draggable = true;
+            placedBlock.dataset.type = blockType;
+            placedBlock.dataset.id = blockCounter;
+            
+            // Clone the content from the source block
+            placedBlock.innerHTML = sourceBlock.innerHTML;
+            
+            // Add remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '×';
+            removeBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.2); border: none; color: white; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;';
+            removeBtn.onclick = function(e) {
+                e.stopPropagation();
+                removeBlock(placedBlock);
+            };
+            placedBlock.appendChild(removeBtn);
+
+            // Add to placed blocks array
+            placedBlocks.push({
+                id: blockCounter,
+                type: blockType,
+                category: blockCategory,
+                element: placedBlock
+            });
+
+            // Insert into canvas
+            const dropZone = document.getElementById('drop-zone');
+            dropZone.parentNode.insertBefore(placedBlock, dropZone.nextSibling);
+
+            // Update drop zone text if this is the first block
+            if (placedBlocks.length === 1) {
+                dropZone.innerHTML = '<p>Add more blocks or drag to reorder</p>';
+            }
+
+            // Make placed blocks sortable
+            setupBlockSorting(placedBlock);
+            
+            // Auto-generate code
+            generateCode();
+        }
+
+        function setupBlockSorting(block) {
+            block.addEventListener('dragstart', function(e) {
+                draggedElement = this;
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            block.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            block.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (draggedElement && draggedElement !== this && draggedElement.classList.contains('placed-block')) {
+                    // Reorder blocks
+                    const draggedIndex = placedBlocks.findIndex(b => b.element === draggedElement);
+                    const targetIndex = placedBlocks.findIndex(b => b.element === this);
+                    
+                    if (draggedIndex !== -1 && targetIndex !== -1) {
+                        // Move in DOM
+                        if (draggedIndex < targetIndex) {
+                            this.parentNode.insertBefore(draggedElement, this.nextSibling);
+                        } else {
+                            this.parentNode.insertBefore(draggedElement, this);
+                        }
+                        
+                        // Update array
+                        const [movedBlock] = placedBlocks.splice(draggedIndex, 1);
+                        placedBlocks.splice(targetIndex, 0, movedBlock);
+                        
+                        generateCode();
+                    }
+                }
+                draggedElement = null;
+            });
+        }
+
+        function removeBlock(blockElement) {
+            const blockId = parseInt(blockElement.dataset.id);
+            placedBlocks = placedBlocks.filter(b => b.id !== blockId);
+            blockElement.remove();
+            
+            // Update drop zone if no blocks left
+            if (placedBlocks.length === 0) {
+                document.getElementById('drop-zone').innerHTML = '<p>Start by dragging blocks from the left panel</p>';
+            }
+            
+            generateCode();
+        }
+
+        function generateCode() {
+            let code = '';
+            let hasInclude = false;
+            let hasMain = false;
+            let mainContent = '';
+            let declarations = '';
+
+            // Process blocks in order
+            placedBlocks.forEach(block => {
+                const element = block.element;
+                const inputs = element.querySelectorAll('.block-input');
+                
+                switch(block.type) {
+                    case 'include':
+                        const header = inputs[0] ? inputs[0].value || 'stdio.h' : 'stdio.h';
+                        code += `#include <${header}>\n`;
+                        hasInclude = true;
+                        break;
+                        
+                    case 'variable':
+                        const varType = element.querySelector('select') ? element.querySelector('select').value : 'int';
+                        const varName = inputs[1] ? inputs[1].value || 'x' : 'x';
+                        const varValue = inputs[2] ? inputs[2].value || '0' : '0';
+                        declarations += `    ${varType} ${varName} = ${varValue};\n`;
+                        break;
+                        
+                    case 'main':
+                        hasMain = true;
+                        break;
+                        
+                    case 'printf':
+                        const text = inputs[0] ? inputs[0].value || 'Hello world!' : 'Hello world!';
+                        mainContent += `    printf("${text}\\n");\n`;
+                        break;
+                        
+                    case 'if':
+                        const condition = inputs[0] ? inputs[0].value || 'x > 0' : 'x > 0';
+                        mainContent += `    if (${condition}) {\n        // Add statements here\n    }\n`;
+                        break;
+                        
+                    case 'for':
+                        const loopVar = inputs[0] ? inputs[0].value || 'i' : 'i';
+                        const startVal = inputs[1] ? inputs[1].value || '0' : '0';
+                        const endVar = inputs[2] ? inputs[2].value || 'i' : 'i';
+                        const endVal = inputs[3] ? inputs[3].value || '10' : '10';
+                        const incVar = inputs[4] ? inputs[4].value || 'i' : 'i';
+                        mainContent += `    for (int ${loopVar} = ${startVal}; ${endVar} < ${endVal}; ${incVar}++) {\n        // Add statements here\n    }\n`;
+                        break;
+                }
+            });
+
+            // Build complete program
+            if (!hasInclude) {
+                code += '#include <stdio.h>\n';
+            }
+            
+            code += '\n';
+            
+            if (hasMain || placedBlocks.length > 0) {
+                code += 'int main() {\n';
+                code += declarations;
+                code += mainContent;
+                if (!mainContent.includes('printf')) {
+                    code += '    printf("Hello world!\\n");\n';
+                }
+                code += '    return 0;\n';
+                code += '}\n';
+            } else {
+                code += 'int main() {\n    printf("Hello world!\\n");\n    return 0;\n}\n';
+            }
+
+            document.getElementById('code-display').textContent = code;
+            return code;
+        }
+
+        function exportToFile() {
+            const code = generateCode();
+            
+            // Create a download link
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage('Generated code exported as hello.c! You can now compile it with: gcc -o hello hello.c', 'success');
+        }
+
+        function clearCanvas() {
+            if (confirm('Are you sure you want to clear all blocks?')) {
+                placedBlocks.forEach(block => block.element.remove());
+                placedBlocks = [];
+                blockCounter = 0;
+                document.getElementById('drop-zone').innerHTML = '<p>Start by dragging blocks from the left panel</p>';
+                document.getElementById('code-display').textContent = '// Your generated C code will appear here';
+                clearMessages();
+            }
+        }
+
+        function testCompile() {
+            const code = generateCode();
+            // Simulate compilation check (in real implementation, this would call a backend service)
+            showMessage('Code syntax appears valid! Download and compile with: gcc -o hello hello.c', 'success');
+        }
+
+        function runProgram() {
+            showMessage('Download the generated hello.c file and run: gcc -o hello hello.c && ./hello', 'success');
+        }
+
+        function showMessage(message, type = 'info') {
+            const messagesDiv = document.getElementById('output-messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = type === 'success' ? 'success-message' : 'error-message';
+            messageEl.textContent = message;
+            messagesDiv.appendChild(messageEl);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 5000);
+        }
+
+        function clearMessages() {
+            document.getElementById('output-messages').innerHTML = '';
+        }
+
+        // Prevent form submission on enter in input fields
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.classList.contains('block-input')) {
+                e.preventDefault();
+                generateCode();
+            }
+        });
+
+        // Auto-generate code when inputs change
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('block-input')) {
+                generateCode();
+            }
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('block-input')) {
+                generateCode();
+            }
+        });
+    </script>
+</body>
+</html>
