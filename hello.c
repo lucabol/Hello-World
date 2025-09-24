@@ -1,5 +1,6 @@
-# include <stdio.h>
+#include <stdio.h>
 
-int main(){
-    printf("Ciao, Mondo!\n");
+int main(void){
+    puts("Ciao, Mondo!");
+    return 0;
 }
