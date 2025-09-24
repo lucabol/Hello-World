@@ -30,7 +30,7 @@ else
 fi
 
 # Expected output (with trailing newline)
-EXPECTED_OUTPUT="Ciao, Mondo!"$'\n'
+EXPECTED_OUTPUT="Ciao, Mondo!"$'\n'"Exit code: 0"$'\n'
 
 # Function to print colored messages using safer printf formatting
 print_success() {
