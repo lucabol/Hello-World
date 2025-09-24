@@ -3,7 +3,8 @@
 # Tests that the program builds correctly and produces expected output
 # Uses direct GCC compilation for maximum compatibility
 #
-# Usage: ./test/validate.sh [--quiet]
+# Usage: ./test/validate.sh [BINARY_PATH] [--quiet]
+#        BINARY_PATH: Optional path to binary to test (if not provided, builds hello_strict)
 #        --quiet: Reduce output verbosity for CI environments
 
 set -e  # Exit on any error
@@ -12,9 +13,19 @@ set -o pipefail  # Exit on pipeline failures
 
 # Parse command line arguments
 QUIET_MODE=false
-if [[ ${#} -gt 0 && "${1}" == "--quiet" ]]; then
-    QUIET_MODE=true
-fi
+BINARY_TO_TEST=""
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --quiet)
+            QUIET_MODE=true
+            ;;
+        ./*)
+            BINARY_TO_TEST="$arg"
+            ;;
+    esac
+done
 
 # Colors for output (disabled in quiet mode)
 if [[ "${QUIET_MODE}" == "false" ]]; then
@@ -62,24 +73,37 @@ trap cleanup EXIT
 
 print_info "Starting validation of Hello World program..."
 
-# Step 1: Build using direct GCC with strict flags for validation
-print_info "Building with strict compilation flags..."
-# Use GCC directly with strict flags to ensure code quality
-STRICT_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
-if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -o hello_strict hello.c 2>&1); then
-    print_success "Strict compilation passed with GCC"
-    USED_DIRECT_BUILD=true
+# Step 1: Determine the binary to test
+if [[ -n "${BINARY_TO_TEST}" ]]; then
+    # Use provided binary
+    if [[ ! -f "${BINARY_TO_TEST}" ]]; then
+        print_error "Provided binary ${BINARY_TO_TEST} does not exist"
+        exit 1
+    fi
+    BINARY_PATH="${BINARY_TO_TEST}"
+    print_info "Using provided binary: ${BINARY_PATH}"
+    USED_DIRECT_BUILD=false
 else
-    BUILD_EXIT_CODE=$?
-    print_error "Strict compilation failed (exit code: ${BUILD_EXIT_CODE})"
-    printf "Build output:\n%s\n" "${BUILD_OUTPUT}"
-    exit 1
-fi
-
-# Step 2: Check if binary exists
-if [[ ! -f hello_strict ]]; then
-    print_error "Binary hello_strict was not created"
-    exit 1
+    # Build using direct GCC with strict flags for validation
+    print_info "Building with strict compilation flags..."
+    # Use GCC directly with strict flags to ensure code quality
+    STRICT_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
+    if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -o hello_strict hello.c 2>&1); then
+        print_success "Strict compilation passed with GCC"
+        USED_DIRECT_BUILD=true
+    else
+        BUILD_EXIT_CODE=$?
+        print_error "Strict compilation failed (exit code: ${BUILD_EXIT_CODE})"
+        printf "Build output:\n%s\n" "${BUILD_OUTPUT}"
+        exit 1
+    fi
+    
+    # Step 2: Check if binary exists
+    if [[ ! -f hello_strict ]]; then
+        print_error "Binary hello_strict was not created"
+        exit 1
+    fi
+    BINARY_PATH="./hello_strict"
 fi
 
 # Step 3: Run the program and capture output and exit code
@@ -87,7 +111,7 @@ print_info "Running program and capturing output..."
 # Temporarily disable set -e to capture exit code properly
 set +e
 # Use a method that preserves trailing whitespace by adding a sentinel
-OUTPUT_WITH_SENTINEL=$(./hello_strict 2>&1; printf x)
+OUTPUT_WITH_SENTINEL=$(${BINARY_PATH} 2>&1; printf x)
 PROGRAM_EXIT_CODE=$?
 set -e
 
