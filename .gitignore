@@ -13,6 +13,9 @@ hello_test*
 *.o
 *.obj
 
+# Plugin shared objects
+plugins/*.so
+
 # Debug files
 *.dSYM/
 *.pdb
