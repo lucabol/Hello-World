@@ -33,19 +33,21 @@ jobs:
     - name: Run validation tests (Clang)
       run: bash test/validate-binary.sh ./hello_clang --quiet
 
+  # Comprehensive cross-compiler validation with strict flags
+  # Uses -Werror to ensure code quality - builds may fail on new warnings
   cross-compiler-validation:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         compiler: 
-          - { name: gcc, binary: hello_gcc, command: "gcc -Wall -Wextra -Wpedantic -Werror -o hello_gcc hello.c" }
-          - { name: clang, binary: hello_clang_matrix, command: "clang -Wall -Wextra -Wpedantic -Werror -o hello_clang_matrix hello.c" }
+          - { name: gcc, binary: hello_gcc_strict, command: "gcc -Wall -Wextra -Wpedantic -Werror -o hello_gcc_strict hello.c" }
+          - { name: clang, binary: hello_clang_strict, command: "clang -Wall -Wextra -Wpedantic -Werror -o hello_clang_strict hello.c" }
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Build with ${{ matrix.compiler.name }} (strict)
+    - name: Build with ${{ matrix.compiler.name }} (strict warnings)
       run: ${{ matrix.compiler.command }}
       
     - name: Run comprehensive validation (${{ matrix.compiler.name }})

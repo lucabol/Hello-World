@@ -2,9 +2,15 @@
 # Binary validation script for Hello World C program
 # Tests that a pre-built binary produces expected output and exit code
 # 
+# Requirements: Basic Unix tools (standard on ubuntu-latest)
+# - hexdump (preferred), xxd, or od for hex output (fallback provided)
+# 
 # Usage: ./test/validate-binary.sh <binary_path> [--quiet]
 #        binary_path: Path to the binary to validate
 #        --quiet: Reduce output verbosity for CI environments
+#
+# Note: This script expects text output only and validates byte-level
+# output format including trailing newlines
 
 set -e  # Exit on any error
 set -u  # Exit on unset variables
@@ -22,8 +28,8 @@ if [[ ${#} -gt 1 && "${2}" == "--quiet" ]]; then
     QUIET_MODE=true
 fi
 
-# Colors for output (disabled in quiet mode)
-if [[ "${QUIET_MODE}" == "false" ]]; then
+# Colors for output (disabled in quiet mode or non-TTY)
+if [[ "${QUIET_MODE}" == "false" && -t 1 ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
@@ -55,6 +61,23 @@ print_info() {
     fi
 }
 
+# Function to create hex dump with fallback options
+create_hex_dump() {
+    local input="$1"
+    # Try hexdump first (most common), then xxd, then od as fallback
+    if command -v hexdump >/dev/null 2>&1; then
+        printf '%s' "${input}" | hexdump -C | head -3
+    elif command -v xxd >/dev/null 2>&1; then
+        printf '%s' "${input}" | xxd | head -3
+    elif command -v od >/dev/null 2>&1; then
+        printf '%s' "${input}" | od -c | head -3
+    else
+        printf "Raw bytes (length: %d): " "${#input}"
+        printf '%s' "${input}" | cat -v
+        printf "\n(Install hexdump/xxd/od for detailed hex output)\n"
+    fi
+}
+
 print_info "Starting validation of binary: ${BINARY_PATH}"
 
 # Step 1: Check if binary exists and is executable
@@ -74,12 +97,19 @@ print_success "Binary exists and is executable"
 print_info "Running program and capturing output..."
 # Temporarily disable set -e to capture exit code properly
 set +e
-# Use a method that preserves trailing whitespace by adding a sentinel
-OUTPUT_WITH_SENTINEL=$("${BINARY_PATH}" 2>&1; printf x)
+# Use sentinel method to preserve trailing whitespace, but capture exit code correctly
+# Create a temporary function to run the binary and return its exit code
+run_binary_with_sentinel() {
+    "${BINARY_PATH}" 2>&1
+    local exit_code=$?
+    printf "x"  # sentinel
+    return $exit_code
+}
+OUTPUT_WITH_SENTINEL=$(run_binary_with_sentinel)
 PROGRAM_EXIT_CODE=$?
 set -e
 
-# Remove the sentinel to get the exact output
+# Remove the sentinel to get the exact output (preserves trailing whitespace)
 OUTPUT="${OUTPUT_WITH_SENTINEL%x}"
 
 # Step 3: Verify exit code
@@ -99,9 +129,9 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     printf "Actual length:   %d\n" "${#OUTPUT}"
     # Show hex dump for detailed analysis
     printf "Expected (hex): "
-    printf '%s' "${EXPECTED_OUTPUT}" | hexdump -C | head -1
+    create_hex_dump "${EXPECTED_OUTPUT}"
     printf "Actual (hex):   "
-    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    create_hex_dump "${OUTPUT}"
     exit 1
 fi
 print_success "Output format is correct"
@@ -113,7 +143,7 @@ if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
     print_error "Output missing expected trailing newline"
     printf "Output should end with newline character (hex 0a)\n"
     printf "Raw output (hex): "
-    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    create_hex_dump "${OUTPUT}"
     exit 1
 fi
 print_success "Trailing newline confirmed"
