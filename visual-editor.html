@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!--
+  Visual C Code Editor
+  Copyright (c) 2024 - Open Source Project
+  Licensed under the same terms as the Hello-World repository
+  
+  A web-based visual programming interface for creating C code using drag-and-drop blocks.
+  No external services or analytics are used - completely self-contained and privacy-focused.
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -42,6 +50,8 @@
             padding: 1rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
+            role: region;
+            aria-label: "Programming blocks palette";
         }
 
         .palette-title {
@@ -71,6 +81,8 @@
             position: relative;
             min-height: 400px;
             overflow: auto;
+            role: region;
+            aria-label: "Visual programming canvas";
         }
 
         .canvas-content {
@@ -119,6 +131,9 @@
             max-height: 300px;
             overflow-y: auto;
             border: 1px solid #4a5568;
+            role: textbox;
+            aria-label: "Generated C code";
+            aria-readonly: "true";
         }
 
         .block {
@@ -132,12 +147,20 @@
             transition: all 0.2s ease;
             border: 2px solid transparent;
             position: relative;
+            role: button;
+            tabindex: 0;
+            aria-label: "Draggable programming block";
         }
 
         .block:hover {
             background: #3182ce;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        .block:focus {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
         }
 
         .block:active {
@@ -178,11 +201,19 @@
             position: relative;
             border: 2px solid transparent;
             transition: all 0.2s ease;
+            role: button;
+            tabindex: 0;
+            aria-label: "Placed programming block - press Delete to remove";
         }
 
         .placed-block:hover {
             border-color: #3182ce;
             box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        .placed-block:focus {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
         }
 
         .placed-block.statement {
@@ -206,6 +237,8 @@
             min-height: 100px;
             margin: 1rem 0;
             transition: all 0.2s ease;
+            role: region;
+            aria-label: "Drop zone for programming blocks";
         }
 
         .drop-zone.drag-over {
@@ -230,11 +263,17 @@
             cursor: pointer;
             font-weight: 600;
             transition: all 0.2s ease;
+            tabindex: 0;
         }
 
         .btn:hover {
             background: #3182ce;
             transform: translateY(-1px);
+        }
+
+        .btn:focus {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
         }
 
         .btn.success {
@@ -267,6 +306,11 @@
             color: rgba(255, 255, 255, 0.7);
         }
 
+        .block-input:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.8);
+            outline-offset: 1px;
+        }
+
         .error-message {
             background: #fed7d7;
             color: #c53030;
@@ -274,6 +318,7 @@
             border-radius: 6px;
             margin: 1rem 0;
             border-left: 4px solid #e53e3e;
+            role: alert;
         }
 
         .success-message {
@@ -283,6 +328,17 @@
             border-radius: 6px;
             margin: 1rem 0;
             border-left: 4px solid #38a169;
+            role: alert;
+        }
+
+        .accessibility-note {
+            background: #bee3f8;
+            color: #2c5aa0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            font-size: 0.8rem;
+            text-align: center;
         }
 
         @media (max-width: 768px) {
@@ -300,6 +356,9 @@
     <div class="header">
         <h1>Visual C Code Editor</h1>
         <p>Drag and drop blocks to create C code, then export to hello.c</p>
+        <div class="accessibility-note">
+            Keyboard users: Use Tab to navigate, Enter/Space to select blocks, Delete to remove placed blocks
+        </div>
     </div>
 
     <div class="editor-container">
@@ -309,46 +368,46 @@
             
             <div class="block-category">
                 <h4 class="category-title">Basic Statements</h4>
-                <div class="block statement" draggable="true" data-type="printf">
+                <div class="block statement" draggable="true" data-type="printf" tabindex="0" role="button" aria-label="Print statement block">
                     <strong>Print</strong><br>
-                    printf("<input type="text" class="block-input" placeholder="text" value="Hello world!">")
+                    printf("<input type="text" class="block-input" placeholder="text" value="Hello world!" aria-label="Print text">")
                 </div>
-                <div class="block statement" draggable="true" data-type="variable">
+                <div class="block statement" draggable="true" data-type="variable" tabindex="0" role="button" aria-label="Variable declaration block">
                     <strong>Variable</strong><br>
-                    <select class="block-input" style="width: auto;">
+                    <select class="block-input" style="width: auto;" aria-label="Variable type">
                         <option>int</option>
                         <option>char</option>
                         <option>float</option>
                         <option>double</option>
                     </select>
-                    <input type="text" class="block-input" placeholder="name" value="x">
-                    = <input type="text" class="block-input" placeholder="value" value="0">
+                    <input type="text" class="block-input" placeholder="name" value="x" aria-label="Variable name">
+                    = <input type="text" class="block-input" placeholder="value" value="0" aria-label="Variable value">
                 </div>
             </div>
 
             <div class="block-category">
                 <h4 class="category-title">Control Flow</h4>
-                <div class="block control" draggable="true" data-type="if">
+                <div class="block control" draggable="true" data-type="if" tabindex="0" role="button" aria-label="If statement block">
                     <strong>If Statement</strong><br>
-                    if (<input type="text" class="block-input" placeholder="condition" value="x > 0">)
+                    if (<input type="text" class="block-input" placeholder="condition" value="x > 0" aria-label="If condition">)
                 </div>
-                <div class="block control" draggable="true" data-type="for">
+                <div class="block control" draggable="true" data-type="for" tabindex="0" role="button" aria-label="For loop block">
                     <strong>For Loop</strong><br>
-                    for (int <input type="text" class="block-input" placeholder="var" value="i"> = <input type="text" class="block-input" placeholder="start" value="0">; 
-                    <input type="text" class="block-input" placeholder="var" value="i"> < <input type="text" class="block-input" placeholder="end" value="10">; 
-                    <input type="text" class="block-input" placeholder="var" value="i">++)
+                    for (int <input type="text" class="block-input" placeholder="var" value="i" aria-label="Loop variable"> = <input type="text" class="block-input" placeholder="start" value="0" aria-label="Start value">; 
+                    <input type="text" class="block-input" placeholder="var" value="i" aria-label="Condition variable"> < <input type="text" class="block-input" placeholder="end" value="10" aria-label="End value">; 
+                    <input type="text" class="block-input" placeholder="var" value="i" aria-label="Increment variable">++)
                 </div>
             </div>
 
             <div class="block-category">
                 <h4 class="category-title">Functions</h4>
-                <div class="block function" draggable="true" data-type="main">
+                <div class="block function" draggable="true" data-type="main" tabindex="0" role="button" aria-label="Main function block">
                     <strong>Main Function</strong><br>
                     int main()
                 </div>
-                <div class="block function" draggable="true" data-type="include">
+                <div class="block function" draggable="true" data-type="include" tabindex="0" role="button" aria-label="Include header block">
                     <strong>Include</strong><br>
-                    #include &lt;<input type="text" class="block-input" placeholder="header" value="stdio.h">&gt;
+                    #include &lt;<input type="text" class="block-input" placeholder="header" value="stdio.h" aria-label="Header file name">&gt;
                 </div>
             </div>
         </div>
@@ -357,14 +416,14 @@
         <div class="canvas">
             <div class="canvas-content">
                 <h3 class="canvas-title">Drop blocks here to build your program</h3>
-                <div id="drop-zone" class="drop-zone">
-                    <p>Start by dragging blocks from the left panel</p>
+                <div id="drop-zone" class="drop-zone" role="region" aria-label="Programming canvas - drop blocks here">
+                    <p>Start by dragging blocks from the left panel or using keyboard navigation</p>
                 </div>
                 
                 <div class="controls">
-                    <button class="btn" onclick="generateCode()">Generate Code</button>
-                    <button class="btn success" onclick="exportToFile()">Export to hello.c</button>
-                    <button class="btn danger" onclick="clearCanvas()">Clear All</button>
+                    <button class="btn" onclick="generateCode()" tabindex="0" aria-label="Generate C code from blocks">Generate Code</button>
+                    <button class="btn success" onclick="exportToFile()" tabindex="0" aria-label="Export generated code as hello.c file">Export to hello.c</button>
+                    <button class="btn danger" onclick="clearCanvas()" tabindex="0" aria-label="Clear all blocks from canvas">Clear All</button>
                 </div>
             </div>
         </div>
@@ -373,26 +432,60 @@
         <div class="output-panel">
             <div class="code-output">
                 <h3 class="panel-title">Generated C Code</h3>
-                <div id="code-display" class="code-display">// Your generated C code will appear here</div>
+                <div id="code-display" class="code-display" role="textbox" aria-label="Generated C code output" aria-readonly="true">// Your generated C code will appear here</div>
             </div>
             
             <div class="preview-panel">
                 <h3 class="panel-title">Actions</h3>
-                <button class="btn" onclick="testCompile()" style="width: 100%; margin-bottom: 0.5rem;">Test Compile</button>
-                <button class="btn" onclick="runProgram()" style="width: 100%; margin-bottom: 0.5rem;">Run Program</button>
-                <div id="output-messages"></div>
+                <button class="btn" onclick="testCompile()" style="width: 100%; margin-bottom: 0.5rem;" tabindex="0" aria-label="Test compile the generated code">Test Compile</button>
+                <button class="btn" onclick="runProgram()" style="width: 100%; margin-bottom: 0.5rem;" tabindex="0" aria-label="Get instructions to run the program">Run Program</button>
+                <div id="output-messages" role="region" aria-label="Status messages" aria-live="polite"></div>
             </div>
         </div>
     </div>
 
     <script>
+        'use strict';
+        
+        // Global state
         let draggedElement = null;
         let blockCounter = 0;
         let placedBlocks = [];
 
+        // Security: Input sanitization functions
+        function escapeForC(input) {
+            if (typeof input !== 'string') {
+                return String(input);
+            }
+            return input
+                .replace(/\\/g, '\\\\')    // Escape backslashes
+                .replace(/"/g, '\\"')      // Escape quotes
+                .replace(/\n/g, '\\n')     // Escape newlines
+                .replace(/\r/g, '\\r')     // Escape carriage returns
+                .replace(/\t/g, '\\t')     // Escape tabs
+                .replace(/%/g, '%%');      // Escape printf format specifiers
+        }
+
+        function validateCIdentifier(input) {
+            // Allow only valid C identifiers: letters, digits, underscore, starting with letter or underscore
+            const identifier = String(input).trim();
+            const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+            return validPattern.test(identifier) ? identifier : 'defaultVar';
+        }
+
+        function validateCExpression(input) {
+            // Basic validation for C expressions - allow common patterns but escape dangerous characters
+            const expression = String(input).trim();
+            // Remove potentially dangerous characters but allow basic C operators
+            const sanitized = expression.replace(/[^\w\s+\-*/<>=!&|()[\].,]/g, '');
+            return sanitized || '1'; // Default to '1' if empty
+        }
+
         // Initialize drag and drop
         document.addEventListener('DOMContentLoaded', function() {
             setupDragAndDrop();
+            setupKeyboardNavigation();
+            setupAccessibility();
         });
 
         function setupDragAndDrop() {
@@ -401,6 +494,14 @@
                 block.addEventListener('dragstart', function(e) {
                     draggedElement = this;
                     e.dataTransfer.effectAllowed = 'copy';
+                });
+
+                // Keyboard support for palette blocks
+                block.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        addBlockToCanvas(this);
+                    }
                 });
             });
 
@@ -428,6 +529,42 @@
             });
         }
 
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', function(e) {
+                // Global keyboard shortcuts
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 's':
+                            e.preventDefault();
+                            exportToFile();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            generateCode();
+                            break;
+                    }
+                }
+            });
+        }
+
+        function setupAccessibility() {
+            // Announce important state changes to screen readers
+            const announcer = document.createElement('div');
+            announcer.setAttribute('aria-live', 'polite');
+            announcer.setAttribute('aria-atomic', 'true');
+            announcer.style.position = 'absolute';
+            announcer.style.left = '-10000px';
+            announcer.id = 'accessibility-announcer';
+            document.body.appendChild(announcer);
+        }
+
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById('accessibility-announcer');
+            if (announcer) {
+                announcer.textContent = message;
+            }
+        }
+
         function addBlockToCanvas(sourceBlock) {
             blockCounter++;
             const blockType = sourceBlock.dataset.type;
@@ -439,6 +576,9 @@
             placedBlock.draggable = true;
             placedBlock.dataset.type = blockType;
             placedBlock.dataset.id = blockCounter;
+            placedBlock.setAttribute('tabindex', '0');
+            placedBlock.setAttribute('role', 'button');
+            placedBlock.setAttribute('aria-label', `${blockType} block - press Delete to remove`);
             
             // Clone the content from the source block
             placedBlock.innerHTML = sourceBlock.innerHTML;
@@ -446,12 +586,27 @@
             // Add remove button
             const removeBtn = document.createElement('button');
             removeBtn.innerHTML = '×';
+            removeBtn.setAttribute('aria-label', `Remove ${blockType} block`);
             removeBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.2); border: none; color: white; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;';
             removeBtn.onclick = function(e) {
                 e.stopPropagation();
                 removeBlock(placedBlock);
             };
             placedBlock.appendChild(removeBtn);
+
+            // Keyboard support for placed blocks
+            placedBlock.addEventListener('keydown', function(e) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    removeBlock(placedBlock);
+                } else if (e.key === 'ArrowUp' && e.ctrlKey) {
+                    e.preventDefault();
+                    moveBlockUp(placedBlock);
+                } else if (e.key === 'ArrowDown' && e.ctrlKey) {
+                    e.preventDefault();
+                    moveBlockDown(placedBlock);
+                }
+            });
 
             // Add to placed blocks array
             placedBlocks.push({
@@ -475,6 +630,41 @@
             
             // Auto-generate code
             generateCode();
+            
+            // Announce to screen readers
+            announceToScreenReader(`${blockType} block added to canvas`);
+        }
+
+        function moveBlockUp(blockElement) {
+            const blockId = parseInt(blockElement.dataset.id);
+            const index = placedBlocks.findIndex(b => b.id === blockId);
+            
+            if (index > 0) {
+                // Swap in array
+                [placedBlocks[index-1], placedBlocks[index]] = [placedBlocks[index], placedBlocks[index-1]];
+                
+                // Move in DOM
+                blockElement.parentNode.insertBefore(blockElement, placedBlocks[index-1].element);
+                
+                generateCode();
+                announceToScreenReader('Block moved up');
+            }
+        }
+
+        function moveBlockDown(blockElement) {
+            const blockId = parseInt(blockElement.dataset.id);
+            const index = placedBlocks.findIndex(b => b.id === blockId);
+            
+            if (index < placedBlocks.length - 1) {
+                // Swap in array
+                [placedBlocks[index], placedBlocks[index+1]] = [placedBlocks[index+1], placedBlocks[index]];
+                
+                // Move in DOM
+                blockElement.parentNode.insertBefore(placedBlocks[index+1].element, blockElement);
+                
+                generateCode();
+                announceToScreenReader('Block moved down');
+            }
         }
 
         function setupBlockSorting(block) {
@@ -508,6 +698,7 @@
                         placedBlocks.splice(targetIndex, 0, movedBlock);
                         
                         generateCode();
+                        announceToScreenReader('Blocks reordered');
                     }
                 }
                 draggedElement = null;
@@ -516,17 +707,20 @@
 
         function removeBlock(blockElement) {
             const blockId = parseInt(blockElement.dataset.id);
+            const blockType = blockElement.dataset.type;
             placedBlocks = placedBlocks.filter(b => b.id !== blockId);
             blockElement.remove();
             
             // Update drop zone if no blocks left
             if (placedBlocks.length === 0) {
-                document.getElementById('drop-zone').innerHTML = '<p>Start by dragging blocks from the left panel</p>';
+                document.getElementById('drop-zone').innerHTML = '<p>Start by dragging blocks from the left panel or using keyboard navigation</p>';
             }
             
             generateCode();
+            announceToScreenReader(`${blockType} block removed`);
         }
 
+        // Enhanced and secure code generation
         function generateCode() {
             let code = '';
             let hasInclude = false;
@@ -541,15 +735,15 @@
                 
                 switch(block.type) {
                     case 'include':
-                        const header = inputs[0] ? inputs[0].value || 'stdio.h' : 'stdio.h';
+                        const header = inputs[0] ? validateCIdentifier(inputs[0].value || 'stdio.h') : 'stdio.h';
                         code += `#include <${header}>\n`;
                         hasInclude = true;
                         break;
                         
                     case 'variable':
                         const varType = element.querySelector('select') ? element.querySelector('select').value : 'int';
-                        const varName = inputs[1] ? inputs[1].value || 'x' : 'x';
-                        const varValue = inputs[2] ? inputs[2].value || '0' : '0';
+                        const varName = inputs[1] ? validateCIdentifier(inputs[1].value || 'x') : 'x';
+                        const varValue = inputs[2] ? validateCExpression(inputs[2].value || '0') : '0';
                         declarations += `    ${varType} ${varName} = ${varValue};\n`;
                         break;
                         
@@ -558,22 +752,22 @@
                         break;
                         
                     case 'printf':
-                        const text = inputs[0] ? inputs[0].value || 'Hello world!' : 'Hello world!';
+                        const text = inputs[0] ? escapeForC(inputs[0].value || 'Hello world!') : 'Hello world!';
                         mainContent += `    printf("${text}\\n");\n`;
                         break;
                         
                     case 'if':
-                        const condition = inputs[0] ? inputs[0].value || 'x > 0' : 'x > 0';
-                        mainContent += `    if (${condition}) {\n        // Add statements here\n    }\n`;
+                        const condition = inputs[0] ? validateCExpression(inputs[0].value || 'x > 0') : 'x > 0';
+                        mainContent += `    if (${condition}) {\n        /* Add statements here */\n    }\n`;
                         break;
                         
                     case 'for':
-                        const loopVar = inputs[0] ? inputs[0].value || 'i' : 'i';
-                        const startVal = inputs[1] ? inputs[1].value || '0' : '0';
-                        const endVar = inputs[2] ? inputs[2].value || 'i' : 'i';
-                        const endVal = inputs[3] ? inputs[3].value || '10' : '10';
-                        const incVar = inputs[4] ? inputs[4].value || 'i' : 'i';
-                        mainContent += `    for (int ${loopVar} = ${startVal}; ${endVar} < ${endVal}; ${incVar}++) {\n        // Add statements here\n    }\n`;
+                        const loopVar = inputs[0] ? validateCIdentifier(inputs[0].value || 'i') : 'i';
+                        const startVal = inputs[1] ? validateCExpression(inputs[1].value || '0') : '0';
+                        const endVar = inputs[2] ? validateCIdentifier(inputs[2].value || 'i') : 'i';
+                        const endVal = inputs[3] ? validateCExpression(inputs[3].value || '10') : '10';
+                        const incVar = inputs[4] ? validateCIdentifier(inputs[4].value || 'i') : 'i';
+                        mainContent += `    for (int ${loopVar} = ${startVal}; ${endVar} < ${endVal}; ${incVar}++) {\n        /* Add statements here */\n    }\n`;
                         break;
                 }
             });
@@ -605,18 +799,25 @@
         function exportToFile() {
             const code = generateCode();
             
-            // Create a download link
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'hello.c';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showMessage('Generated code exported as hello.c! You can now compile it with: gcc -o hello hello.c', 'success');
+            try {
+                // Create a secure download link
+                const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'hello.c';
+                a.setAttribute('aria-label', 'Download generated C code as hello.c');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showMessage('Generated code exported as hello.c! You can now compile it with: gcc -o hello hello.c', 'success');
+                announceToScreenReader('Code exported successfully as hello.c');
+            } catch (error) {
+                showMessage('Error exporting file: ' + error.message, 'error');
+                announceToScreenReader('Error exporting file');
+            }
         }
 
         function clearCanvas() {
@@ -624,20 +825,29 @@
                 placedBlocks.forEach(block => block.element.remove());
                 placedBlocks = [];
                 blockCounter = 0;
-                document.getElementById('drop-zone').innerHTML = '<p>Start by dragging blocks from the left panel</p>';
+                document.getElementById('drop-zone').innerHTML = '<p>Start by dragging blocks from the left panel or using keyboard navigation</p>';
                 document.getElementById('code-display').textContent = '// Your generated C code will appear here';
                 clearMessages();
+                announceToScreenReader('Canvas cleared');
             }
         }
 
         function testCompile() {
             const code = generateCode();
-            // Simulate compilation check (in real implementation, this would call a backend service)
-            showMessage('Code syntax appears valid! Download and compile with: gcc -o hello hello.c', 'success');
+            // Basic syntax validation
+            const hasMain = code.includes('int main()');
+            const hasInclude = code.includes('#include');
+            const hasReturnZero = code.includes('return 0;');
+            
+            if (hasMain && hasInclude && hasReturnZero) {
+                showMessage('Code syntax appears valid! Download and compile with: gcc -Wall -Wextra -o hello hello.c', 'success');
+            } else {
+                showMessage('Warning: Generated code may be missing required elements (main function, includes, or return statement)', 'error');
+            }
         }
 
         function runProgram() {
-            showMessage('Download the generated hello.c file and run: gcc -o hello hello.c && ./hello', 'success');
+            showMessage('Download the generated hello.c file and run: gcc -Wall -Wextra -o hello hello.c && ./hello', 'success');
         }
 
         function showMessage(message, type = 'info') {
@@ -645,6 +855,7 @@
             const messageEl = document.createElement('div');
             messageEl.className = type === 'success' ? 'success-message' : 'error-message';
             messageEl.textContent = message;
+            messageEl.setAttribute('role', 'alert');
             messagesDiv.appendChild(messageEl);
             
             // Auto-remove after 5 seconds
@@ -679,6 +890,14 @@
                 generateCode();
             }
         });
+
+        // Expose generateCode function for testing
+        window.VisualEditor = {
+            generateCode: generateCode,
+            escapeForC: escapeForC,
+            validateCIdentifier: validateCIdentifier,
+            validateCExpression: validateCExpression
+        };
     </script>
 </body>
 </html>
