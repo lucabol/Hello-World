@@ -3,6 +3,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <dirent.h>
+#include <errno.h>
 #include "plugin.h"
 
 /* Internal plugin management */
@@ -36,71 +37,141 @@ void apply_transformers(const char* input, char* output, size_t output_size) {
     char temp_input[MAX_MESSAGE_SIZE];
     char temp_output[MAX_MESSAGE_SIZE];
     
+    if (!input || !output || output_size == 0) {
+        if (output && output_size > 0) {
+            output[0] = '\0';
+        }
+        return;
+    }
+    
     /* Start with original input */
     strncpy(temp_input, input, sizeof(temp_input) - 1);
     temp_input[sizeof(temp_input) - 1] = '\0';
     
     /* Apply each transformer in sequence */
     for (int i = 0; i < transformer_count; i++) {
+        /* Clear output buffer before calling transformer */
+        memset(temp_output, 0, sizeof(temp_output));
+        
         if (transformers[i].transformer(temp_input, temp_output, sizeof(temp_output)) == 0) {
-            strncpy(temp_input, temp_output, sizeof(temp_input) - 1);
-            temp_input[sizeof(temp_input) - 1] = '\0';
+            /* Validate that transformer properly null-terminated the output */
+            temp_output[sizeof(temp_output) - 1] = '\0';
+            
+            /* Validate output length is reasonable */
+            size_t output_len = strlen(temp_output);
+            if (output_len < sizeof(temp_output)) {
+                strncpy(temp_input, temp_output, sizeof(temp_input) - 1);
+                temp_input[sizeof(temp_input) - 1] = '\0';
+            } else {
+                fprintf(stderr, "Warning: transformer '%s' produced invalid output, skipping\n", 
+                       transformers[i].name);
+            }
+        } else {
+            fprintf(stderr, "Warning: transformer '%s' failed, skipping\n", 
+                   transformers[i].name);
         }
     }
     
-    /* Copy final result to output */
+    /* Copy final result to output with bounds checking */
     strncpy(output, temp_input, output_size - 1);
     output[output_size - 1] = '\0';
 }
 
 /* Load plugins from a directory */
 int load_plugins_from_directory(const char* dir_path) {
-    DIR* dir = opendir(dir_path);
+    DIR* dir;
+    struct dirent* entry;
+    int loaded_count = 0;
+    
+    if (!dir_path) {
+        fprintf(stderr, "Error: null directory path provided\n");
+        return -1;
+    }
+    
+    dir = opendir(dir_path);
     if (!dir) {
         /* Directory doesn't exist, that's okay - no plugins to load */
+        /* Only print error if directory was expected to exist */
+        if (errno != ENOENT) {
+            fprintf(stderr, "Warning: cannot open plugin directory '%s': %s\n", 
+                   dir_path, strerror(errno));
+        }
         return 0;
     }
     
-    struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
-        /* Look for .so files */
-        if (strstr(entry->d_name, ".so") != NULL) {
-            char plugin_path[512];
-            snprintf(plugin_path, sizeof(plugin_path), "%s/%s", dir_path, entry->d_name);
-            
-            /* Load the plugin */
-            void* handle = dlopen(plugin_path, RTLD_LAZY);
-            if (!handle) {
-                fprintf(stderr, "Cannot load plugin %s: %s\n", plugin_path, dlerror());
-                continue;
-            }
-            
-            /* Get the plugin_init function */
-            union {
-                void* ptr;
-                plugin_init_t func;
-            } plugin_init_union;
-            
-            plugin_init_union.ptr = dlsym(handle, "plugin_init");
-            if (!plugin_init_union.ptr) {
-                fprintf(stderr, "Plugin %s missing plugin_init function: %s\n", plugin_path, dlerror());
-                dlclose(handle);
-                continue;
-            }
-            
-            /* Initialize the plugin */
-            plugin_info_t info = plugin_init_union.func();
-            (void)info; /* Suppress unused variable warning */
-            
-            /* Store the handle for cleanup */
-            if (plugin_count < MAX_PLUGINS) {
-                loaded_plugins[plugin_count++] = handle;
-            }
+        /* Look for .so files - must end with .so, not just contain it */
+        size_t name_len = strlen(entry->d_name);
+        if (name_len < 3 || strcmp(entry->d_name + name_len - 3, ".so") != 0) {
+            continue;
+        }
+        
+        char plugin_path[512];
+        int path_len = snprintf(plugin_path, sizeof(plugin_path), "%s/%s", dir_path, entry->d_name);
+        if (path_len >= (int)sizeof(plugin_path)) {
+            fprintf(stderr, "Error: plugin path too long for %s\n", entry->d_name);
+            continue;
+        }
+        
+        /* Clear any previous dlerror() */
+        dlerror();
+        
+        /* Load the plugin */
+        void* handle = dlopen(plugin_path, RTLD_LAZY);
+        if (!handle) {
+            fprintf(stderr, "Cannot load plugin %s: %s\n", plugin_path, dlerror());
+            continue;
+        }
+        
+        /* Clear any previous dlerror() */
+        dlerror();
+        
+        /* Get the plugin_init function */
+        union {
+            void* ptr;
+            plugin_init_t func;
+        } plugin_init_union;
+        
+        plugin_init_union.ptr = dlsym(handle, "plugin_init");
+        const char* dlsym_error = dlerror();
+        if (dlsym_error) {
+            fprintf(stderr, "Plugin %s missing plugin_init function: %s\n", plugin_path, dlsym_error);
+            dlclose(handle);
+            continue;
+        }
+        
+        /* Initialize the plugin and validate ABI */
+        plugin_info_t info = plugin_init_union.func();
+        
+        /* Validate ABI version */
+        if (info.version != PLUGIN_API_VERSION) {
+            fprintf(stderr, "Plugin %s has incompatible ABI version %d (expected %d), skipping\n",
+                   plugin_path, info.version, PLUGIN_API_VERSION);
+            dlclose(handle);
+            continue;
+        }
+        
+        /* Validate plugin info */
+        if (!info.name || !info.description) {
+            fprintf(stderr, "Plugin %s provided invalid metadata, skipping\n", plugin_path);
+            dlclose(handle);
+            continue;
+        }
+        
+        /* Store the handle for cleanup */
+        if (plugin_count < MAX_PLUGINS) {
+            loaded_plugins[plugin_count++] = handle;
+            loaded_count++;
+            printf("Loaded plugin: %s - %s\n", info.name, info.description);
+        } else {
+            fprintf(stderr, "Maximum number of plugins (%d) reached, skipping %s\n", 
+                   MAX_PLUGINS, plugin_path);
+            dlclose(handle);
         }
     }
     
     closedir(dir);
-    return 0;
+    return loaded_count;
 }
 
 /* Clean up loaded plugins */

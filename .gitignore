@@ -16,3 +16,9 @@ hello_test*
 # Debug files
 *.dSYM/
 *.pdb
+
+# Test artifacts
+test_plugins/
+build.log
+build_plugins.log
+test_output.txt

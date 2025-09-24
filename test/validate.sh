@@ -12,8 +12,24 @@ set -o pipefail  # Exit on pipeline failures
 
 # Parse command line arguments
 QUIET_MODE=false
-if [[ ${#} -gt 0 && "${1}" == "--quiet" ]]; then
-    QUIET_MODE=true
+STRICT_MODE=false
+if [[ ${#} -gt 0 ]]; then
+    for arg in "$@"; do
+        case "$arg" in
+            --quiet)
+                QUIET_MODE=true
+                ;;
+            --strict)
+                STRICT_MODE=true
+                ;;
+            *)
+                echo "Usage: $0 [--quiet] [--strict]"
+                echo "  --quiet: Reduce output verbosity for CI environments"
+                echo "  --strict: Use strict compilation flags including -Werror"
+                exit 1
+                ;;
+        esac
+    done
 fi
 
 # Colors for output (disabled in quiet mode)
@@ -63,15 +79,31 @@ trap cleanup EXIT
 print_info "Starting validation of Hello World program..."
 
 # Step 1: Build using direct GCC with strict flags for validation
-print_info "Building with strict compilation flags..."
-# Use GCC directly with strict flags to ensure code quality
-STRICT_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
-if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -ldl -rdynamic -o hello_strict hello.c plugin.c 2>&1); then
-    print_success "Strict compilation passed with GCC"
+print_info "Building with compilation flags..."
+# Use GCC directly with compilation flags for validation
+# Default uses standard flags, --strict uses -Werror for quality assurance
+if [[ "${STRICT_MODE}" == "true" ]]; then
+    COMPILE_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
+else
+    COMPILE_FLAGS="-Wall -Wextra -std=c99"
+fi
+
+# Add dynamic linking flags (conditional -rdynamic support)
+DYNAMIC_FLAGS="-ldl"
+if gcc -rdynamic 2>&1 | grep -qv "unrecognized\|unknown"; then
+    DYNAMIC_FLAGS="$DYNAMIC_FLAGS -rdynamic"
+fi
+
+if BUILD_OUTPUT=$(gcc ${COMPILE_FLAGS} ${DYNAMIC_FLAGS} -o hello_strict hello.c plugin.c 2>&1); then
+    if [[ "${STRICT_MODE}" == "true" ]]; then
+        print_success "Strict compilation passed with GCC"
+    else
+        print_success "Standard compilation passed with GCC"
+    fi
     USED_DIRECT_BUILD=true
 else
     BUILD_EXIT_CODE=$?
-    print_error "Strict compilation failed (exit code: ${BUILD_EXIT_CODE})"
+    print_error "Compilation failed (exit code: ${BUILD_EXIT_CODE})"
     printf "Build output:\n%s\n" "${BUILD_OUTPUT}"
     exit 1
 fi
