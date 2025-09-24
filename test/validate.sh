@@ -141,3 +141,151 @@ if [[ "${QUIET_MODE}" == "false" ]]; then
 else
     printf "Validation: All tests PASSED\n"
 fi
+
+# Additional tests for voice command functionality if voice.c exists
+if [[ -f voice.c && -f voice.h ]]; then
+    print_info "Testing voice command functionality..."
+    
+    # Test building voice demo
+    if gcc -Wall -Wextra -Werror -o voice_demo_test voice_demo.c voice.c 2>/dev/null; then
+        print_success "Voice demo compilation passed"
+        
+        # Store initial git state and file checksums to verify no files are modified
+        # Handle case where git might not be available (e.g., CI without git metadata)
+        if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+            INITIAL_GIT_STATUS=$(git status --porcelain 2>/dev/null || echo "GIT_NOT_AVAILABLE")
+            GIT_AVAILABLE=true
+        else
+            INITIAL_GIT_STATUS="GIT_NOT_AVAILABLE"
+            GIT_AVAILABLE=false
+        fi
+        
+        # Store checksums of source files as backup verification
+        INITIAL_CHECKSUMS=""
+        if command -v sha256sum >/dev/null 2>&1; then
+            INITIAL_CHECKSUMS=$(find . -name "*.c" -o -name "*.h" -o -name "*.md" | xargs sha256sum 2>/dev/null || echo "")
+        elif command -v shasum >/dev/null 2>&1; then
+            INITIAL_CHECKSUMS=$(find . -name "*.c" -o -name "*.h" -o -name "*.md" | xargs shasum -a 256 2>/dev/null || echo "")
+        fi
+        
+        # Test individual voice commands non-interactively
+        print_info "Testing individual voice commands..."
+        
+        # Test 'say hello' command (expect exit code 0)
+        SAY_OUTPUT=$(./voice_demo_test "say hello" 2>&1)
+        SAY_EXIT_CODE=$?
+        if [[ ${SAY_EXIT_CODE} -eq 0 ]] && echo "${SAY_OUTPUT}" | grep -q "Hello world!"; then
+            print_success "Voice command 'say hello' works correctly"
+        else
+            print_error "Voice command 'say hello' failed or output incorrect"
+            printf "Expected exit code: 0, Actual: %d\n" "${SAY_EXIT_CODE}"
+            printf "Expected output: Hello world!\nActual: %s\n" "${SAY_OUTPUT}"
+            exit 1
+        fi
+        
+        # Test 'change message' command (expect exit code 0)
+        CHANGE_OUTPUT=$(./voice_demo_test "change message Test message" 2>&1)
+        CHANGE_EXIT_CODE=$?
+        if [[ ${CHANGE_EXIT_CODE} -eq 0 ]] && echo "${CHANGE_OUTPUT}" | grep -q "Would change message to: Test message"; then
+            print_success "Voice command 'change message' works correctly"
+        else
+            print_error "Voice command 'change message' failed or output incorrect"
+            printf "Expected exit code: 0, Actual: %d\n" "${CHANGE_EXIT_CODE}"
+            printf "Expected output: Would change message to: Test message\nActual: %s\n" "${CHANGE_OUTPUT}"
+            exit 1
+        fi
+        
+        # Test 'show code' command (expect exit code 0)
+        SHOW_OUTPUT=$(./voice_demo_test "show code" 2>&1)
+        SHOW_EXIT_CODE=$?
+        if [[ ${SHOW_EXIT_CODE} -eq 0 ]] && echo "${SHOW_OUTPUT}" | grep -q "Showing current code structure"; then
+            print_success "Voice command 'show code' works correctly"
+        else
+            print_error "Voice command 'show code' failed or output incorrect"
+            printf "Expected exit code: 0, Actual: %d\n" "${SHOW_EXIT_CODE}"
+            printf "Expected output: Showing current code structure\nActual: %s\n" "${SHOW_OUTPUT}"
+            exit 1
+        fi
+        
+        # Test error handling with invalid command (expect exit code 1)
+        # Temporarily disable set -e to capture exit code properly
+        set +e
+        ERROR_OUTPUT=$(./voice_demo_test "invalid command" 2>&1)
+        ERROR_EXIT_CODE=$?
+        set -e
+        if [[ ${ERROR_EXIT_CODE} -eq 1 ]] && echo "${ERROR_OUTPUT}" | grep -q "Voice command not recognized: invalid command"; then
+            print_success "Voice command error handling works correctly"
+        else
+            print_error "Voice command error handling failed or output incorrect"
+            printf "Expected exit code: 1, Actual: %d\n" "${ERROR_EXIT_CODE}"
+            printf "Expected output: Voice command not recognized: invalid command\nActual: %s\n" "${ERROR_OUTPUT}"
+            exit 1
+        fi
+        
+        # Verify no files were modified during testing
+        FILE_MODIFICATION_OK=true
+        
+        # Check git status if git is available
+        if [[ "${GIT_AVAILABLE}" == "true" ]]; then
+            FINAL_GIT_STATUS=$(git status --porcelain 2>/dev/null || echo "GIT_ERROR")
+            if [[ "${INITIAL_GIT_STATUS}" != "${FINAL_GIT_STATUS}" ]]; then
+                FILE_MODIFICATION_OK=false
+                print_error "Git status indicates source files were modified during voice command testing"
+                printf "Initial git status: %s\n" "${INITIAL_GIT_STATUS}"
+                printf "Final git status: %s\n" "${FINAL_GIT_STATUS}"
+            fi
+        fi
+        
+        # Verify checksums as backup method
+        if [[ -n "${INITIAL_CHECKSUMS}" ]]; then
+            FINAL_CHECKSUMS=""
+            if command -v sha256sum >/dev/null 2>&1; then
+                FINAL_CHECKSUMS=$(find . -name "*.c" -o -name "*.h" -o -name "*.md" | xargs sha256sum 2>/dev/null || echo "")
+            elif command -v shasum >/dev/null 2>&1; then
+                FINAL_CHECKSUMS=$(find . -name "*.c" -o -name "*.h" -o -name "*.md" | xargs shasum -a 256 2>/dev/null || echo "")
+            fi
+            
+            if [[ "${INITIAL_CHECKSUMS}" != "${FINAL_CHECKSUMS}" ]]; then
+                FILE_MODIFICATION_OK=false
+                print_error "File checksums indicate source files were modified during voice command testing"
+            fi
+        fi
+        
+        if [[ "${FILE_MODIFICATION_OK}" == "true" ]]; then
+            print_success "No source files modified during voice command testing"
+        else
+            exit 1
+        fi
+        
+        # Test interactive demo mode (full demo output)
+        if DEMO_OUTPUT=$(./voice_demo_test 2>&1); then
+            if echo "${DEMO_OUTPUT}" | grep -q "Voice-Driven Code Editing Demo" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Hello world!" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Would change message to:" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Showing current code structure" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Voice command not recognized:"; then
+                print_success "Interactive voice demo works correctly"
+            else
+                print_error "Interactive voice demo missing expected content"
+                printf "Demo output:\n%s\n" "${DEMO_OUTPUT}"
+                exit 1
+            fi
+        else
+            print_error "Interactive voice demo execution failed"
+            exit 1
+        fi
+        
+        # Clean up test binary
+        rm -f voice_demo_test
+        print_success "Voice command tests completed successfully"
+        
+        if [[ "${QUIET_MODE}" == "false" ]]; then
+            printf "  - Voice command parsing: PASSED\n"
+            printf "  - Voice demo execution: PASSED\n"
+            printf "  - File modification check: PASSED\n"
+        fi
+    else
+        print_error "Voice demo compilation failed"
+        exit 1
+    fi
+fi
