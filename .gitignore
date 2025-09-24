@@ -6,12 +6,17 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+hello_plugin
+hello_plugin_strict
 *.exe
 *.out
 
 # Object files
 *.o
 *.obj
+
+# Plugin shared libraries
+plugins/*.so
 
 # Debug files
 *.dSYM/
