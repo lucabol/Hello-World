@@ -6,10 +6,11 @@
   "scripts": {
     "start": "node collab_server.js",
     "dev": "node collab_server.js",
-    "test": "npm run test:basic && npm run test:comprehensive",
+    "test": "npm run test:basic && npm run test:ot && npm run test:security",
     "test:basic": "./test_collab.sh",
     "test:comprehensive": "node test-comprehensive.js",
-    "test:security": "node test-comprehensive.js",
+    "test:ot": "node test-ot.js",
+    "test:security": "node test-security.js",
     "demo": "./demo.sh"
   },
   "dependencies": {

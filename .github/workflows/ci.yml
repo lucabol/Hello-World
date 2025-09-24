@@ -62,7 +62,46 @@ jobs:
         
     - name: Test server startup (smoke test)
       run: |
-        timeout 10s npm start &
-        sleep 5
-        curl -f http://localhost:8082/health || exit 1
-        echo "✅ Server startup successful"
+        # Start server in background with proper process management
+        npm start &
+        SERVER_PID=$!
+        
+        # Robust health check with retry loop
+        echo "Waiting for server startup..."
+        TIMEOUT=30
+        RETRY_COUNT=0
+        MAX_RETRIES=15
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if curl -f -s http://localhost:8082/health > /dev/null 2>&1; then
+            echo "✅ Server health check passed"
+            break
+          fi
+          
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in 2s..."
+          sleep 2
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ Server failed to start within ${TIMEOUT}s"
+            kill $SERVER_PID 2>/dev/null || true
+            exit 1
+          fi
+        done
+        
+        # Verify server is responding correctly
+        HEALTH_RESPONSE=$(curl -s http://localhost:8082/health)
+        echo "Health response: $HEALTH_RESPONSE"
+        
+        if echo "$HEALTH_RESPONSE" | grep -q '"status":"healthy"'; then
+          echo "✅ Server responding with healthy status"
+        else
+          echo "❌ Server not reporting healthy status"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
+        
+        # Clean shutdown
+        kill $SERVER_PID 2>/dev/null || true
+        wait $SERVER_PID 2>/dev/null || true
+        echo "✅ Server startup smoke test completed"
