@@ -33,7 +33,10 @@ make help
 ```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 3467337fe53fa4b352ac3706bfa2889cec515d5a
 ### Validation Script
 
 Run the validation script to ensure the program builds and works correctly:
@@ -46,6 +49,9 @@ Run the validation script to ensure the program builds and works correctly:
 ./test/validate.sh
 ```
 
+<<<<<<< HEAD
+>>>>>>> 3467337fe53fa4b352ac3706bfa2889cec515d5a
+=======
 >>>>>>> 3467337fe53fa4b352ac3706bfa2889cec515d5a
 ### Manual Build Commands
 
