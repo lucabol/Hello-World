@@ -1,5 +1,9 @@
 # include <stdio.h>
 
+void print_message(const char* message){
+    printf("%s\n", message);
+}
+
 int main(){
-    printf("Hello world!");
+    print_message("Hello world!");
 }
