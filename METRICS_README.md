@@ -52,6 +52,36 @@ The tool generates two files:
 1. **`code_metrics_spreadsheet.html`** - Interactive web interface
 2. **`metrics.json`** - Raw data in JSON format for programmatic use
 
+### JSON Schema
+
+The JSON output follows a strict schema documented in `metrics_schema.json`. Example output:
+
+```json
+{
+  "file_name": "hello.c",
+  "file_path": "/path/to/hello.c", 
+  "total_lines": 6,
+  "code_lines": 4,
+  "blank_lines": 2,
+  "comment_lines": 0,
+  "include_count": 1,
+  "function_count": 1,
+  "printf_count": 1,
+  "string_literals": 1,
+  "code_density": 66.67,
+  "comment_density": 0.0,
+  "estimated_complexity": 0,
+  "analysis_time": "2023-12-01T10:30:00.123456"
+}
+```
+
+**Field Types**:
+- **Integer fields**: `total_lines`, `code_lines`, `function_count`, etc.
+- **Float fields**: `code_density`, `comment_density`, `avg_chars_per_code_line`
+- **String fields**: `file_name`, `file_path`, `analysis_time` (ISO 8601)
+
+See `metrics_schema.json` for the complete JSON Schema specification.
+
 ## Viewing Results
 
 ### Web Browser (Recommended)
@@ -101,8 +131,14 @@ The tool generates two files:
 
 ### Requirements
 - **Python 3.6+** (uses f-strings and modern features)
-- **Web browser** (for viewing results)
-- **No external libraries** required
+- **Web browser** (for viewing HTML results)
+- **No external libraries** - uses only Python standard library modules:
+  - `os`, `re`, `json`, `sys`, `html`, `datetime`, `argparse`, `tempfile`
+
+### POSIX Compatibility
+- **Shell script**: `analyze_metrics.sh` uses bash features (arrays, extended conditionals)
+- **Not POSIX**: Requires bash, not just sh
+- **Alternative**: Use `python3 metrics_analyzer.py` directly for full portability
 
 ### Architecture
 - **Pure Python**: No dependencies beyond standard library
@@ -161,12 +197,89 @@ The tool can be adapted for other languages by:
 - **Migration planning**: Assess complexity before changes
 - **Documentation**: Generate code statistics
 
+## Limitations and Parsing Details
+
+### Parser Implementation
+The tool uses simple regex-based parsing with these characteristics:
+
+#### Comment Detection
+- **Single-line comments**: Detects `//` at start of trimmed line 
+- **Multi-line comments**: Detects `/*` and `*/` patterns
+- **Limitation**: May incorrectly identify comment patterns inside string literals (e.g., `printf("// not a comment")`)
+- **Inline comments**: Properly handles `/* comment */` on same line as code
+
+#### String Literal Detection
+- **Pattern**: Uses regex `"[^"]*"` to find quoted strings
+- **Escaped quotes**: Basic support but may not handle all edge cases
+- **Limitation**: Complex escape sequences like `"He said \"Hello\""` may be counted as multiple strings
+
+#### Function Definition Detection  
+- **Pattern**: Uses regex `\w+\s+\w+\s*\([^)]*\)\s*{` 
+- **Coverage**: Detects basic function definitions like `int main() {`
+- **Limitation**: May miss function prototypes, complex return types, or macro-generated functions
+- **False positives**: May count some non-function patterns as functions
+
+#### Complexity Estimation Algorithm
+The complexity metric uses a simple heuristic counting:
+- Control flow keywords: `if`, `for`, `while`, `switch`, `case`
+- Logical operators: `&&`, `||`, `?:`
+- **Not cyclomatic complexity**: This is a basic estimate, not proper McCabe complexity
+- **Use case**: Suitable for rough comparisons, not formal complexity analysis
+
+### Performance and Memory
+
+#### File Size Limits
+- **Small files (< 1MB)**: Excellent performance, sub-second analysis
+- **Medium files (1-10MB)**: Good performance, may take 1-3 seconds
+- **Large files (> 10MB)**: May experience slower performance and higher memory usage
+- **Memory usage**: Entire file is loaded into memory - not suitable for extremely large files
+
+#### Processing Speed
+- **Typical performance**: ~100,000 lines/second on modern hardware
+- **Bottlenecks**: Regex operations on very large files may be slow
+- **Recommendation**: For large codebases, process files individually rather than concatenating
+
+#### Memory Considerations
+- **Peak memory**: Approximately 3-4x file size during processing
+- **HTML generation**: Additional memory for template rendering
+- **Recommendation**: Process files < 100MB for optimal performance
+
+### Security Considerations
+
+#### HTML Output Safety
+- **XSS Prevention**: All user data is properly escaped using `html.escape()`
+- **Content Security**: Generated HTML contains no external dependencies or scripts
+- **Safe to open**: HTML files are safe to open in any browser locally
+- **No server required**: Completely static HTML/CSS/JavaScript
+
+#### Input Validation
+- **File existence**: Validates input file exists and is readable
+- **Path traversal**: No protection beyond OS file system permissions
+- **Malicious input**: C code content is not executed, only analyzed as text
+
 ## Limitations
 
-- **C-specific**: Designed for C language patterns
-- **Basic complexity**: Simple heuristic, not full cyclomatic complexity
+### Known Parser Limitations
+1. **Comment detection**: May misidentify comment patterns inside strings
+2. **String parsing**: Limited handling of complex escape sequences  
+3. **Preprocessor**: Treats preprocessor directives as regular code lines
+4. **Macros**: Cannot expand or properly analyze macro-generated code
+5. **Complex syntax**: May miss unusual C syntax or compiler extensions
+
+### Language Support
+- **Primary**: Designed for C language patterns
+- **Partial support**: May work with C++ files but results may be inaccurate
+- **Not supported**: Other languages will produce meaningless results
+
+### Scalability  
 - **Single file**: Analyzes one file at a time
-- **Comment detection**: May not handle all comment edge cases
+- **No aggregation**: Cannot combine metrics across multiple files
+- **No directory recursion**: Must be run on individual files
+
+### Analysis Depth
+- **Syntactic only**: Does not perform semantic analysis
+- **No type checking**: Cannot detect type-related issues
+- **Surface level**: Focuses on countable patterns, not logic flow
 
 ## Contributing
 

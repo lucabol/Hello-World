@@ -8,6 +8,7 @@ import os
 import re
 import json
 import sys
+import html
 from datetime import datetime
 
 
@@ -145,10 +146,10 @@ def generate_html_interface(metrics_data):
         
         table_rows += f'''
                     <tr>
-                        <td class="metric-name">{key.replace('_', ' ').title()}</td>
-                        <td class="{css_class}">{formatted_value}</td>
-                        <td>{value_type}</td>
-                        <td class="metric-description">{description}</td>
+                        <td class="metric-name">{html.escape(key.replace('_', ' ').title())}</td>
+                        <td class="{css_class}">{html.escape(formatted_value)}</td>
+                        <td>{html.escape(value_type)}</td>
+                        <td class="metric-description">{html.escape(description)}</td>
                     </tr>'''
     
     # Now build the complete HTML with all the data
@@ -349,7 +350,7 @@ def generate_html_interface(metrics_data):
 <body>
     <div class="header">
         <h1>📊 Code Metrics Spreadsheet</h1>
-        <div class="subtitle">Interactive analysis of hello.c - Generated: {metrics_data.get("analysis_time", "Unknown")}</div>
+        <div class="subtitle">Interactive analysis of {html.escape(os.path.basename(metrics_data.get("file_path", "")))} - Generated: {html.escape(str(metrics_data.get("analysis_time", "Unknown")))}</div>
     </div>
     
     <div class="summary-stats">
@@ -516,40 +517,98 @@ def generate_html_interface(metrics_data):
 
 
 def main():
-    """Main function to analyze hello.c and generate spreadsheet interface"""
-    hello_c_path = "hello.c"
+    """Main function to analyze C source files and generate spreadsheet interface"""
+    import argparse
     
-    if len(sys.argv) > 1:
-        hello_c_path = sys.argv[1]
+    parser = argparse.ArgumentParser(
+        description='Code Metrics Analyzer - Generate interactive spreadsheet interface for C code analysis',
+        epilog='''
+Examples:
+  %(prog)s hello.c                    # Analyze hello.c
+  %(prog)s src/main.c --output report  # Analyze with custom output prefix
+  %(prog)s --format json hello.c      # JSON output only
+  %(prog)s --help                     # Show this help
+        ''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     
-    print(f"Analyzing {hello_c_path}...")
+    parser.add_argument('file', 
+                       help='C source file to analyze')
+    parser.add_argument('--output', '-o',
+                       default='code_metrics_spreadsheet',
+                       help='Output file prefix (default: code_metrics_spreadsheet)')
+    parser.add_argument('--format', '-f',
+                       choices=['html', 'json', 'both'],
+                       default='both',
+                       help='Output format (default: both)')
+    parser.add_argument('--version', '-v',
+                       action='version',
+                       version='Code Metrics Analyzer 1.0.0')
     
-    # Analyze the C file
-    metrics = analyze_c_file(hello_c_path)
+    try:
+        args = parser.parse_args()
+    except SystemExit as e:
+        return e.code
     
-    if "error" in metrics:
-        print(f"Error: {metrics['error']}")
+    # Validate input file
+    if not os.path.exists(args.file):
+        print(f"Error: File '{args.file}' not found", file=sys.stderr)
         return 1
     
-    # Generate HTML interface
-    html_content = generate_html_interface(metrics)
+    if not os.path.isfile(args.file):
+        print(f"Error: '{args.file}' is not a regular file", file=sys.stderr)
+        return 1
     
-    # Write HTML file
-    output_file = "code_metrics_spreadsheet.html"
-    with open(output_file, 'w') as f:
-        f.write(html_content)
+    print(f"Analyzing {args.file}...")
     
-    # Also output JSON for other tools
-    json_output = "metrics.json"
-    with open(json_output, 'w') as f:
-        json.dump(metrics, f, indent=2)
-    
-    print(f"Analysis complete!")
-    print(f"- Metrics spreadsheet: {output_file}")
-    print(f"- JSON data: {json_output}")
-    print(f"- Analyzed {metrics['total_lines']} lines with {metrics['code_lines']} lines of code")
-    
-    return 0
+    try:
+        # Analyze the C file
+        metrics = analyze_c_file(args.file)
+        
+        if "error" in metrics:
+            print(f"Error: {metrics['error']}", file=sys.stderr)
+            return 1
+        
+        output_files = []
+        
+        # Generate HTML interface if requested
+        if args.format in ['html', 'both']:
+            html_content = generate_html_interface(metrics)
+            html_output = f"{args.output}.html"
+            
+            try:
+                with open(html_output, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                output_files.append(f"HTML interface: {html_output}")
+            except IOError as e:
+                print(f"Error writing HTML file: {e}", file=sys.stderr)
+                return 1
+        
+        # Generate JSON output if requested
+        if args.format in ['json', 'both']:
+            json_output = f"{args.output}.json" if args.format == 'json' else "metrics.json"
+            
+            try:
+                with open(json_output, 'w', encoding='utf-8') as f:
+                    json.dump(metrics, f, indent=2, ensure_ascii=False)
+                output_files.append(f"JSON data: {json_output}")
+            except IOError as e:
+                print(f"Error writing JSON file: {e}", file=sys.stderr)
+                return 1
+        
+        print(f"Analysis complete!")
+        for output_info in output_files:
+            print(f"- {output_info}")
+        print(f"- Analyzed {metrics['total_lines']} lines with {metrics['code_lines']} lines of code")
+        
+        return 0
+        
+    except KeyboardInterrupt:
+        print("\nAnalysis interrupted by user", file=sys.stderr)
+        return 130
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

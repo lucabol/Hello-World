@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Code Metrics JSON Schema",
+  "description": "Schema for the JSON output of the Code Metrics Analyzer",
+  "type": "object",
+  "required": [
+    "file_name",
+    "file_path", 
+    "total_lines",
+    "total_chars",
+    "total_bytes",
+    "blank_lines",
+    "comment_lines",
+    "code_lines",
+    "analysis_time",
+    "include_count",
+    "function_count",
+    "printf_count",
+    "brace_count",
+    "semicolon_count", 
+    "string_literals",
+    "code_density",
+    "comment_density",
+    "avg_chars_per_code_line",
+    "estimated_complexity"
+  ],
+  "properties": {
+    "file_name": {
+      "type": "string",
+      "description": "Base name of the analyzed source file"
+    },
+    "file_path": {
+      "type": "string", 
+      "description": "Full path to the analyzed source file"
+    },
+    "total_lines": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of lines in the file"
+    },
+    "total_chars": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total character count including whitespace"
+    },
+    "total_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "File size in bytes (UTF-8 encoding)"
+    },
+    "blank_lines": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of empty or whitespace-only lines"
+    },
+    "comment_lines": {
+      "type": "integer", 
+      "minimum": 0,
+      "description": "Lines containing comments (// or /* */)"
+    },
+    "code_lines": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Lines containing executable code"
+    },
+    "analysis_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when analysis was performed"
+    },
+    "include_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of #include directives"
+    },
+    "function_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of function definitions detected"
+    },
+    "printf_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of printf() function calls"
+    },
+    "brace_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total count of { and } characters"
+    },
+    "semicolon_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total count of semicolon characters"
+    },
+    "string_literals": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of quoted string literals"
+    },
+    "code_density": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage of lines that contain code"
+    },
+    "comment_density": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage of lines that contain comments"
+    },
+    "avg_chars_per_code_line": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Average characters per code line (excludes blanks/comments)"
+    },
+    "estimated_complexity": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Basic complexity estimate based on control structures"
+    }
+  },
+  "additionalProperties": false
+}

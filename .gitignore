@@ -20,3 +20,8 @@ hello_test*
 # Generated metrics files
 code_metrics_spreadsheet.html
 metrics.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
