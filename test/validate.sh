@@ -21,7 +21,11 @@ for arg in "$@"; do
         --quiet)
             QUIET_MODE=true
             ;;
-        ./*)
+        -*)
+            # Skip other flags
+            ;;
+        *)
+            # Assume it's a binary path
             BINARY_TO_TEST="$arg"
             ;;
     esac
@@ -75,6 +79,11 @@ print_info "Starting validation of Hello World program..."
 
 # Step 1: Determine the binary to test
 if [[ -n "${BINARY_TO_TEST}" ]]; then
+    # Add ./ prefix if not already present
+    if [[ "${BINARY_TO_TEST}" != ./* && "${BINARY_TO_TEST}" != /* ]]; then
+        BINARY_TO_TEST="./${BINARY_TO_TEST}"
+    fi
+    
     # Use provided binary
     if [[ ! -f "${BINARY_TO_TEST}" ]]; then
         print_error "Provided binary ${BINARY_TO_TEST} does not exist"
