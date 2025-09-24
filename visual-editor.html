@@ -13,6 +13,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Content Security Policy: Ensures this is a fully self-contained application -->
+    <!-- No external scripts, styles, fonts, or analytics are loaded -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'self';">
     <title>Visual C Code Editor</title>
     <style>
         * {
@@ -486,11 +489,39 @@
         }
 
         function validateCExpression(input) {
+            /*
+             * CONSERVATIVE C EXPRESSION VALIDATOR
+             * 
+             * Design Philosophy: Educational Safety First
+             * - This is designed for educational block-based programming
+             * - Uses whitelist approach: only explicitly allowed constructs pass
+             * - Rejects anything that could be dangerous or confusing for learners
+             * 
+             * Supported Expression Grammar:
+             * - Variable names: [a-zA-Z_][a-zA-Z0-9_]*
+             * - Numeric literals: integers (decimal), limited float support
+             * - Basic operators: +, -, *, /, %, <, >, <=, >=, ==, !=, &&, ||, !
+             * - Grouping: parentheses (), array indexing brackets []
+             * - Simple member access: dot (.)
+             * 
+             * Explicitly REJECTED for safety:
+             * - Function calls: foo() - could enable arbitrary code execution
+             * - String/char literals: "str", 'c' - complicates escaping
+             * - Pointer operations: *, & - advanced concepts not suitable for beginners  
+             * - Cast operations: (type) - advanced and potentially dangerous
+             * - Sizeof operator: sizeof() - function-like syntax
+             * - Preprocessor: # - could inject directives
+             * - Comments: /*, // - could hide malicious content
+             * - Statements: ; - could allow statement injection
+             * 
+             * Length Limit: 200 characters (prevents buffer overflow attempts)
+             */
+            
             // Handle null, undefined, and non-string inputs safely
             if (input == null) {
                 return '1';  // Safe default expression
             }
-            // Basic validation for C expressions - conservative whitelist approach
+            
             const expression = String(input).trim();
             
             // Reject expressions containing dangerous tokens

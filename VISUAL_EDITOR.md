@@ -20,10 +20,50 @@ The Visual C Code Editor is a web-based drag-and-drop interface that allows user
 - **Drag and Drop**: Intuitive interface for building programs
 
 ### Security & Input Sanitization
-- **Escape Handling**: Automatically escapes quotes, backslashes, newlines, and format specifiers in printf strings
-- **Identifier Validation**: Ensures C variable names follow proper naming conventions
-- **Expression Sanitization**: Basic validation of C expressions to prevent code injection
-- **Safe Downloads**: Uses secure Blob API for file downloads
+
+This visual editor implements enterprise-grade security through a multi-layered approach:
+
+#### Content Security Policy (CSP)
+- **Strict CSP**: The editor includes a restrictive Content-Security-Policy that blocks all external resources
+- **No External Connections**: Zero network requests - completely self-contained and offline-capable
+- **No Analytics**: No tracking, telemetry, or data collection of any kind
+
+#### Conservative Input Validation
+- **escapeForC()**: Sanitizes all user input before code generation
+  - Escapes quotes, backslashes, newlines, tabs, and printf format specifiers
+  - Safe handling of null/undefined inputs
+  - Type coercion for non-string inputs
+- **validateCIdentifier()**: Ensures C variable names are safe
+  - Validates against C naming conventions (alphanumeric + underscore, starts with letter/underscore)
+  - 63-character length limit (C99 internal identifier limit)
+  - Safe fallback to 'defaultVar' for invalid inputs
+- **validateCExpression()**: Conservative whitelist approach for expressions
+  - **Educational Focus**: Designed for learning, not production use
+  - **Explicit Rejections**: Blocks dangerous constructs like function calls, casts, pointers
+  - **Whitelist Only**: Only allows basic operators (+, -, *, /, <, >, ==, etc.)
+  - **Length Limits**: Maximum 200 characters to prevent abuse
+  - **Token Blocking**: Rejects semicolons, preprocessor directives, comments, string literals
+
+#### Expression Validation Grammar
+**Supported (Safe for Educational Use):**
+- Variable names: `variable`, `count`, `total`
+- Numeric literals: `42`, `3.14` 
+- Basic operators: `x + 1`, `count > 10`, `a == b`
+- Grouping: `(x + y) * 2`
+- Array indexing: `arr[i]`
+
+**Rejected (Too Advanced/Dangerous for Educational Context):**
+- Function calls: `strlen(str)`, `malloc(size)` - could enable arbitrary execution
+- Pointer operations: `*ptr`, `&variable` - advanced concepts
+- Cast operations: `(int)value` - complex and potentially unsafe
+- String/char literals: `"hello"`, `'c'` - complicates escaping
+- Comments: `/* comment */` - could hide malicious content
+- Statements: `x = 1; y = 2` - could allow code injection
+
+#### Safe File Downloads
+- **Browser Blob API**: Uses secure native browser APIs for file generation
+- **UTF-8 Encoding**: Proper character encoding for international compatibility
+- **No Server Involvement**: Files are generated entirely client-side
 
 ### Real-time Code Generation
 - Automatic C code generation as you build your program
