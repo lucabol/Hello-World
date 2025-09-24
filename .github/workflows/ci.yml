@@ -20,20 +20,26 @@ jobs:
     - name: Build with GCC
       run: gcc -Wall -Wextra -o hello hello.c
       
-    - name: Validate GCC output
-      run: ./scripts/validate_output.sh ./hello "GCC"
+    - name: Validate GCC build output
+      run: ./scripts/validate_output.sh ./hello gcc-build
       
     - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
       
-    - name: Validate Clang output
-      run: ./scripts/validate_output.sh ./hello_clang "Clang"
+    - name: Validate Clang build output
+      run: ./scripts/validate_output.sh ./hello_clang clang-build
       
-    - name: Build with strict flags (fail on warnings)
+    - name: Build with strict flags
       run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -o hello_strict hello.c
       
     - name: Validate strict build output
-      run: ./scripts/validate_output.sh ./hello_strict "strict"
+      run: ./scripts/validate_output.sh ./hello_strict strict-build
       
-    - name: Run validation script tests
+    - name: Test validation script
       run: ./scripts/test_validation.sh
+      
+    - name: Run standardized tests
+      run: make test
+      
+    - name: Validate program output and exit code
+      run: make validate-all

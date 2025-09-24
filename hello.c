@@ -1,5 +1,7 @@
-# include <stdio.h>
+#include <stdio.h>
 
-int main(){
+/* Simple Hello World program demonstrating basic C programming concepts */
+int main(void){
     printf("Hello world!");
+    return 0;
 }

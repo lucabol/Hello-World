@@ -2,25 +2,69 @@
 
 Test repo for JediMaster
 
-## Overview
-
-This repository contains a minimal C program that prints a greeting message. It serves as a basic example for C compilation and execution.
+A simple C "Hello World" program that demonstrates basic C programming concepts.
 
 ## Quick Start
 
-### Building the Program
+### Using the Makefile (Recommended)
+
+This repository includes a standardized Makefile for consistent builds and testing:
 
 ```bash
-gcc -o hello hello.c
+# Build optimized version (default)
+make
+
+# Run the program
+make run
+
+# Run all tests (strict compilation + execution)
+make test
+
+# Build debug version
+make debug
+
+# Build with Clang
+make clang
+
+# Clean build artifacts
+make clean
+
+# Show all available targets
+make help
 ```
 
-### Running the Program
+### Using Validation Scripts
+
+Run the validation script to ensure the program builds and works correctly:
 
 ```bash
+# Run validation (builds with strict flags and tests output)
+./scripts/validate_output.sh ./hello test-build
+
+# Run comprehensive validation tests
+./scripts/test_validation.sh
+
+# Alternative validation paths
+./validate.sh
+./test/validate.sh
+```
+
+### Manual Build Commands
+
+You can also build manually if needed:
+
+```bash
+# Basic build
+gcc -o hello hello.c
+
+# Development build with warnings
+gcc -Wall -Wextra -o hello hello.c
+
+# Run the program
 ./hello
 ```
 
-### Expected Output
+## Expected Output
 
 When you run the program, it will produce the following exact output:
 
@@ -28,7 +72,7 @@ When you run the program, it will produce the following exact output:
 Hello world!
 ```
 
-**Note:** The program outputs "Hello world!" without a trailing newline and exits with code 0.
+**Important:** The program intentionally outputs "Hello world!" **without a trailing newline** and exits with code 0. This behavior is validated by the test scripts to ensure exact byte-level output compliance.
 
 ## CI Verification
 
@@ -44,6 +88,10 @@ Our Continuous Integration (CI) system performs strict validation to ensure code
 - **Exit code verification:** Ensures the program exits with code 0
 - **Robust comparison:** Uses `printf` for precise expected output generation and `cmp` for reliable comparison
 
+### Validation Script Testing
+- **Comprehensive test suite:** CI runs `./scripts/test_validation.sh` to verify the validation infrastructure itself
+- **Edge case coverage:** Tests handle wrong output, non-zero exit codes, trailing newlines, and stderr output
+
 ### Compiler Matrix
 - **GCC build:** Standard compilation with warnings enabled
 - **Clang build:** Alternative compiler validation for consistency
@@ -54,12 +102,20 @@ The CI fails if:
 - Program output differs from "Hello world!" (exact 12-byte match required, no trailing newline)
 - Program exits with non-zero code
 - Any compiler warnings are generated with strict flags
+- Validation script tests fail
 
 ### Local Testing
 You can run the same validation locally:
 ```bash
 gcc -o hello hello.c
-./scripts/validate_output.sh ./hello "local"
+./scripts/validate_output.sh ./hello local-test
+
+# Run all validation script tests
+./scripts/test_validation.sh
+
+# Or use the Makefile
+make test
+make validate-all
 ```
 
 ### Debugging Output Mismatches
