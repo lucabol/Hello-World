@@ -30,7 +30,7 @@ else
 fi
 
 # Expected output (without trailing newline)
-EXPECTED_OUTPUT="Hello world!"
+EXPECTED_OUTPUT="Ciao, Mondo!"
 
 # Function to print colored messages using safer printf formatting
 print_success() {
