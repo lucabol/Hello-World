@@ -1,6 +1,9 @@
 # Makefile for Hello World C program
 # Standardizes build commands and provides consistent targets for development and CI
 #
+# IMPORTANT: The 'strict' target uses -Werror which causes builds to fail on any warning
+# Override with: make strict STRICT_FLAGS="-Wpedantic -Wformat=2 -Wconversion -Wsign-conversion"
+#
 # Environment Requirements:
 # - GCC 4.8+ or Clang 3.5+ (tested with GCC 13.3.0, Clang 14.0)
 # - Linux/Unix environment (flags -fno-exceptions -fno-asynchronous-unwind-tables)
@@ -8,16 +11,17 @@
 
 # Compiler and flags configuration
 CC ?= gcc
-CLANG ?= $(CC)
+CLANG ?= clang
 CFLAGS ?= -Wall -Wextra -std=c99
 OPTFLAGS = -O2
 DEBUGFLAGS = -g
 # Size reduction flags for minimal binary size
 # -s: strip symbols (linker flag, safe for all builds)
-# -fno-exceptions and -fno-asynchronous-unwind-tables: reduce C++ overhead in C code
-# These flags are accepted by GCC 4.8+ and Clang 3.5+ but may be ignored in pure C
+# -fno-exceptions and -fno-asynchronous-unwind-tables: mainly for C++ builds, 
+# may be ignored in pure C but accepted by GCC 4.8+ and Clang 3.5+
 SIZE_FLAGS ?= -s -fno-exceptions -fno-asynchronous-unwind-tables
 # STRICT_FLAGS: includes -Werror to fail on any warnings, ensuring code quality
+# WARNING: -Werror causes builds to fail on any warning - may be disruptive
 # Can be overridden to disable -Werror in development:
 # Example: make strict STRICT_FLAGS="-Wpedantic -Wformat=2 -Wconversion -Wsign-conversion"
 STRICT_FLAGS ?= -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
@@ -58,11 +62,11 @@ $(STRICT_TARGET): $(SOURCE)
 clang: $(CLANG_TARGET)
 
 $(CLANG_TARGET): $(SOURCE)
-	@if ! command -v $(CLANG) >/dev/null 2>&1 && [ "$(CLANG)" != "$(CC)" ]; then \
+	@if command -v $(CLANG) >/dev/null 2>&1; then \
+		$(CLANG) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE); \
+	else \
 		echo "Warning: clang not found, using $(CC) instead"; \
 		$(CC) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE); \
-	else \
-		$(CLANG) $(OPT_CFLAGS) -o $(CLANG_TARGET) $(SOURCE); \
 	fi
 
 # Optimized build target with strip and size reduction flags for minimal size
@@ -104,10 +108,10 @@ validate-all: all debug strict optimized
 	@bash test/validate.sh ./$(OPTIMIZED_TARGET)
 	@echo ""
 	@echo "=== Validating Clang build ==="
-	@if $(MAKE) clang 2>/dev/null; then \
-		bash test/validate.sh ./$(CLANG_TARGET); \
+	@if command -v $(CLANG) >/dev/null 2>&1; then \
+		$(MAKE) clang && bash test/validate.sh ./$(CLANG_TARGET); \
 	else \
-		echo "Skipping Clang build - clang not available or build failed"; \
+		echo "Skipping Clang build - clang not available"; \
 	fi
 
 # Clean build artifacts
