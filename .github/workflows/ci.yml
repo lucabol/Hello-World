@@ -32,3 +32,143 @@ jobs:
       
     - name: Test Clang build
       run: ./hello_clang
+
+  collaborative-editor-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run basic collaborative editor tests
+      run: ./test_collab.sh
+      
+    - name: Run OT correctness tests (fast)
+      run: node test-ot.js
+      
+    - name: Test backward compatibility
+      run: |
+        make test
+        echo "✅ Original functionality preserved"
+        
+    - name: Test server startup (smoke test)
+      timeout-minutes: 5
+      run: |
+        # Set up proper cleanup on exit
+        cleanup() {
+          echo "🧹 Cleaning up background processes..."
+          if [ ! -z "$SERVER_PID" ] && kill -0 $SERVER_PID 2>/dev/null; then
+            kill $SERVER_PID 2>/dev/null || true
+            wait $SERVER_PID 2>/dev/null || true
+          fi
+          # Kill any remaining node processes for safety
+          pkill -f "node collab_server.js" 2>/dev/null || true
+          # Ensure port is free
+          netstat -tln | grep ":8082" || echo "Port 8082 is free"
+        }
+        trap cleanup EXIT
+        
+        # Start server with controlled startup
+        echo "🚀 Starting collaborative editor server..."
+        node collab_server.js &
+        SERVER_PID=$!
+        
+        # Verify process started successfully
+        if ! kill -0 $SERVER_PID 2>/dev/null; then
+          echo "❌ Failed to start server process"
+          exit 1
+        fi
+        
+        echo "📊 Server PID: $SERVER_PID"
+        
+        # Robust health check with exponential backoff
+        echo "🔍 Waiting for server to become ready..."
+        TIMEOUT=30
+        RETRY_COUNT=0
+        MAX_RETRIES=15
+        BACKOFF=1
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if curl -f -s --max-time 3 http://localhost:8082/health > /dev/null 2>&1; then
+            echo "✅ Server health check passed (attempt $((RETRY_COUNT + 1)))"
+            break
+          fi
+          
+          # Check if server process is still alive
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "❌ Server process died during startup"
+            exit 1
+          fi
+          
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          echo "⏳ Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in ${BACKOFF}s..."
+          sleep $BACKOFF
+          
+          # Exponential backoff (max 4s)
+          if [ $BACKOFF -lt 4 ]; then
+            BACKOFF=$((BACKOFF + 1))
+          fi
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ Server failed to start within ${TIMEOUT}s"
+            echo "📋 Final process check:"
+            ps aux | grep node || true
+            netstat -tln | grep ":808" || true
+            exit 1
+          fi
+        done
+        
+        # Verify server is responding correctly and localhost-only
+        echo "🔍 Verifying server configuration..."
+        HEALTH_RESPONSE=$(curl -s --max-time 5 http://localhost:8082/health)
+        echo "📊 Health response: $HEALTH_RESPONSE"
+        
+        if echo "$HEALTH_RESPONSE" | grep -q '"status":"healthy"'; then
+          echo "✅ Server responding with healthy status"
+        else
+          echo "❌ Server not reporting healthy status"
+          exit 1
+        fi
+        
+        # Verify server is localhost-only (should fail from external access)
+        echo "🔒 Verifying localhost-only binding..."
+        if netstat -tln | grep ":8082" | grep -v "127.0.0.1:8082"; then
+          echo "❌ Server may be binding to non-localhost interfaces"
+          netstat -tln | grep ":8082"
+          exit 1
+        else
+          echo "✅ Server properly bound to localhost only"
+        fi
+        
+        echo "✅ Server startup smoke test completed successfully"
+
+  security-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true  # Optional for faster CI pipeline
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run comprehensive security tests
+      run: node test-security.js

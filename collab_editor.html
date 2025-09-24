@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Editor - Hello World</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #2d2d30;
+            padding: 10px 20px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: normal;
+            color: #cccccc;
+        }
+
+        .status {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .connection-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .disconnected {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .user-count {
+            font-size: 12px;
+            color: #cccccc;
+        }
+
+        .main-content {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        .editor-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-toolbar {
+            background-color: #2d2d30;
+            padding: 8px 15px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #007acc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #005a9e;
+        }
+
+        .btn-secondary {
+            background-color: #3c3c3c;
+            color: #cccccc;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4a4a4a;
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            background-color: #1e1e1e;
+        }
+
+        #code-editor {
+            width: 100%;
+            height: 100%;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 20px;
+            tab-size: 4;
+        }
+
+        .line-numbers {
+            position: absolute;
+            left: 0;
+            top: 20px;
+            width: 50px;
+            color: #858585;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: right;
+            padding-right: 10px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        #code-editor {
+            padding-left: 70px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #252526;
+            border-left: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section {
+            padding: 15px;
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        .sidebar-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #cccccc;
+            margin-bottom: 10px;
+            font-weight: normal;
+            letter-spacing: 0.5px;
+        }
+
+        .user-list {
+            list-style: none;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 13px;
+        }
+
+        .user-cursor {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .activity-log {
+            font-size: 11px;
+            color: #999999;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 3px 0;
+            border-bottom: 1px solid #333333;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .build-output {
+            background-color: #0c0c0c;
+            color: #cccccc;
+            font-size: 11px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+
+        .cursor-overlay {
+            position: absolute;
+            width: 2px;
+            height: 21px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .cursor-label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            background-color: inherit;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .user-colors {
+            /* Define user cursor colors */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 Collaborative Editor - hello.c</h1>
+        <div class="status">
+            <span class="connection-status" id="connection-status">Disconnected</span>
+            <span class="user-count" id="user-count">0 users</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="editor-panel">
+            <div class="editor-toolbar">
+                <button class="btn btn-primary" id="save-btn" onclick="saveFile()">💾 Save</button>
+                <button class="btn btn-secondary" id="build-btn" onclick="buildCode()">🔨 Build</button>
+                <button class="btn btn-secondary" id="run-btn" onclick="runCode()">▶️ Run</button>
+                <span id="save-status" style="color: #cccccc; font-size: 12px; margin-left: 10px;"></span>
+            </div>
+            
+            <div class="editor-container">
+                <div class="line-numbers" id="line-numbers"></div>
+                <textarea id="code-editor" placeholder="Loading hello.c..." spellcheck="false"></textarea>
+                <div id="cursor-overlay"></div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>Active Users</h3>
+                <ul class="user-list" id="user-list">
+                    <li class="user-item">
+                        <div class="user-cursor" style="background-color: #007acc;"></div>
+                        <span>You (Local)</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Recent Activity</h3>
+                <div class="activity-log" id="activity-log">
+                    <div class="activity-item">Editor initialized</div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Build Output</h3>
+                <div class="build-output" id="build-output">
+                    Ready to build...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Collaborative Editor Implementation
+        class CollaborativeEditor {
+            constructor() {
+                this.users = new Map();
+                this.currentUser = {
+                    id: null, // Will be set by server
+                    name: 'User-' + Math.floor(Math.random() * 1000),
+                    color: this.getRandomColor(),
+                    cursor: 0
+                };
+                this.editor = document.getElementById('code-editor');
+                this.activityLog = document.getElementById('activity-log');
+                this.buildOutput = document.getElementById('build-output');
+                this.saveStatus = document.getElementById('save-status');
+                this.isConnected = false;
+                this.ws = null;
+                this.version = 0;
+                this.lastContent = '';
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                
+                this.init();
+            }
+
+            generateUserId() {
+                return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            getRandomColor() {
+                const colors = ['#007acc', '#4CAF50', '#ff9800', '#9c27b0', '#f44336', '#00bcd4'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.updateLineNumbers();
+                this.connectWebSocket();
+                this.logActivity('Initializing collaborative editor...');
+            }
+
+            connectWebSocket() {
+                try {
+                    const wsUrl = `ws://localhost:8083`;
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        this.handleWebSocketOpen();
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        this.handleWebSocketMessage(JSON.parse(event.data));
+                    };
+                    
+                    this.ws.onclose = (event) => {
+                        this.handleWebSocketClose(event);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.handleWebSocketError(error);
+                    };
+                    
+                } catch (error) {
+                    console.error('Failed to create WebSocket connection:', error);
+                    this.fallbackToSimulation();
+                }
+            }
+
+            handleWebSocketOpen() {
+                this.isConnected = true;
+                this.reconnectAttempts = 0;
+                this.updateConnectionStatus(true);
+                this.logActivity('Connected to collaborative server');
+                
+                // Join the session
+                this.sendMessage({
+                    type: 'join',
+                    user: this.currentUser
+                });
+            }
+
+            handleWebSocketMessage(message) {
+                switch (message.type) {
+                    case 'init':
+                        this.currentUser.id = message.userId;
+                        this.editor.value = message.content;
+                        this.lastContent = message.content;
+                        this.version = message.version;
+                        this.updateLineNumbers();
+                        this.updateUsersFromServer(message.users);
+                        break;
+                        
+                    case 'user_joined':
+                        this.logActivity(`${message.user.name} joined the session`);
+                        this.updateUsersFromServer(message.users);
+                        break;
+                        
+                    case 'user_left':
+                        this.logActivity(`User left the session`);
+                        this.updateUsersFromServer(message.users);
+                        break;
+                        
+                    case 'operation':
+                        this.handleRemoteOperation(message);
+                        break;
+                        
+                    case 'cursor_update':
+                        this.handleRemoteCursor(message);
+                        break;
+                        
+                    case 'save_result':
+                        if (message.success) {
+                            this.showSaveStatus('✓ Saved successfully', 'success');
+                        } else {
+                            this.showSaveStatus('✗ Save failed', 'error');
+                        }
+                        break;
+                        
+                    case 'file_saved':
+                        this.logActivity('File saved by collaborator');
+                        break;
+                        
+                    case 'build_result':
+                        this.handleBuildResult(message);
+                        break;
+                        
+                    case 'run_result':
+                        this.handleRunResult(message);
+                        break;
+                        
+                    case 'build_started':
+                        this.logActivity('Build started by collaborator');
+                        break;
+                        
+                    case 'error':
+                        this.logActivity(`Server error: ${message.message}`);
+                        break;
+                }
+            }
+
+            handleWebSocketClose(event) {
+                this.isConnected = false;
+                this.updateConnectionStatus(false);
+                
+                if (event.code !== 1000) { // Not a normal closure
+                    this.logActivity('Connection lost, attempting to reconnect...');
+                    this.attemptReconnect();
+                } else {
+                    this.logActivity('Disconnected from server');
+                }
+            }
+
+            handleWebSocketError(error) {
+                console.error('WebSocket error:', error);
+                this.logActivity('Connection error - falling back to simulation mode');
+                this.fallbackToSimulation();
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000);
+                    
+                    setTimeout(() => {
+                        this.logActivity(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+                        this.connectWebSocket();
+                    }, delay);
+                } else {
+                    this.logActivity('Max reconnection attempts reached, switching to offline mode');
+                    this.fallbackToSimulation();
+                }
+            }
+
+            fallbackToSimulation() {
+                this.logActivity('Running in simulation mode (no real-time collaboration)');
+                this.loadInitialCode();
+                this.simulatedUsers = []; // Initialize array
+                this.simulateCollaboration();
+            }
+
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                }
+            }
+
+            loadInitialCode() {
+                // Load the current hello.c content
+                const initialCode = `#include <stdio.h>
+
+int main(void){
+    int rc = 0;
+    puts("Hello world!");
+    printf("Exit code: %d\\n", rc);
+    return rc;
+}`;
+                this.editor.value = initialCode;
+                this.lastContent = initialCode;
+            }
+
+            simulateCollaboration() {
+                // Only run simulation if we have the array initialized
+                if (!this.simulatedUsers) {
+                    this.simulatedUsers = [];
+                }
+                
+                // Simulate other users joining and making changes
+                setTimeout(() => {
+                    this.addSimulatedUser('Alice', '#4CAF50');
+                }, 3000);
+
+                setTimeout(() => {
+                    this.addSimulatedUser('Bob', '#ff9800');
+                }, 7000);
+
+                // Simulate occasional remote changes
+                setInterval(() => {
+                    if (Math.random() < 0.1) { // 10% chance every 5 seconds
+                        this.simulateRemoteEdit();
+                    }
+                }, 5000);
+            }
+
+            addSimulatedUser(name, color) {
+                if (!this.simulatedUsers) {
+                    this.simulatedUsers = [];
+                }
+                
+                const user = {
+                    id: this.generateUserId(),
+                    name: name,
+                    color: color,
+                    cursor: 0
+                };
+                
+                this.simulatedUsers.push(user);
+                this.updateUserList();
+                this.logActivity(`${name} joined the session`);
+                this.updateConnectionStatus(true);
+            }
+
+            simulateRemoteEdit() {
+                if (!this.simulatedUsers || this.simulatedUsers.length === 0) return;
+                
+                const user = this.simulatedUsers[Math.floor(Math.random() * this.simulatedUsers.length)];
+                const editTypes = [
+                    'Added a comment',
+                    'Modified variable name', 
+                    'Updated printf statement',
+                    'Fixed indentation'
+                ];
+                const editType = editTypes[Math.floor(Math.random() * editTypes.length)];
+                
+                this.logActivity(`${user.name} ${editType.toLowerCase()}`);
+            }
+
+            updateUserList() {
+                const userList = document.getElementById('user-list');
+                const allUsers = [this.currentUser];
+                
+                if (this.simulatedUsers) {
+                    allUsers.push(...this.simulatedUsers);
+                }
+                
+                userList.innerHTML = allUsers.map(user => `
+                    <li class="user-item">
+                        <div class="user-cursor" style="background-color: ${user.color};"></div>
+                        <span>${user.name}${user.id === this.currentUser.id ? ' (You)' : ''}</span>
+                    </li>
+                `).join('');
+
+                document.getElementById('user-count').textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
+            }
+
+            generateUserId() {
+                return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            setupEventListeners() {
+                this.editor.addEventListener('input', (e) => {
+                    this.handleContentChange(e);
+                });
+
+                this.editor.addEventListener('selectionchange', () => {
+                    this.handleCursorChange();
+                });
+
+                this.editor.addEventListener('scroll', () => {
+                    this.updateLineNumbers();
+                });
+
+                // Keyboard shortcuts
+                this.editor.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 's') {
+                            e.preventDefault();
+                            this.saveFile();
+                        } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                            this.buildCode();
+                        }
+                    }
+                });
+
+                // Simulate network events
+                setInterval(() => {
+                    this.simulateNetworkActivity();
+                }, 2000);
+            }
+
+            handleContentChange(e) {
+                const content = this.editor.value;
+                const cursor = this.editor.selectionStart;
+                
+                this.updateLineNumbers();
+                
+                // Send operation to server if connected
+                if (this.isConnected) {
+                    this.sendMessage({
+                        type: 'operation',
+                        operation: {
+                            type: 'replace',
+                            content: content,
+                            position: cursor
+                        }
+                    });
+                } else {
+                    // Fallback to simulation mode
+                    this.logActivity('You modified the code (offline)');
+                }
+
+                this.lastContent = content;
+                this.showSaveStatus('Unsaved changes');
+            }
+
+            handleCursorChange() {
+                const cursor = this.editor.selectionStart;
+                this.currentUser.cursor = cursor;
+                
+                if (this.isConnected) {
+                    this.sendMessage({
+                        type: 'cursor',
+                        position: cursor
+                    });
+                }
+            }
+
+            handleRemoteOperation(message) {
+                // Apply remote operation to editor
+                if (message.operation.type === 'replace') {
+                    const cursorPos = this.editor.selectionStart;
+                    this.editor.value = message.content;
+                    this.lastContent = message.content;
+                    
+                    // Restore cursor position
+                    this.editor.setSelectionRange(cursorPos, cursorPos);
+                    this.updateLineNumbers();
+                    
+                    this.logActivity('Code updated by collaborator');
+                }
+            }
+
+            handleRemoteCursor(message) {
+                // In a full implementation, this would show other users' cursors
+                // For now, just log the activity
+                const user = this.getUserById(message.userId);
+                if (user) {
+                    this.logActivity(`${user.name} moved cursor`);
+                }
+            }
+
+            updateUsersFromServer(users) {
+                // Update user list from server data
+                const userList = document.getElementById('user-list');
+                
+                userList.innerHTML = users.map(user => `
+                    <li class="user-item">
+                        <div class="user-cursor" style="background-color: ${user.color};"></div>
+                        <span>${user.name}${user.id === this.currentUser.id ? ' (You)' : ''}</span>
+                    </li>
+                `).join('');
+
+                document.getElementById('user-count').textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
+                
+                // Store users for reference
+                this.users.clear();
+                users.forEach(user => {
+                    this.users.set(user.id, user);
+                });
+            }
+
+            getUserById(userId) {
+                return this.users.get(userId);
+            }
+
+            handleBuildResult(result) {
+                if (result.success) {
+                    this.buildOutput.innerHTML += '<span class="success">Build completed successfully</span>\n';
+                    if (result.output) {
+                        this.buildOutput.innerHTML += `<span class="info">${result.output}</span>\n`;
+                    }
+                    this.logActivity('Build completed successfully');
+                } else {
+                    this.buildOutput.innerHTML += '<span class="error">Build failed</span>\n';
+                    if (result.error) {
+                        this.buildOutput.innerHTML += `<span class="error">${result.error}</span>\n`;
+                    }
+                    this.logActivity('Build failed with errors');
+                }
+                
+                // Auto-scroll build output
+                this.buildOutput.scrollTop = this.buildOutput.scrollHeight;
+            }
+
+            handleRunResult(result) {
+                if (result.success) {
+                    this.buildOutput.innerHTML += '\n<span class="info">Program output:</span>\n';
+                    this.buildOutput.innerHTML += `<span class="success">${result.output}</span>\n`;
+                    this.logActivity('Program executed successfully');
+                } else {
+                    this.buildOutput.innerHTML += '\n<span class="error">Runtime error:</span>\n';
+                    this.buildOutput.innerHTML += `<span class="error">${result.error}</span>\n`;
+                    this.logActivity('Program execution failed');
+                }
+                
+                // Auto-scroll build output
+                this.buildOutput.scrollTop = this.buildOutput.scrollHeight;
+            }
+
+            updateLineNumbers() {
+                const content = this.editor.value;
+                const lines = content.split('\n');
+                const lineNumbers = document.getElementById('line-numbers');
+                
+                let numbersHtml = '';
+                for (let i = 1; i <= lines.length; i++) {
+                    numbersHtml += i + '\n';
+                }
+                lineNumbers.textContent = numbersHtml;
+            }
+
+            simulateCollaboration() {
+                // Simulate other users joining and making changes
+                setTimeout(() => {
+                    this.addSimulatedUser('Alice', '#4CAF50');
+                }, 3000);
+
+                setTimeout(() => {
+                    this.addSimulatedUser('Bob', '#ff9800');
+                }, 7000);
+
+                // Simulate occasional remote changes
+                setInterval(() => {
+                    if (Math.random() < 0.1) { // 10% chance every 5 seconds
+                        this.simulateRemoteEdit();
+                    }
+                }, 5000);
+            }
+
+            addSimulatedUser(name, color) {
+                const user = {
+                    id: this.generateUserId(),
+                    name: name,
+                    color: color,
+                    cursor: 0
+                };
+                
+                this.simulatedUsers.push(user);
+                this.updateUserList();
+                this.logActivity(`${name} joined the session`);
+                this.updateConnectionStatus(true);
+            }
+
+            simulateRemoteEdit() {
+                if (this.simulatedUsers.length === 0) return;
+                
+                const user = this.simulatedUsers[Math.floor(Math.random() * this.simulatedUsers.length)];
+                const editTypes = [
+                    'Added a comment',
+                    'Modified variable name', 
+                    'Updated printf statement',
+                    'Fixed indentation'
+                ];
+                const editType = editTypes[Math.floor(Math.random() * editTypes.length)];
+                
+                this.logActivity(`${user.name} ${editType.toLowerCase()}`);
+            }
+
+            updateUserList() {
+                const userList = document.getElementById('user-list');
+                const allUsers = [this.currentUser, ...this.simulatedUsers];
+                
+                userList.innerHTML = allUsers.map(user => `
+                    <li class="user-item">
+                        <div class="user-cursor" style="background-color: ${user.color};"></div>
+                        <span>${user.name}${user.id === this.currentUser.id ? ' (You)' : ''}</span>
+                    </li>
+                `).join('');
+
+                document.getElementById('user-count').textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
+            }
+
+            simulateNetworkActivity() {
+                // Simulate occasional network hiccups
+                if (Math.random() < 0.05) { // 5% chance
+                    this.updateConnectionStatus(false);
+                    setTimeout(() => {
+                        this.updateConnectionStatus(true);
+                        this.logActivity('Reconnected to server');
+                    }, 1000 + Math.random() * 2000);
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const status = document.getElementById('connection-status');
+                this.isConnected = connected;
+                
+                if (connected) {
+                    status.textContent = 'Connected';
+                    status.className = 'connection-status connected';
+                } else {
+                    status.textContent = 'Reconnecting...';
+                    status.className = 'connection-status disconnected';
+                }
+            }
+
+            logActivity(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                activityItem.textContent = `${timestamp}: ${message}`;
+                
+                this.activityLog.insertBefore(activityItem, this.activityLog.firstChild);
+                
+                // Keep only last 50 items
+                while (this.activityLog.children.length > 50) {
+                    this.activityLog.removeChild(this.activityLog.lastChild);
+                }
+            }
+
+            showSaveStatus(message, type = 'info') {
+                this.saveStatus.textContent = message;
+                this.saveStatus.className = type;
+                
+                setTimeout(() => {
+                    this.saveStatus.textContent = '';
+                }, 3000);
+            }
+
+            async saveFile() {
+                this.showSaveStatus('Saving...', 'info');
+                
+                if (this.isConnected) {
+                    this.sendMessage({
+                        type: 'save'
+                    });
+                } else {
+                    // Simulate save in offline mode
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.showSaveStatus('✓ Saved locally (offline)', 'success');
+                    this.logActivity('File saved locally');
+                }
+            }
+
+            async buildCode() {
+                this.buildOutput.innerHTML = '<span class="info">Building hello.c...</span>\n';
+                this.logActivity('Started build process');
+                
+                if (this.isConnected) {
+                    this.sendMessage({
+                        type: 'build'
+                    });
+                } else {
+                    // Fallback simulation for offline mode
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    this.buildOutput.innerHTML += '<span class="success">Build completed (simulation)</span>\n';
+                    this.logActivity('Build completed (offline simulation)');
+                }
+            }
+
+            async runCode() {
+                if (this.buildOutput.textContent.includes('Build failed')) {
+                    this.buildOutput.innerHTML += '<span class="error">Cannot run: build failed</span>\n';
+                    return;
+                }
+                
+                this.buildOutput.innerHTML += '\n<span class="info">Running ./hello...</span>\n';
+                this.logActivity('Executing program');
+                
+                if (this.isConnected) {
+                    this.sendMessage({
+                        type: 'run'
+                    });
+                } else {
+                    // Fallback simulation for offline mode
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.buildOutput.innerHTML += '<span class="success">Hello world!</span>\n';
+                    this.buildOutput.innerHTML += '<span class="success">Exit code: 0</span>\n';
+                    this.buildOutput.innerHTML += '<span class="info">Program finished (simulation)</span>\n';
+                }
+            }
+        }
+
+        // Global functions for toolbar buttons
+        let editor;
+
+        function saveFile() {
+            editor.saveFile();
+        }
+
+        function buildCode() {
+            editor.buildCode();
+        }
+
+        function runCode() {
+            editor.runCode();
+        }
+
+        // Initialize the collaborative editor when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            editor = new CollaborativeEditor();
+        });
+    </script>
+</body>
+</html>
