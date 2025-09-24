@@ -104,11 +104,7 @@ if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
 fi
 print_success "Program exited with correct exit code (0)"
 
-<<<<<<< HEAD
 # Step 5: Verify exact output format (must match exactly: "Hello world!" + blank line + "Exit code: 0" with no trailing newline)
-=======
-# Step 5: Verify exact output format (must match exactly: "Hello world!" with trailing newline)
->>>>>>> main
 if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     print_error "Output mismatch!"
     printf "Expected: '%s'\n" "${EXPECTED_OUTPUT}"
@@ -125,20 +121,16 @@ fi
 print_success "Output format is correct"
 
 # Step 6: Explicit trailing newline check using byte-level analysis
-<<<<<<< HEAD
 # The program is expected to NOT output a trailing newline after "Exit code: 0"
-=======
-# The program is expected to output a trailing newline
->>>>>>> main
 # Check if output ends with newline by examining the last character
-if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
-    print_error "Output missing expected trailing newline"
-    printf "Output should end with newline character (hex 0a)\n"
+if [[ -n "${OUTPUT}" && "${OUTPUT: -1}" == $'\n' ]]; then
+    print_error "Output contains unexpected trailing newline"
+    printf "Output ends with newline character (hex 0a)\n"
     printf "Raw output (hex): "
     printf '%s' "${OUTPUT}" | hexdump -C | head -1
     exit 1
 fi
-print_success "Trailing newline confirmed"
+print_success "No trailing newline confirmed"
 
 print_success "All validation checks passed!"
 if [[ "${QUIET_MODE}" == "false" ]]; then
@@ -147,7 +139,7 @@ if [[ "${QUIET_MODE}" == "false" ]]; then
     printf "  - Strict compilation: PASSED\n"
     printf "  - Exit code (0): PASSED\n"
     printf "  - Output format: PASSED\n"
-    printf "  - Trailing newline: PASSED\n"
+    printf "  - No trailing newline: PASSED\n"
 else
     printf "Validation: All tests PASSED\n"
 fi
