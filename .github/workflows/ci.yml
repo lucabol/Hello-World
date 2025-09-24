@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
+  # Standard GCC build with original validation workflow
   build-and-test-gcc:
     runs-on: ubuntu-latest
     
@@ -20,6 +21,7 @@ jobs:
     - name: Run validation tests
       run: bash test/validate.sh --quiet
       
+  # Standard Clang build with binary validation (equivalent to GCC validation)
   build-and-test-clang:
     runs-on: ubuntu-latest
     

@@ -28,8 +28,8 @@ if [[ ${#} -gt 1 && "${2}" == "--quiet" ]]; then
     QUIET_MODE=true
 fi
 
-# Colors for output (disabled in quiet mode or non-TTY)
-if [[ "${QUIET_MODE}" == "false" && -t 1 ]]; then
+# Colors for output (disabled in quiet mode, non-TTY, or NO_COLOR env var)
+if [[ "${QUIET_MODE}" == "false" && -t 1 && -z "${NO_COLOR:-}" ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
@@ -63,20 +63,34 @@ print_info() {
 
 # Function to create hex dump with fallback options
 create_hex_dump() {
-    local input="$1"
+    local file_path="$1"
     # Try hexdump first (most common), then xxd, then od as fallback
+    # Using files directly avoids issues with printf and binary data
     if command -v hexdump >/dev/null 2>&1; then
-        printf '%s' "${input}" | hexdump -C | head -3
+        hexdump -C "${file_path}" | head -n 3
     elif command -v xxd >/dev/null 2>&1; then
-        printf '%s' "${input}" | xxd | head -3
+        xxd "${file_path}" | head -n 3
     elif command -v od >/dev/null 2>&1; then
-        printf '%s' "${input}" | od -c | head -3
+        od -c "${file_path}" | head -n 3
     else
-        printf "Raw bytes (length: %d): " "${#input}"
-        printf '%s' "${input}" | cat -v
+        printf "Raw bytes (length: %d): " "$(wc -c < "${file_path}")"
+        cat -v "${file_path}"
         printf "\n(Install hexdump/xxd/od for detailed hex output)\n"
     fi
 }
+
+# Cleanup function to remove temp files
+cleanup() {
+    if [[ -n "${OUTPUT_FILE:-}" && -f "${OUTPUT_FILE}" ]]; then
+        rm -f "${OUTPUT_FILE}"
+    fi
+    if [[ -n "${EXPECTED_FILE:-}" && -f "${EXPECTED_FILE}" ]]; then
+        rm -f "${EXPECTED_FILE}"
+    fi
+}
+
+# Set up cleanup trap
+trap cleanup EXIT
 
 print_info "Starting validation of binary: ${BINARY_PATH}"
 
@@ -93,23 +107,18 @@ fi
 
 print_success "Binary exists and is executable"
 
-# Step 2: Run the program and capture output and exit code
+# Step 2: Run the program and capture output and exit code using temp file
 print_info "Running program and capturing output..."
-# Temporarily disable set -e to capture exit code properly
-set +e
-# Use sentinel method to preserve trailing whitespace, but capture exit code correctly
-# Create a temporary function to run the binary and return its exit code
-run_binary_with_sentinel() {
-    "${BINARY_PATH}" 2>&1
-    local exit_code=$?
-    printf "x"  # sentinel
-    return $exit_code
-}
-OUTPUT_WITH_SENTINEL=$(run_binary_with_sentinel)
+# Create temporary file for output capture (preserves all bytes including trailing whitespace)
+OUTPUT_FILE=$(mktemp)
+"${BINARY_PATH}" >"${OUTPUT_FILE}" 2>&1
 PROGRAM_EXIT_CODE=$?
-set -e
 
-# Remove the sentinel to get the exact output (preserves trailing whitespace)
+# Read output from temp file preserving trailing whitespace using a different method
+# We cannot use OUTPUT=$(<"${OUTPUT_FILE}") as it strips trailing newlines
+# Instead, we'll add a sentinel and remove it
+printf "x" >> "${OUTPUT_FILE}"
+OUTPUT_WITH_SENTINEL=$(<"${OUTPUT_FILE}")
 OUTPUT="${OUTPUT_WITH_SENTINEL%x}"
 
 # Step 3: Verify exit code
@@ -127,11 +136,13 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     printf "Actual:   '%s'\n" "${OUTPUT}"
     printf "Expected length: %d\n" "${#EXPECTED_OUTPUT}"
     printf "Actual length:   %d\n" "${#OUTPUT}"
-    # Show hex dump for detailed analysis
+    # Show hex dump for detailed analysis using temp files
+    EXPECTED_FILE=$(mktemp)
+    printf '%s' "${EXPECTED_OUTPUT}" > "${EXPECTED_FILE}"
     printf "Expected (hex): "
-    create_hex_dump "${EXPECTED_OUTPUT}"
+    create_hex_dump "${EXPECTED_FILE}"
     printf "Actual (hex):   "
-    create_hex_dump "${OUTPUT}"
+    create_hex_dump "${OUTPUT_FILE}"
     exit 1
 fi
 print_success "Output format is correct"
@@ -143,7 +154,7 @@ if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
     print_error "Output missing expected trailing newline"
     printf "Output should end with newline character (hex 0a)\n"
     printf "Raw output (hex): "
-    create_hex_dump "${OUTPUT}"
+    create_hex_dump "${OUTPUT_FILE}"
     exit 1
 fi
 print_success "Trailing newline confirmed"
