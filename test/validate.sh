@@ -29,8 +29,10 @@ else
     NC=''
 fi
 
-# Expected output (without trailing newline)
-EXPECTED_OUTPUT="Hello world!"
+# Expected output (with exit code on third line)
+EXPECTED_OUTPUT="Hello world!
+
+Exit code: 0"
 
 # Function to print colored messages using safer printf formatting
 print_success() {
@@ -101,7 +103,7 @@ if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
 fi
 print_success "Program exited with correct exit code (0)"
 
-# Step 5: Verify exact output format (must match exactly: "Hello world!" with no trailing newline)
+# Step 5: Verify exact output format (must match exactly: "Hello world!" + blank line + "Exit code: 0" with no trailing newline)
 if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     print_error "Output mismatch!"
     printf "Expected: '%s'\n" "${EXPECTED_OUTPUT}"
@@ -118,7 +120,7 @@ fi
 print_success "Output format is correct"
 
 # Step 6: Explicit trailing newline check using byte-level analysis
-# The program is expected to NOT output a trailing newline
+# The program is expected to NOT output a trailing newline after "Exit code: 0"
 # Check if output ends with newline by examining the last character
 if [[ -n "${OUTPUT}" && "${OUTPUT: -1}" == $'\n' ]]; then
     print_error "Output contains unexpected trailing newline"
