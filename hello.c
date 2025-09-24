@@ -4,9 +4,10 @@
 // This demonstrates how voice commands could theoretically be processed
 // For interactive demo, compile and run voice_demo.c
 
-int main(){
+int main(void){
+    int rc = 0;
     // Default behavior - maintain compatibility
-    printf("Hello world!\n");
-    
-    return 0;
+    puts("Hello world!");
+    printf("Exit code: %d\n", rc);
+    return rc;
 }
