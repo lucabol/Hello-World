@@ -7,7 +7,7 @@
 int main(void){
     int rc = 0;
     // Default behavior - maintain compatibility
-    puts("Hello world!");
+    printf("Hello world!\n");
     printf("Exit code: %d\n", rc);
     return rc;
 }
