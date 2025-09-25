@@ -8,6 +8,6 @@ int main(void){
     int rc = 0;
     // Default behavior - maintain compatibility
     puts("Hello world!");
-    printf("Exit code: %d\n", rc);
+    puts("Exit code: 0");
     return rc;
 }
