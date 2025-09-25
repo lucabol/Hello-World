@@ -126,7 +126,7 @@ class CollaborationState {
 
 int main(void){
     int rc = 0;
-    puts("Hello world!");
+    puts("Ciao, Mondo!");
     printf("Exit code: %d\\n", rc);
     return rc;
 }`;

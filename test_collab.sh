@@ -65,7 +65,7 @@ fi
 
 # Test 7: Verify backend compatibility with existing hello.c
 echo "🔄 Testing hello.c integration..."
-if [[ -f hello.c ]] && grep -q "Hello world" hello.c; then
+if [[ -f hello.c ]] && grep -q "Ciao, Mondo" hello.c; then
     echo "✅ hello.c file is intact"
 else
     echo "❌ hello.c file missing or corrupted"
