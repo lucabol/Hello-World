@@ -33,3 +33,7 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Visual editor temporary files
+temp_visual
+temp_visual.c
