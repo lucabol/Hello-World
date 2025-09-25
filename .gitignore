@@ -8,6 +8,13 @@ hello_warnings
 hello_test*
 voice_demo
 voice_demo_test
+
+# Plugin-enabled binaries
+hello-plugins
+hello_strict_plugins
+hello_clang_plugins
+hello_debug_plugins
+
 *.exe
 *.out
 
