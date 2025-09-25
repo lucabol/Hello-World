@@ -11,7 +11,7 @@ int process_voice_command(const char* command) {
     
     // Simulate voice command processing for code editing
     if (strcmp(command, "say hello") == 0) {
-        printf("Hello world!\n");
+        printf("Ciao, Mondo!\n");
         return 0; // Success
     } else if (strncmp(command, "change message ", 15) == 0) {
         // Extract new message from command
