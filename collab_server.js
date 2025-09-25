@@ -51,6 +51,50 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Visual editor endpoints
+app.post('/build', async (req, res) => {
+    try {
+        const { code } = req.body;
+        if (!code) {
+            return res.status(400).json({ success: false, error: 'No code provided' });
+        }
+
+        // Write code to temporary file
+        await fs.writeFile('temp_visual.c', code);
+        
+        const result = await collabState.buildCode('temp_visual.c', 'temp_visual');
+        res.json(result);
+    } catch (error) {
+        console.error('Visual editor build error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/run', async (req, res) => {
+    try {
+        const result = await collabState.runCode('./temp_visual');
+        res.json(result);
+    } catch (error) {
+        console.error('Visual editor run error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/export', async (req, res) => {
+    try {
+        const { code, filename } = req.body;
+        if (!code || !filename) {
+            return res.status(400).json({ success: false, error: 'Code and filename required' });
+        }
+
+        await fs.writeFile(filename, code);
+        res.json({ success: true, message: `Code exported to ${filename}` });
+    } catch (error) {
+        console.error('Visual editor export error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // In-memory storage for collaboration state
 class CollaborationState {
     constructor() {
@@ -305,12 +349,12 @@ int main(void){
         }
     }
 
-    async buildCode() {
+    async buildCode(sourceFile = 'hello.c', outputFile = 'hello') {
         try {
             // SECURITY: Sandboxed build execution with strict limits - NO SHELL INTERPOLATION
             const { stdout, stderr } = await execFileAsync(
                 'timeout',
-                ['10s', 'gcc', '-Wall', '-Wextra', '-Wpedantic', '-o', 'hello', 'hello.c'],
+                ['10s', 'gcc', '-Wall', '-Wextra', '-Wpedantic', '-o', outputFile, sourceFile],
                 {
                     cwd: __dirname,
                     timeout: CONFIG.BUILD_TIMEOUT,
@@ -347,12 +391,12 @@ int main(void){
         }
     }
 
-    async runCode() {
+    async runCode(executable = './hello') {
         try {
             // SECURITY: Highly restricted execution environment - NO SHELL INTERPOLATION
             const { stdout, stderr } = await execFileAsync(
                 'timeout',
-                ['5s', './hello'],
+                ['5s', executable],
                 {
                     cwd: __dirname,
                     timeout: CONFIG.RUN_TIMEOUT,  

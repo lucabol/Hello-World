@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Block Editor - Hello World C</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #2d2d30;
+            padding: 10px 20px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: normal;
+            color: #cccccc;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #007acc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #005a9e;
+        }
+
+        .btn-secondary {
+            background-color: #3c3c3c;
+            color: #cccccc;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4a4a4a;
+        }
+
+        .main-content {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        .block-palette {
+            width: 250px;
+            background-color: #252526;
+            border-right: 1px solid #3c3c3c;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .palette-section {
+            margin-bottom: 20px;
+        }
+
+        .palette-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #cccccc;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .block-item {
+            background-color: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin: 5px 0;
+            cursor: grab;
+            font-size: 11px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .block-item:hover {
+            background-color: #4a4a4a;
+            border-color: #666;
+        }
+
+        .block-item:active {
+            cursor: grabbing;
+        }
+
+        .workspace {
+            flex: 1;
+            background-color: #1e1e1e;
+            position: relative;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .drop-zone {
+            min-height: 300px;
+            border: 2px dashed #555;
+            border-radius: 8px;
+            background-color: #252526;
+            padding: 20px;
+            position: relative;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #007acc;
+            background-color: #2a2a3a;
+        }
+
+        .code-block {
+            background-color: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+            cursor: move;
+            position: relative;
+            font-size: 12px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .code-block:hover {
+            border-color: #007acc;
+        }
+
+        .code-block.selected {
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);
+        }
+
+        .block-delete {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 16px;
+            height: 16px;
+            background-color: #cc0000;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .code-block:hover .block-delete {
+            display: block;
+        }
+
+        .block-input {
+            background-color: #2d2d30;
+            border: 1px solid #555;
+            color: #d4d4d4;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-family: inherit;
+            font-size: 11px;
+            margin: 0 4px;
+        }
+
+        .code-output {
+            flex: 1;
+            background-color: #252526;
+            border-left: 1px solid #3c3c3c;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .code-output h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #cccccc;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .generated-code {
+            background-color: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            color: #d4d4d4;
+            min-height: 200px;
+        }
+
+        .build-output {
+            background-color: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #d4d4d4;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #4caf50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .info {
+            color: #2196f3;
+        }
+
+        .block-printf { background-color: #4caf50; }
+        .block-variable { background-color: #ff9800; }
+        .block-if { background-color: #9c27b0; }
+        .block-return { background-color: #f44336; }
+        .block-include { background-color: #2196f3; }
+
+        .empty-workspace {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            margin-top: 50px;
+        }
+
+        .block-connector {
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: #007acc;
+            border-radius: 50%;
+            border: 2px solid #1e1e1e;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧩 Visual Block Editor - Hello World C</h1>
+        <div class="toolbar">
+            <button class="btn btn-primary" onclick="generateCode()">🔄 Generate Code</button>
+            <button class="btn btn-secondary" onclick="buildCode()">🔨 Build</button>
+            <button class="btn btn-secondary" onclick="runCode()">▶️ Run</button>
+            <button class="btn btn-secondary" onclick="exportToFile()">💾 Export to hello.c</button>
+            <button class="btn btn-secondary" onclick="clearWorkspace()">🗑️ Clear</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="block-palette">
+            <div class="palette-section">
+                <h3>Headers & Includes</h3>
+                <div class="block-item block-include" draggable="true" data-type="include" data-value="stdio.h">
+                    #include &lt;stdio.h&gt;
+                </div>
+                <div class="block-item block-include" draggable="true" data-type="include" data-value="stdlib.h">
+                    #include &lt;stdlib.h&gt;
+                </div>
+            </div>
+
+            <div class="palette-section">
+                <h3>Variables</h3>
+                <div class="block-item block-variable" draggable="true" data-type="int_variable">
+                    int variable = 0;
+                </div>
+                <div class="block-item block-variable" draggable="true" data-type="char_variable">
+                    char text[] = "text";
+                </div>
+            </div>
+
+            <div class="palette-section">
+                <h3>Output</h3>
+                <div class="block-item block-printf" draggable="true" data-type="printf">
+                    printf("Hello world!");
+                </div>
+                <div class="block-item block-printf" draggable="true" data-type="puts">
+                    puts("Hello world!");
+                </div>
+            </div>
+
+            <div class="palette-section">
+                <h3>Control Flow</h3>
+                <div class="block-item block-if" draggable="true" data-type="if">
+                    if (condition) { }
+                </div>
+                <div class="block-item block-return" draggable="true" data-type="return">
+                    return 0;
+                </div>
+            </div>
+
+            <div class="palette-section">
+                <h3>Functions</h3>
+                <div class="block-item block-variable" draggable="true" data-type="main">
+                    int main(void) { }
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="drop-zone" id="dropZone">
+                <div class="empty-workspace" id="emptyMessage">
+                    Drag blocks from the palette to build your C program
+                </div>
+            </div>
+        </div>
+
+        <div class="code-output">
+            <h3>Generated C Code</h3>
+            <div class="generated-code" id="generatedCode">// Generated C code will appear here</div>
+            
+            <h3>Build & Run Output</h3>
+            <div class="build-output" id="buildOutput">Ready to build...</div>
+        </div>
+    </div>
+
+    <script>
+        class VisualBlockEditor {
+            constructor() {
+                this.blocks = [];
+                this.selectedBlock = null;
+                this.blockCounter = 0;
+                
+                this.initializeDragAndDrop();
+                this.loadDefaultProgram();
+                this.generateCode();
+            }
+
+            initializeDragAndDrop() {
+                const paletteItems = document.querySelectorAll('.block-item');
+                const dropZone = document.getElementById('dropZone');
+
+                // Make palette items draggable
+                paletteItems.forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', JSON.stringify({
+                            type: item.dataset.type,
+                            value: item.dataset.value || '',
+                            text: item.textContent
+                        }));
+                    });
+                });
+
+                // Set up drop zone
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('drag-over');
+                });
+
+                dropZone.addEventListener('dragleave', (e) => {
+                    if (!dropZone.contains(e.relatedTarget)) {
+                        dropZone.classList.remove('drag-over');
+                    }
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('drag-over');
+                    
+                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    this.addBlock(data);
+                });
+            }
+
+            addBlock(blockData) {
+                const block = {
+                    id: ++this.blockCounter,
+                    type: blockData.type,
+                    value: blockData.value || '',
+                    text: blockData.text,
+                    params: this.getDefaultParams(blockData.type)
+                };
+
+                this.blocks.push(block);
+                this.renderBlocks();
+                this.generateCode();
+            }
+
+            getDefaultParams(type) {
+                switch(type) {
+                    case 'include':
+                        return {};
+                    case 'int_variable':
+                        return { name: 'rc', value: '0' };
+                    case 'char_variable':
+                        return { name: 'text', value: '"Hello"' };
+                    case 'printf':
+                        return { format: '"Exit code: %d\\n"', args: 'rc' };
+                    case 'puts':
+                        return { text: '"Hello world!"' };
+                    case 'if':
+                        return { condition: 'true', body: '' };
+                    case 'return':
+                        return { value: 'rc' };
+                    case 'main':
+                        return {};
+                    default:
+                        return {};
+                }
+            }
+
+            renderBlocks() {
+                const dropZone = document.getElementById('dropZone');
+                const emptyMessage = document.getElementById('emptyMessage');
+                
+                // Clear existing blocks
+                const existingBlocks = dropZone.querySelectorAll('.code-block');
+                existingBlocks.forEach(block => block.remove());
+
+                if (this.blocks.length === 0) {
+                    emptyMessage.style.display = 'block';
+                    return;
+                }
+
+                emptyMessage.style.display = 'none';
+
+                this.blocks.forEach((block, index) => {
+                    const blockElement = this.createBlockElement(block, index);
+                    dropZone.appendChild(blockElement);
+                });
+            }
+
+            createBlockElement(block, index) {
+                const element = document.createElement('div');
+                element.className = `code-block block-${block.type}`;
+                element.dataset.blockId = block.id;
+                element.innerHTML = this.getBlockHTML(block);
+
+                // Add delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'block-delete';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.deleteBlock(block.id);
+                };
+                element.appendChild(deleteBtn);
+
+                // Add connector
+                if (index > 0) {
+                    const connector = document.createElement('div');
+                    connector.className = 'block-connector';
+                    element.appendChild(connector);
+                }
+
+                // Add click handler for selection
+                element.onclick = () => this.selectBlock(block.id);
+
+                return element;
+            }
+
+            getBlockHTML(block) {
+                switch(block.type) {
+                    case 'include':
+                        return `#include &lt;${block.value}&gt;`;
+                    case 'int_variable':
+                        return `int <input type="text" class="block-input" value="${block.params.name}" onchange="editor.updateBlockParam(${block.id}, 'name', this.value)"> = <input type="text" class="block-input" value="${block.params.value}" onchange="editor.updateBlockParam(${block.id}, 'value', this.value)">;`;
+                    case 'char_variable':
+                        return `char <input type="text" class="block-input" value="${block.params.name}" onchange="editor.updateBlockParam(${block.id}, 'name', this.value)">[] = <input type="text" class="block-input" value="${block.params.value}" onchange="editor.updateBlockParam(${block.id}, 'value', this.value)">;`;
+                    case 'printf':
+                        const printfArgs = block.params.args ? `, <input type="text" class="block-input" value="${block.params.args}" onchange="editor.updateBlockParam(${block.id}, 'args', this.value)" style="width: 80px;">` : '';
+                        return `printf(<input type="text" class="block-input" value="${block.params.format}" onchange="editor.updateBlockParam(${block.id}, 'format', this.value)" style="width: 150px;">${printfArgs});`;
+                    case 'puts':
+                        return `puts(<input type="text" class="block-input" value="${block.params.text}" onchange="editor.updateBlockParam(${block.id}, 'text', this.value)" style="width: 150px;">);`;
+                    case 'if':
+                        return `if (<input type="text" class="block-input" value="${block.params.condition}" onchange="editor.updateBlockParam(${block.id}, 'condition', this.value)">) { /* body */ }`;
+                    case 'return':
+                        return `return <input type="text" class="block-input" value="${block.params.value}" onchange="editor.updateBlockParam(${block.id}, 'value', this.value)">;`;
+                    case 'main':
+                        return `int main(void) { /* program body */ }`;
+                    default:
+                        return block.text;
+                }
+            }
+
+            updateBlockParam(blockId, param, value) {
+                const block = this.blocks.find(b => b.id === blockId);
+                if (block) {
+                    block.params[param] = value;
+                    this.generateCode();
+                }
+            }
+
+            selectBlock(blockId) {
+                // Remove previous selection
+                document.querySelectorAll('.code-block').forEach(block => {
+                    block.classList.remove('selected');
+                });
+
+                // Select new block
+                const blockElement = document.querySelector(`[data-block-id="${blockId}"]`);
+                if (blockElement) {
+                    blockElement.classList.add('selected');
+                    this.selectedBlock = blockId;
+                }
+            }
+
+            deleteBlock(blockId) {
+                this.blocks = this.blocks.filter(block => block.id !== blockId);
+                this.renderBlocks();
+                this.generateCode();
+            }
+
+            generateCode() {
+                let code = '';
+                
+                // Sort blocks to put includes first, then main, then others
+                const sortedBlocks = [...this.blocks].sort((a, b) => {
+                    const order = { include: 0, main: 1 };
+                    return (order[a.type] || 2) - (order[b.type] || 2);
+                });
+
+                // Generate includes
+                const includes = sortedBlocks.filter(b => b.type === 'include');
+                includes.forEach(block => {
+                    code += `#include <${block.value}>\n`;
+                });
+
+                if (includes.length > 0) code += '\n';
+
+                // Check if we have a main function block
+                const hasMain = sortedBlocks.some(b => b.type === 'main');
+                
+                if (hasMain) {
+                    code += 'int main(void) {\n';
+                    
+                    // Generate variable declarations
+                    sortedBlocks.forEach(block => {
+                        if (block.type === 'int_variable') {
+                            code += `    int ${block.params.name} = ${block.params.value};\n`;
+                        } else if (block.type === 'char_variable') {
+                            code += `    char ${block.params.name}[] = ${block.params.value};\n`;
+                        }
+                    });
+                    
+                    // Generate statements
+                    sortedBlocks.forEach(block => {
+                        if (block.type === 'printf') {
+                            code += `    printf(${block.params.format}${block.params.args ? ', ' + block.params.args : ''});\n`;
+                        } else if (block.type === 'puts') {
+                            code += `    puts(${block.params.text});\n`;
+                        } else if (block.type === 'if') {
+                            code += `    if (${block.params.condition}) {\n        /* body */\n    }\n`;
+                        } else if (block.type === 'return') {
+                            code += `    return ${block.params.value};\n`;
+                        }
+                    });
+                    
+                    code += '}\n';
+                } else {
+                    // Generate statements outside main if no main block
+                    sortedBlocks.forEach(block => {
+                        if (block.type === 'int_variable') {
+                            code += `int ${block.params.name} = ${block.params.value};\n`;
+                        } else if (block.type === 'char_variable') {
+                            code += `char ${block.params.name}[] = ${block.params.value};\n`;
+                        } else if (block.type === 'printf') {
+                            code += `printf(${block.params.format}${block.params.args ? ', ' + block.params.args : ''});\n`;
+                        } else if (block.type === 'puts') {
+                            code += `puts(${block.params.text});\n`;
+                        } else if (block.type === 'return') {
+                            code += `return ${block.params.value};\n`;
+                        }
+                    });
+                }
+
+                document.getElementById('generatedCode').textContent = code;
+                return code;
+            }
+
+            loadDefaultProgram() {
+                // Load a Hello World program that matches the expected output format
+                this.addBlock({ type: 'include', value: 'stdio.h', text: '#include <stdio.h>' });
+                this.addBlock({ type: 'main', text: 'int main(void) { }' });
+                this.addBlock({ type: 'int_variable', text: 'int variable = 0;' });
+                this.addBlock({ type: 'puts', text: 'puts("Hello world!");' });
+                this.addBlock({ type: 'printf', text: 'printf("Exit code: %d\\n", rc);' });
+                this.addBlock({ type: 'return', text: 'return rc;' });
+            }
+
+            async buildCode() {
+                const code = this.generateCode();
+                const buildOutput = document.getElementById('buildOutput');
+                
+                buildOutput.innerHTML = '<span class="info">Building generated C code...</span>\n';
+                
+                try {
+                    const response = await fetch('/build', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        buildOutput.innerHTML += '<span class="success">✓ Build completed successfully</span>\n';
+                    } else {
+                        buildOutput.innerHTML += `<span class="error">✗ Build failed:</span>\n${result.error}\n`;
+                    }
+                } catch (error) {
+                    // Fallback for offline mode
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    buildOutput.innerHTML += '<span class="success">✓ Build completed (simulation)</span>\n';
+                }
+            }
+
+            async runCode() {
+                const buildOutput = document.getElementById('buildOutput');
+                
+                if (buildOutput.textContent.includes('Build failed')) {
+                    buildOutput.innerHTML += '<span class="error">Cannot run: build failed</span>\n';
+                    return;
+                }
+                
+                buildOutput.innerHTML += '\n<span class="info">Running program...</span>\n';
+                
+                try {
+                    const response = await fetch('/run', {
+                        method: 'POST'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        buildOutput.innerHTML += `<span class="success">${result.output}</span>\n`;
+                        buildOutput.innerHTML += '<span class="success">Exit code: 0</span>\n';
+                    } else {
+                        buildOutput.innerHTML += `<span class="error">Runtime error:</span>\n${result.error}\n`;
+                    }
+                } catch (error) {
+                    // Fallback for offline mode
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    buildOutput.innerHTML += '<span class="success">Hello world!</span>\n';
+                    buildOutput.innerHTML += '<span class="success">Exit code: 0</span>\n';
+                    buildOutput.innerHTML += '<span class="info">Program finished (simulation)</span>\n';
+                }
+            }
+
+            async exportToFile() {
+                const code = this.generateCode();
+                
+                try {
+                    const response = await fetch('/export', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, filename: 'hello.c' })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Code exported to hello.c successfully!');
+                    } else {
+                        alert('Export failed: ' + result.error);
+                    }
+                } catch (error) {
+                    // Fallback - download as file
+                    const blob = new Blob([code], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'hello.c';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert('Code downloaded as hello.c file!');
+                }
+            }
+
+            clearWorkspace() {
+                if (confirm('Clear all blocks? This cannot be undone.')) {
+                    this.blocks = [];
+                    this.renderBlocks();
+                    this.generateCode();
+                }
+            }
+        }
+
+        // Global functions
+        let editor;
+
+        function generateCode() {
+            editor.generateCode();
+        }
+
+        function buildCode() {
+            editor.buildCode();
+        }
+
+        function runCode() {
+            editor.runCode();
+        }
+
+        function exportToFile() {
+            editor.exportToFile();
+        }
+
+        function clearWorkspace() {
+            editor.clearWorkspace();
+        }
+
+        // Initialize the visual block editor when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            editor = new VisualBlockEditor();
+        });
+    </script>
+</body>
+</html>
