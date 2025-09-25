@@ -43,7 +43,7 @@ fi
 
 echo "🔍 Verifying embedded source code..."
 if grep -q "const sourceCode" code_metrics.html && \
-   grep -q "printf.*Hello world" code_metrics.html; then
+   grep -q "Hello world" code_metrics.html; then
     echo "✅ hello.c source code properly embedded"
 else
     echo "❌ Source code not properly embedded"

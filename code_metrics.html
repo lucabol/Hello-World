@@ -157,10 +157,18 @@
 
     <script>
         // Hello.c source code (embedded for analysis)
-        const sourceCode = `# include <stdio.h>
+        const sourceCode = `#include <stdio.h>
 
-int main(){
-    printf("Hello world!");
+// Voice-driven code editing simulation
+// This demonstrates how voice commands could theoretically be processed
+// For interactive demo, compile and run voice_demo.c
+
+int main(void){
+    int rc = 0;
+    // Default behavior - maintain compatibility
+    puts("Hello world!");
+    printf("Exit code: %d\\n", rc);
+    return rc;
 }
 `;
 
@@ -334,12 +342,12 @@ int main(){
             
             // Test with known input (current hello.c)
             const expectedMetrics = {
-                'Total Lines': 6,
-                'Code Lines': 4,
-                'Functions': 1,
+                'Total Lines': 14,
+                'Code Lines': 7,
+                'Functions': 2,
                 'Include Statements': 1,
-                'String Literals': 1,
-                'Semicolons': 1
+                'String Literals': 2,
+                'Semicolons': 4
             };
             
             analyzeCode();
