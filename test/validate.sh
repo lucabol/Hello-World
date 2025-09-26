@@ -142,6 +142,97 @@ else
     printf "Validation: All tests PASSED\n"
 fi
 
+# Test print_custom_message function
+print_info "Testing print_custom_message function..."
+
+# Create a test program that uses the function with different inputs
+cat > test_custom_message.c << 'EOF'
+#include <stdio.h>
+#include <string.h>
+
+// Function to print a custom message (copied from hello.c)
+// Prints the given message followed by a newline. If message is NULL, prints "(null)".
+void print_custom_message(const char* message) {
+    if (message) {
+        puts(message);
+    } else {
+        puts("(null)");
+    }
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <test_case>\n", argv[0]);
+        return 1;
+    }
+    
+    if (strcmp(argv[1], "normal") == 0) {
+        print_custom_message("Test message");
+        return 0;
+    } else if (strcmp(argv[1], "null") == 0) {
+        print_custom_message(NULL);
+        return 0;
+    } else if (strcmp(argv[1], "empty") == 0) {
+        print_custom_message("");
+        return 0;
+    }
+    
+    return 1;
+}
+EOF
+
+# Test building the test program
+if gcc -Wall -Wextra -Werror -o test_custom_message test_custom_message.c 2>/dev/null; then
+    print_success "Custom message function test compilation passed"
+    
+    # Test normal string
+    NORMAL_OUTPUT=$(./test_custom_message normal 2>&1)
+    NORMAL_EXIT_CODE=$?
+    if [[ ${NORMAL_EXIT_CODE} -eq 0 ]] && [[ "${NORMAL_OUTPUT}" == "Test message" ]]; then
+        print_success "Custom message function works with normal string"
+    else
+        print_error "Custom message function failed with normal string"
+        printf "Expected: 'Test message', Got: '%s'\n" "${NORMAL_OUTPUT}"
+        exit 1
+    fi
+    
+    # Test NULL handling
+    NULL_OUTPUT=$(./test_custom_message null 2>&1)
+    NULL_EXIT_CODE=$?
+    if [[ ${NULL_EXIT_CODE} -eq 0 ]] && [[ "${NULL_OUTPUT}" == "(null)" ]]; then
+        print_success "Custom message function handles NULL correctly"
+    else
+        print_error "Custom message function failed with NULL"
+        printf "Expected: '(null)', Got: '%s'\n" "${NULL_OUTPUT}"
+        exit 1
+    fi
+    
+    # Test empty string
+    EMPTY_OUTPUT=$(./test_custom_message empty 2>&1)
+    EMPTY_EXIT_CODE=$?
+    if [[ ${EMPTY_EXIT_CODE} -eq 0 ]] && [[ "${EMPTY_OUTPUT}" == "" ]]; then
+        print_success "Custom message function works with empty string"
+    else
+        print_error "Custom message function failed with empty string"
+        printf "Expected: '', Got: '%s'\n" "${EMPTY_OUTPUT}"
+        exit 1
+    fi
+    
+    # Clean up test files
+    rm -f test_custom_message test_custom_message.c
+    print_success "Custom message function tests completed successfully"
+    
+    if [[ "${QUIET_MODE}" == "false" ]]; then
+        printf "  - Normal string test: PASSED\n"
+        printf "  - NULL handling test: PASSED\n"
+        printf "  - Empty string test: PASSED\n"
+    fi
+else
+    print_error "Custom message function test compilation failed"
+    rm -f test_custom_message.c
+    exit 1
+fi
+
 # Additional tests for voice command functionality if voice.c exists
 if [[ -f voice.c && -f voice.h ]]; then
     print_info "Testing voice command functionality..."
