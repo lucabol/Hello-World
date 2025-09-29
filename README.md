@@ -4,7 +4,7 @@ Test repo for JediMaster
 
 ## Terminal Display Issue Fix
 
-This repository addresses the issue where the Hello World program outputs "Hello world!" without a trailing newline, which can cause terminal display problems where the prompt doesn't appear on a new line.
+This repository addresses the issue where the Hello World program outputs "Ciao, Mondo!" without a trailing newline, which can cause terminal display problems where the prompt doesn't appear on a new line.
 
 ### Solution
 
@@ -16,14 +16,14 @@ The program now supports an optional compile-time flag `WITH_NEWLINE` that adds 
 ```bash
 gcc -o hello hello.c
 ./hello
-# Output: Hello world!
+# Output: Ciao, Mondo!
 ```
 
 **With newline for better terminal display:**
 ```bash
 gcc -DWITH_NEWLINE -o hello_newline hello.c
 ./hello_newline
-# Output: Hello world!\n
+# Output: Ciao, Mondo!\n
 ```
 
 ### Using the Makefile

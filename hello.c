@@ -3,7 +3,7 @@
 /*
  * Hello World Program
  * 
- * By default, outputs "Hello world!" without a trailing newline.
+ * By default, outputs "Ciao, Mondo!" without a trailing newline.
  * This preserves the original specification but may cause terminal display issues.
  * 
  * To build with a trailing newline for better terminal compatibility:
@@ -14,7 +14,7 @@
  *   make newline  # Version with trailing newline
  */
 int main(){
-    printf("Hello world!");
+    printf("Ciao, Mondo!");
 #ifdef WITH_NEWLINE
     printf("\n");
 #endif
