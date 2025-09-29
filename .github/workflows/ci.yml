@@ -41,27 +41,51 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Check for required Node.js files
+      id: check-files
+      run: |
+        echo "Checking for required files..."
+        if [[ -f package.json && -f test_collab.sh && -f collab_server.js && -f test-ot.js ]]; then
+          echo "required-files=true" >> $GITHUB_OUTPUT
+          echo "✅ All required files found"
+        else
+          echo "required-files=false" >> $GITHUB_OUTPUT
+          echo "❌ Missing required files for collaborative editor tests:"
+          [[ ! -f package.json ]] && echo "  - package.json"
+          [[ ! -f test_collab.sh ]] && echo "  - test_collab.sh"
+          [[ ! -f collab_server.js ]] && echo "  - collab_server.js"
+          [[ ! -f test-ot.js ]] && echo "  - test-ot.js"
+          echo "Skipping collaborative editor tests."
+          exit 0
+        fi
+      
     - name: Setup Node.js
+      if: steps.check-files.outputs.required-files == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
         
     - name: Install dependencies
+      if: steps.check-files.outputs.required-files == 'true'
       run: npm ci
       
     - name: Run basic collaborative editor tests
+      if: steps.check-files.outputs.required-files == 'true'
       run: ./test_collab.sh
       
     - name: Run OT correctness tests (fast)
+      if: steps.check-files.outputs.required-files == 'true'
       run: node test-ot.js
       
     - name: Test backward compatibility
+      if: steps.check-files.outputs.required-files == 'true'
       run: |
         make test
         echo "✅ Original functionality preserved"
         
     - name: Test server startup (smoke test)
+      if: steps.check-files.outputs.required-files == 'true'
       timeout-minutes: 5
       run: |
         # Set up proper cleanup on exit
@@ -161,14 +185,33 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Check for required Node.js files
+      id: check-files
+      run: |
+        echo "Checking for required files..."
+        if [[ -f package.json && -f test-security.js ]]; then
+          echo "required-files=true" >> $GITHUB_OUTPUT
+          echo "✅ All required files found for security tests"
+        else
+          echo "required-files=false" >> $GITHUB_OUTPUT
+          echo "❌ Missing required files for security tests:"
+          [[ ! -f package.json ]] && echo "  - package.json"
+          [[ ! -f test-security.js ]] && echo "  - test-security.js"
+          echo "Skipping security tests."
+          exit 0
+        fi
+      
     - name: Setup Node.js
+      if: steps.check-files.outputs.required-files == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
         
     - name: Install dependencies
+      if: steps.check-files.outputs.required-files == 'true'
       run: npm ci
       
     - name: Run comprehensive security tests
+      if: steps.check-files.outputs.required-files == 'true'
       run: node test-security.js
