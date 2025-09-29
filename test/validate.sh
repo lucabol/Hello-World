@@ -137,7 +137,7 @@ if [[ "${QUIET_MODE}" == "false" ]]; then
     printf "  - Strict compilation: PASSED\n"
     printf "  - Exit code (0): PASSED\n"
     printf "  - Output format: PASSED\n"
-    printf "  - No trailing newline: PASSED\n"
+    printf "  - Trailing newline: PASSED\n"
 else
     printf "Validation: All tests PASSED\n"
 fi
