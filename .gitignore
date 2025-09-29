@@ -15,6 +15,9 @@ voice_demo_test
 *.o
 *.obj
 
+# Plugin binaries (but keep plugin source code)
+plugins/*.so
+
 # Debug files
 *.dSYM/
 *.pdb
