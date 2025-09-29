@@ -32,4 +32,4 @@ yarn-error.log*
 # Test artifacts and temporary files
 test-helpers/
 *.tmp
-*.temp
+*.temp__pycache__/
