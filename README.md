@@ -8,7 +8,14 @@ This is a simple C "Hello World" program that demonstrates basic C programming c
 
 ## Quick Start
 
-### Build and Run
+**Just want to build and run? Here's the fastest way:**
+
+```bash
+make && ./hello
+```
+**Expected output:** `Hello world!`
+
+### Step-by-step:
 ```bash
 # Compile the program
 make
@@ -175,12 +182,12 @@ gcc -g -Wall -Wextra -o hello_debug hello.c
 
 ### GCC (Primary)
 - **Version:** 13.3.0 or compatible
-- **Compilation time:** < 1 second
+- **Compilation time:** Very fast (typically under 1 second)
 - **Status:** Fully supported and tested
 
 ### Clang (Alternative)
 - **Version:** 18.1.3 or compatible  
-- **Compilation time:** ~4 seconds
+- **Compilation time:** Fast (may take a few seconds)
 - **Status:** Fully supported, produces identical output
 
 Both compilers produce functionally identical executables.
@@ -193,7 +200,7 @@ Remove compiled binaries:
 make clean
 
 # Manual cleanup
-rm -f hello hello_debug hello_optimized hello_clang hello_strict *.exe *.out *.o
+rm -f hello hello_debug hello_optimized hello_clang *.exe *.out *.o
 ```
 
 ## Project Structure
@@ -257,10 +264,10 @@ make clean && make test
 
 ### Expected Timings
 
-- **GCC compilation:** < 1 second
-- **Clang compilation:** ~4 seconds  
+- **GCC compilation:** Very fast (typically under 1 second)
+- **Clang compilation:** Fast (may take a few seconds)
 - **Program execution:** Instantaneous
-- **Full test suite:** < 2 seconds
+- **Full test suite:** Very fast (typically under 2 seconds)
 
 ## Development Workflow
 

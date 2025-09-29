@@ -48,7 +48,7 @@ test-quiet: strict
 
 # Clean compiled binaries
 clean:
-	rm -f $(TARGET) hello_debug hello_optimized hello_clang hello_strict *.exe *.out *.o
+	rm -f $(TARGET) hello_debug hello_optimized hello_clang *.exe *.out *.o
 
 # Help target
 help:
