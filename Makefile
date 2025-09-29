@@ -51,14 +51,8 @@ test-quiet:
 
 # Test metrics tool functionality
 metrics-test: metrics
-	@echo "Testing metrics tool functionality..."
-	@./metrics hello.c
-	@echo
-	@echo "Testing CSV output:"
-	@./metrics --csv hello.c
-	@echo
-	@echo "Testing summary output:"
-	@./metrics --summary hello.c
+	@echo "Running comprehensive metrics test suite..."
+	@./test_metrics.sh
 
 # Clean build artifacts
 clean:

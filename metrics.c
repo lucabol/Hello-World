@@ -1,3 +1,16 @@
+/*
+ * Code Metrics Analyzer - Spreadsheet-like interface for C code analysis
+ * 
+ * This tool analyzes C source code files and displays various metrics in
+ * spreadsheet, CSV, or summary formats. It provides comprehensive analysis
+ * including line counts, code structure, and quality metrics.
+ * 
+ * Author: GitHub Copilot
+ * License: MIT (same as project)
+ * C Standard: C99
+ * Dependencies: Standard C library only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,18 +86,42 @@ void analyze_file(const char* filename, CodeMetrics* metrics) {
                 metrics->includes++;
             }
             
-            // Count functions (simple heuristic: lines with "int main" or "type function_name(")
-            if (strstr(trimmed, "int main") || 
-                (strchr(trimmed, '(') && strchr(trimmed, ')') && 
-                 !strstr(trimmed, "#") && !strstr(trimmed, "printf"))) {
+            // Count functions (improved heuristic: look for function definitions)
+            // A function definition typically has: return_type function_name(...) { on same or next line
+            // We'll count lines that end with ) { or just { after a ) on the same line
+            // Also specifically catch "int main" patterns
+            if (strstr(trimmed, "int main")) {
                 metrics->functions++;
+            } else if (strchr(trimmed, '(') && strchr(trimmed, ')') && 
+                      (strchr(trimmed, '{') || 
+                       (strlen(trimmed) > 0 && trimmed[strlen(trimmed)-1] == ')')) &&
+                      !strstr(trimmed, "#") && !strstr(trimmed, "//") && 
+                      !strstr(trimmed, "printf") && !strstr(trimmed, "if") && 
+                      !strstr(trimmed, "for") && !strstr(trimmed, "while") && 
+                      !strstr(trimmed, "switch") && !strstr(trimmed, "sizeof")) {
+                // Additional check: must have at least one letter before the (
+                char* paren = strchr(trimmed, '(');
+                if (paren > trimmed) {
+                    char* p = paren - 1;
+                    while (p >= trimmed && (isspace(*p) || isalnum(*p) || *p == '_')) p--;
+                    if (p < trimmed || (!isalnum(*p) && *p != '_')) {
+                        metrics->functions++;
+                    }
+                }
             }
         }
         
-        // Count semicolons and braces
+        // Count semicolons and braces (but not inside string literals)
+        int in_string = 0;
+        char prev_char = '\0';
         for (char* p = line; *p; p++) {
-            if (*p == ';') metrics->semicolons++;
-            if (*p == '{' || *p == '}') metrics->braces++;
+            if (*p == '"' && prev_char != '\\') {
+                in_string = !in_string;
+            } else if (!in_string) {
+                if (*p == ';') metrics->semicolons++;
+                if (*p == '{' || *p == '}') metrics->braces++;
+            }
+            prev_char = *p;
         }
     }
     

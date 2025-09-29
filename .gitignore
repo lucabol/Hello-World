@@ -33,5 +33,6 @@ yarn-error.log*
 
 # Test artifacts and temporary files
 test-helpers/
+test_*.c
 *.tmp
 *.temp
