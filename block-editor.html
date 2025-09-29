@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Block Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            height: fit-content;
+        }
+        
+        .workspace {
+            flex: 1;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 600px;
+            position: relative;
+        }
+        
+        .output-panel {
+            width: 400px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            height: fit-content;
+        }
+        
+        .block-category {
+            margin-bottom: 15px;
+        }
+        
+        .block-category h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .block {
+            background: #4CAF50;
+            color: white;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: grab;
+            font-size: 12px;
+            border: none;
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+        
+        .block:hover {
+            background: #45a049;
+        }
+        
+        .block.statement {
+            background: #2196F3;
+        }
+        
+        .block.statement:hover {
+            background: #1976D2;
+        }
+        
+        .block.structure {
+            background: #FF9800;
+        }
+        
+        .block.structure:hover {
+            background: #F57C00;
+        }
+        
+        .block.variable {
+            background: #9C27B0;
+        }
+        
+        .block.variable:hover {
+            background: #7B1FA2;
+        }
+        
+        .workspace-block {
+            position: absolute;
+            background: #4CAF50;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: move;
+            font-size: 12px;
+            border: 2px solid transparent;
+            min-width: 150px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .workspace-block:hover {
+            border-color: #333;
+        }
+        
+        .workspace-block.statement {
+            background: #2196F3;
+        }
+        
+        .workspace-block.structure {
+            background: #FF9800;
+        }
+        
+        .workspace-block.variable {
+            background: #9C27B0;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            margin-bottom: 20px;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #4CAF50;
+            background-color: #f9f9f9;
+        }
+        
+        .code-output {
+            background: #2d2d2d;
+            color: #f0f0f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .controls {
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .btn.secondary {
+            background: #666;
+        }
+        
+        .btn.secondary:hover {
+            background: #555;
+        }
+        
+        .input-field {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            width: 100px;
+        }
+        
+        .workspace-block .input-field {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Visual C Code Block Editor</h1>
+        <p>Drag blocks from the sidebar to the workspace to create C code visually</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="block-category">
+                <h3>Program Structure</h3>
+                <button class="block structure" data-type="include" draggable="true">#include &lt;stdio.h&gt;</button>
+                <button class="block structure" data-type="main" draggable="true">main() function</button>
+            </div>
+            
+            <div class="block-category">
+                <h3>Statements</h3>
+                <button class="block statement" data-type="printf" draggable="true">printf statement</button>
+                <button class="block statement" data-type="return" draggable="true">return statement</button>
+            </div>
+            
+            <div class="block-category">
+                <h3>Variables</h3>
+                <button class="block variable" data-type="int" draggable="true">int variable</button>
+                <button class="block variable" data-type="char" draggable="true">char variable</button>
+            </div>
+        </div>
+        
+        <div class="workspace">
+            <div class="drop-zone" id="dropZone">
+                Drop blocks here to build your C program
+            </div>
+            <div id="workspace" style="position: relative; min-height: 400px;">
+                <!-- Workspace blocks will be added here -->
+            </div>
+        </div>
+        
+        <div class="output-panel">
+            <div class="controls">
+                <button class="btn" onclick="generateCode()">Generate Code</button>
+                <button class="btn secondary" onclick="clearWorkspace()">Clear</button>
+                <button class="btn" onclick="exportToFile()">Export to hello.c</button>
+            </div>
+            
+            <h3>Generated C Code:</h3>
+            <div class="code-output" id="codeOutput">// Generated C code will appear here</div>
+            
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="downloadCode()">Download Code</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let blockIdCounter = 0;
+        let workspace = document.getElementById('workspace');
+        let draggedElement = null;
+        
+        // Block templates
+        const blockTemplates = {
+            include: {
+                html: '#include &lt;<input type="text" class="input-field" value="stdio.h" placeholder="header">&gt;',
+                generateCode: (block) => {
+                    const input = block.querySelector('input');
+                    return `#include <${input ? input.value : 'stdio.h'}>`;
+                }
+            },
+            main: {
+                html: 'int main() {<br>&nbsp;&nbsp;&nbsp;&nbsp;/* statements go here */<br>&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br>}',
+                generateCode: () => {
+                    // Main function will be handled specially to include inner statements
+                    return 'int main(){\n{{STATEMENTS}}\n}';
+                }
+            },
+            printf: {
+                html: 'printf("<input type="text" class="input-field" value="Hello world!" placeholder="message">");',
+                generateCode: (block) => {
+                    const input = block.querySelector('input');
+                    return `    printf("${input ? input.value : 'Hello world!'}");`;
+                }
+            },
+            return: {
+                html: 'return <input type="text" class="input-field" value="0" placeholder="value">;',
+                generateCode: (block) => {
+                    const input = block.querySelector('input');
+                    return `    return ${input ? input.value : '0'};`;
+                }
+            },
+            int: {
+                html: 'int <input type="text" class="input-field" value="variable" placeholder="name"> = <input type="text" class="input-field" value="0" placeholder="value">;',
+                generateCode: (block) => {
+                    const inputs = block.querySelectorAll('input');
+                    return `    int ${inputs[0] ? inputs[0].value : 'variable'} = ${inputs[1] ? inputs[1].value : '0'};`;
+                }
+            },
+            char: {
+                html: 'char <input type="text" class="input-field" value="variable" placeholder="name"> = \'<input type="text" class="input-field" value="a" placeholder="char">\';',
+                generateCode: (block) => {
+                    const inputs = block.querySelectorAll('input');
+                    return `    char ${inputs[0] ? inputs[0].value : 'variable'} = '${inputs[1] ? inputs[1].value : 'a'}';`;
+                }
+            }
+        };
+        
+        // Drag and drop functionality
+        document.querySelectorAll('.block').forEach(block => {
+            block.addEventListener('dragstart', function(e) {
+                draggedElement = this;
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+        
+        const dropZone = document.getElementById('dropZone');
+        
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) {
+            dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            if (draggedElement) {
+                const blockType = draggedElement.getAttribute('data-type');
+                createWorkspaceBlock(blockType, e.offsetX, e.offsetY);
+                draggedElement = null;
+            }
+        });
+        
+        workspace.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+        
+        workspace.addEventListener('drop', function(e) {
+            e.preventDefault();
+            
+            if (draggedElement) {
+                const blockType = draggedElement.getAttribute('data-type');
+                const rect = workspace.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                createWorkspaceBlock(blockType, x, y);
+                draggedElement = null;
+            }
+        });
+        
+        function createWorkspaceBlock(type, x, y) {
+            const block = document.createElement('div');
+            block.className = `workspace-block ${getBlockClass(type)}`;
+            block.id = `block-${blockIdCounter++}`;
+            block.style.left = x + 'px';
+            block.style.top = y + 'px';
+            block.setAttribute('data-type', type);
+            
+            const template = blockTemplates[type];
+            if (template) {
+                block.innerHTML = template.html;
+            } else {
+                block.innerHTML = type;
+            }
+            
+            // Make block draggable within workspace
+            makeDraggable(block);
+            
+            // Add delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '×';
+            deleteBtn.style.cssText = 'position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px;';
+            deleteBtn.onclick = () => block.remove();
+            block.appendChild(deleteBtn);
+            
+            workspace.appendChild(block);
+        }
+        
+        function getBlockClass(type) {
+            if (['include', 'main'].includes(type)) return 'structure';
+            if (['printf', 'return'].includes(type)) return 'statement';
+            if (['int', 'char'].includes(type)) return 'variable';
+            return '';
+        }
+        
+        function makeDraggable(block) {
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
+            
+            block.addEventListener('mousedown', function(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+                
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                
+                if (e.target === block || block.contains(e.target)) {
+                    isDragging = true;
+                }
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    
+                    xOffset = currentX;
+                    yOffset = currentY;
+                    
+                    block.style.left = currentX + 'px';
+                    block.style.top = currentY + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', function(e) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+            });
+        }
+        
+        function generateCode() {
+            const blocks = workspace.querySelectorAll('.workspace-block');
+            let includes = [];
+            let statements = [];
+            let hasMain = false;
+            
+            blocks.forEach(block => {
+                const type = block.getAttribute('data-type');
+                const template = blockTemplates[type];
+                
+                if (template) {
+                    const code = template.generateCode(block);
+                    
+                    if (type === 'include') {
+                        includes.push(code);
+                    } else if (type === 'main') {
+                        hasMain = true;
+                    } else {
+                        statements.push(code);
+                    }
+                }
+            });
+            
+            let finalCode = '';
+            
+            // Add includes
+            if (includes.length > 0) {
+                finalCode += includes.join('\n') + '\n\n';
+            }
+            
+            // Add main function
+            if (hasMain) {
+                const mainTemplate = blockTemplates.main.generateCode();
+                finalCode += mainTemplate.replace('{{STATEMENTS}}', statements.join('\n'));
+            } else {
+                // If no main function block, create a simple one
+                finalCode += 'int main(){\n';
+                if (statements.length > 0) {
+                    finalCode += statements.join('\n') + '\n';
+                }
+                finalCode += '}';
+            }
+            
+            document.getElementById('codeOutput').textContent = finalCode;
+        }
+        
+        function clearWorkspace() {
+            workspace.innerHTML = '';
+            document.getElementById('codeOutput').textContent = '// Generated C code will appear here';
+        }
+        
+        function downloadCode() {
+            const code = document.getElementById('codeOutput').textContent;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'generated_code.c';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function exportToFile() {
+            const code = document.getElementById('codeOutput').textContent;
+            if (code && code !== '// Generated C code will appear here') {
+                // Send code to server for export
+                fetch('/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Success! Code exported to hello.c\n\nFile path: ' + data.file_path);
+                    } else {
+                        alert('Export failed: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    alert('Export failed. Make sure the server is running.\n\nGenerated code:\n\n' + code);
+                });
+            } else {
+                alert('Please generate code first by adding blocks and clicking "Generate Code"');
+            }
+        }
+        
+        // Initialize with a simple example
+        window.onload = function() {
+            // Add include block
+            createWorkspaceBlock('include', 50, 50);
+            
+            // Add main function block
+            createWorkspaceBlock('main', 50, 120);
+            
+            // Add printf block
+            createWorkspaceBlock('printf', 50, 250);
+            
+            // Generate initial code
+            setTimeout(generateCode, 100);
+        };
+    </script>
+</body>
+</html>
