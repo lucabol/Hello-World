@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visual C Code Block Editor</title>
     <style>
+        /* CSS Styles for Visual C Code Block Editor
+         * Self-contained styling for accessibility and maintainability
+         * Browser compatibility: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+         */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -75,10 +79,19 @@
             display: block;
             width: 100%;
             text-align: left;
+            /* Accessibility improvements */
+            transition: background-color 0.2s ease;
+            outline: none;
         }
         
-        .block:hover {
+        .block:hover, .block:focus {
             background: #45a049;
+            outline: 2px solid #333;
+            outline-offset: 2px;
+        }
+        
+        .block:active {
+            transform: translateY(1px);
         }
         
         .block.statement {
@@ -116,10 +129,19 @@
             border: 2px solid transparent;
             min-width: 150px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            /* Accessibility improvements */
+            transition: border-color 0.2s ease, transform 0.1s ease;
+            outline: none;
         }
         
-        .workspace-block:hover {
+        .workspace-block:hover, .workspace-block:focus {
             border-color: #333;
+            outline: 2px solid #333;
+            outline-offset: 2px;
+        }
+        
+        .workspace-block:active {
+            transform: scale(1.02);
         }
         
         .workspace-block.statement {
@@ -201,6 +223,34 @@
             color: #333;
             margin: 2px;
         }
+        
+        /* Keyboard dragging indicator */
+        .dragging {
+            opacity: 0.7;
+            transform: rotate(2deg);
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .block, .workspace-block {
+                border: 2px solid;
+            }
+            
+            .drop-zone {
+                border-width: 3px;
+            }
+        }
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            .block, .workspace-block, .btn {
+                transition: none;
+            }
+            
+            .workspace-block:active {
+                transform: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -260,13 +310,53 @@
         let workspace = document.getElementById('workspace');
         let draggedElement = null;
         
-        // Block templates
+        // Input validation utilities
+        const InputValidator = {
+            validateHeaderName: function(header) {
+                if (!header || header.length > 100) return false;
+                return /^[a-zA-Z0-9_\./]+\.h$|^[a-zA-Z0-9_]+$/.test(header);
+            },
+            
+            validateIdentifier: function(identifier) {
+                if (!identifier || identifier.length > 50) return false;
+                return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier);
+            },
+            
+            escapeStringLiteral: function(text) {
+                if (!text) return "";
+                let escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                escaped = escaped.replace(/\0/g, '\\0');
+                escaped = escaped.replace(/\n/g, '\\n');
+                escaped = escaped.replace(/\r/g, '\\r');
+                escaped = escaped.replace(/\t/g, '\\t');
+                if (escaped.length > 1000) {
+                    escaped = escaped.substring(0, 1000) + "...";
+                }
+                return escaped;
+            },
+            
+            sanitizeInput: function(input, type) {
+                switch(type) {
+                    case 'header':
+                        return this.validateHeaderName(input) ? input : 'stdio.h';
+                    case 'identifier':
+                        return this.validateIdentifier(input) ? input : 'variable';
+                    case 'string':
+                        return this.escapeStringLiteral(input);
+                    default:
+                        return input;
+                }
+            }
+        };
+        
+        // Block templates with input validation
         const blockTemplates = {
             include: {
                 html: '#include &lt;<input type="text" class="input-field" value="stdio.h" placeholder="header">&gt;',
                 generateCode: (block) => {
                     const input = block.querySelector('input');
-                    return `#include <${input ? input.value : 'stdio.h'}>`;
+                    const headerName = InputValidator.sanitizeInput(input ? input.value : 'stdio.h', 'header');
+                    return `#include <${headerName}>`;
                 }
             },
             main: {
@@ -280,38 +370,73 @@
                 html: 'printf("<input type="text" class="input-field" value="Hello world!" placeholder="message">");',
                 generateCode: (block) => {
                     const input = block.querySelector('input');
-                    return `    printf("${input ? input.value : 'Hello world!'}");`;
+                    const message = InputValidator.sanitizeInput(input ? input.value : 'Hello world!', 'string');
+                    return `    printf("${message}");`;
                 }
             },
             return: {
                 html: 'return <input type="text" class="input-field" value="0" placeholder="value">;',
                 generateCode: (block) => {
                     const input = block.querySelector('input');
-                    return `    return ${input ? input.value : '0'};`;
+                    const value = input ? input.value : '0';
+                    // Simple validation for return values (numbers or simple expressions)
+                    const sanitizedValue = /^[0-9a-zA-Z_\+\-\*\/\(\)\s]*$/.test(value) ? value : '0';
+                    return `    return ${sanitizedValue};`;
                 }
             },
             int: {
                 html: 'int <input type="text" class="input-field" value="variable" placeholder="name"> = <input type="text" class="input-field" value="0" placeholder="value">;',
                 generateCode: (block) => {
                     const inputs = block.querySelectorAll('input');
-                    return `    int ${inputs[0] ? inputs[0].value : 'variable'} = ${inputs[1] ? inputs[1].value : '0'};`;
+                    const name = InputValidator.sanitizeInput(inputs[0] ? inputs[0].value : 'variable', 'identifier');
+                    const value = inputs[1] ? inputs[1].value : '0';
+                    const sanitizedValue = /^[0-9a-zA-Z_\+\-\*\/\(\)\s]*$/.test(value) ? value : '0';
+                    return `    int ${name} = ${sanitizedValue};`;
                 }
             },
             char: {
                 html: 'char <input type="text" class="input-field" value="variable" placeholder="name"> = \'<input type="text" class="input-field" value="a" placeholder="char">\';',
                 generateCode: (block) => {
                     const inputs = block.querySelectorAll('input');
-                    return `    char ${inputs[0] ? inputs[0].value : 'variable'} = '${inputs[1] ? inputs[1].value : 'a'}';`;
+                    const name = InputValidator.sanitizeInput(inputs[0] ? inputs[0].value : 'variable', 'identifier');
+                    const charValue = inputs[1] ? inputs[1].value : 'a';
+                    // For char literals, take only the first character and escape if needed
+                    const sanitizedChar = charValue.length > 0 ? charValue.charAt(0) : 'a';
+                    const escapedChar = sanitizedChar === '\'' ? '\\\'' : 
+                                       sanitizedChar === '\\' ? '\\\\' : sanitizedChar;
+                    return `    char ${name} = '${escapedChar}';`;
                 }
             }
         };
         
-        // Drag and drop functionality
+        // Drag and drop functionality with accessibility support
         document.querySelectorAll('.block').forEach(block => {
+            // Mouse drag support
             block.addEventListener('dragstart', function(e) {
                 draggedElement = this;
                 e.dataTransfer.effectAllowed = 'copy';
+                this.classList.add('dragging');
             });
+            
+            block.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+            });
+            
+            // Keyboard support for accessibility
+            block.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const blockType = this.getAttribute('data-type');
+                    // Add block to center of workspace
+                    const rect = workspace.getBoundingClientRect();
+                    createWorkspaceBlock(blockType, rect.width / 2, rect.height / 2);
+                }
+            });
+            
+            // Make blocks focusable
+            block.setAttribute('tabindex', '0');
+            block.setAttribute('role', 'button');
+            block.setAttribute('aria-label', `Add ${block.textContent} block to workspace`);
         });
         
         const dropZone = document.getElementById('dropZone');
@@ -362,6 +487,9 @@
             block.style.left = x + 'px';
             block.style.top = y + 'px';
             block.setAttribute('data-type', type);
+            block.setAttribute('tabindex', '0');
+            block.setAttribute('role', 'button');
+            block.setAttribute('aria-label', `${type} block - drag to move or press Delete to remove`);
             
             const template = blockTemplates[type];
             if (template) {
@@ -373,14 +501,26 @@
             // Make block draggable within workspace
             makeDraggable(block);
             
+            // Add keyboard support for deletion
+            block.addEventListener('keydown', function(e) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    this.remove();
+                }
+            });
+            
             // Add delete button
             const deleteBtn = document.createElement('button');
             deleteBtn.innerHTML = '×';
             deleteBtn.style.cssText = 'position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px;';
+            deleteBtn.setAttribute('aria-label', 'Delete this block');
             deleteBtn.onclick = () => block.remove();
             block.appendChild(deleteBtn);
             
             workspace.appendChild(block);
+            
+            // Focus the new block for accessibility
+            block.focus();
         }
         
         function getBlockClass(type) {
