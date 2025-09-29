@@ -33,6 +33,31 @@ jobs:
     - name: Test Clang build
       run: ./hello_clang
 
+  binary-size-and-performance:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build with GCC (standard flags)
+      run: gcc -Wall -Wextra -o hello hello.c
+      
+    - name: Check binary size
+      run: bash test/check_binary_size.sh hello --quiet
+      
+    - name: Run micro-benchmark
+      run: bash test/benchmark.sh hello --quiet --iterations=50
+      
+    - name: Upload benchmark results as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: |
+          test/benchmark_results.txt
+          test/binary_size_baseline.txt
+        retention-days: 30
+
   collaborative-editor-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
