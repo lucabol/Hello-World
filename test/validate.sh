@@ -29,8 +29,10 @@ else
     NC=''
 fi
 
-# Expected output (with trailing newline)
-EXPECTED_OUTPUT="Hello world!"$'\n'"Exit code: 0"$'\n'
+# Expected output (default behavior: no trailing newline)
+EXPECTED_OUTPUT_DEFAULT="Hello world!"
+# Expected output with -n flag (with trailing newline)
+EXPECTED_OUTPUT_NEWLINE="Hello world!"$'\n'
 
 # Function to print colored messages using safer printf formatting
 print_success() {
@@ -82,8 +84,8 @@ if [[ ! -f hello_strict ]]; then
     exit 1
 fi
 
-# Step 3: Run the program and capture output and exit code
-print_info "Running program and capturing output..."
+# Step 3a: Test default behavior (no arguments)
+print_info "Testing default behavior (no arguments)..."
 # Temporarily disable set -e to capture exit code properly
 set +e
 # Use a method that preserves trailing whitespace by adding a sentinel
@@ -94,7 +96,7 @@ set -e
 # Remove the sentinel to get the exact output
 OUTPUT="${OUTPUT_WITH_SENTINEL%x}"
 
-# Step 4: Verify exit code
+# Step 4a: Verify exit code for default behavior
 if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
     print_error "Program exited with code ${PROGRAM_EXIT_CODE}, expected 0"
     printf "Program output:\n%s\n" "${OUTPUT}"
@@ -102,42 +104,89 @@ if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
 fi
 print_success "Program exited with correct exit code (0)"
 
-# Step 5: Verify exact output format (must match exactly: "Hello world!" with trailing newline)
-if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
-    print_error "Output mismatch!"
-    printf "Expected: '%s'\n" "${EXPECTED_OUTPUT}"
+# Step 5a: Verify exact output format for default behavior (should be "Hello world!" without newline)
+if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT_DEFAULT}" ]]; then
+    print_error "Default output mismatch!"
+    printf "Expected: '%s'\n" "${EXPECTED_OUTPUT_DEFAULT}"
     printf "Actual:   '%s'\n" "${OUTPUT}"
-    printf "Expected length: %d\n" "${#EXPECTED_OUTPUT}"
+    printf "Expected length: %d\n" "${#EXPECTED_OUTPUT_DEFAULT}"
     printf "Actual length:   %d\n" "${#OUTPUT}"
     # Show hex dump for detailed analysis
     printf "Expected (hex): "
-    printf '%s' "${EXPECTED_OUTPUT}" | hexdump -C | head -1
+    printf '%s' "${EXPECTED_OUTPUT_DEFAULT}" | hexdump -C | head -1
     printf "Actual (hex):   "
     printf '%s' "${OUTPUT}" | hexdump -C | head -1
     exit 1
 fi
-print_success "Output format is correct"
+print_success "Default output format is correct"
 
-# Step 6: Explicit trailing newline check using byte-level analysis
-# The program is expected to output a trailing newline
+# Step 3b: Test with -n flag
+print_info "Testing with -n flag..."
+# Temporarily disable set -e to capture exit code properly
+set +e
+# Use a method that preserves trailing whitespace by adding a sentinel
+OUTPUT_WITH_SENTINEL=$(./hello_strict -n 2>&1; printf x)
+PROGRAM_EXIT_CODE=$?
+set -e
+
+# Remove the sentinel to get the exact output
+OUTPUT="${OUTPUT_WITH_SENTINEL%x}"
+
+# Step 4b: Verify exit code for -n flag
+if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
+    print_error "Program with -n flag exited with code ${PROGRAM_EXIT_CODE}, expected 0"
+    printf "Program output:\n%s\n" "${OUTPUT}"
+    exit 1
+fi
+print_success "Program with -n flag exited with correct exit code (0)"
+
+# Step 5b: Verify exact output format with -n flag (should be "Hello world!" with newline)
+if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT_NEWLINE}" ]]; then
+    print_error "Output with -n flag mismatch!"
+    printf "Expected: '%s'\n" "${EXPECTED_OUTPUT_NEWLINE}"
+    printf "Actual:   '%s'\n" "${OUTPUT}"
+    printf "Expected length: %d\n" "${#EXPECTED_OUTPUT_NEWLINE}"
+    printf "Actual length:   %d\n" "${#OUTPUT}"
+    # Show hex dump for detailed analysis
+    printf "Expected (hex): "
+    printf '%s' "${EXPECTED_OUTPUT_NEWLINE}" | hexdump -C | head -1
+    printf "Actual (hex):   "
+    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    exit 1
+fi
+print_success "Output format with -n flag is correct"
+
+# Step 6: Explicit trailing newline check for -n flag
+# The program with -n flag is expected to output a trailing newline
 # Check if output ends with newline by examining the last character
 if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
-    print_error "Output missing expected trailing newline"
+    print_error "Output with -n flag missing expected trailing newline"
     printf "Output should end with newline character (hex 0a)\n"
     printf "Raw output (hex): "
     printf '%s' "${OUTPUT}" | hexdump -C | head -1
     exit 1
 fi
-print_success "Trailing newline confirmed"
+print_success "Trailing newline confirmed for -n flag"
 
+# Step 6: Explicit trailing newline check for -n flag
+# The program with -n flag is expected to output a trailing newline
+# Check if output ends with newline by examining the last character
+if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
+    print_error "Output with -n flag missing expected trailing newline"
+    printf "Output should end with newline character (hex 0a)\n"
+    printf "Raw output (hex): "
+    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    exit 1
+fi
 print_success "All validation checks passed!"
 if [[ "${QUIET_MODE}" == "false" ]]; then
     printf "\n"
     print_info "Summary:"
     printf "  - Strict compilation: PASSED\n"
+    printf "  - Default behavior (no args): PASSED\n"
+    printf "  - Newline flag (-n): PASSED\n"
     printf "  - Exit code (0): PASSED\n"
-    printf "  - Output format: PASSED\n"
-    printf "  - Trailing newline: PASSED\n"
+    printf "  - Output formats: PASSED\n"
 else
     printf "Validation: All tests PASSED\n"
 fi
