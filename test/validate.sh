@@ -29,8 +29,8 @@ else
     NC=''
 fi
 
-# Expected output (with trailing newline)
-EXPECTED_OUTPUT="Hello world!"$'\n'"Exit code: 0"$'\n'
+# Expected output (just the greeting message without trailing newline)
+EXPECTED_OUTPUT="Ciao, Mondo!"
 
 # Function to print colored messages using safer printf formatting
 print_success() {
@@ -118,17 +118,16 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
 fi
 print_success "Output format is correct"
 
-# Step 6: Explicit trailing newline check using byte-level analysis
-# The program is expected to output a trailing newline
-# Check if output ends with newline by examining the last character
-if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
-    print_error "Output missing expected trailing newline"
-    printf "Output should end with newline character (hex 0a)\n"
+# Step 6: Verify no trailing newline (program outputs exactly "Ciao, Mondo!" without newline)
+# Check if output ends without newline by examining the last character
+if [[ -n "${OUTPUT}" && "${OUTPUT: -1}" == $'\n' ]]; then
+    print_error "Output has unexpected trailing newline"
+    printf "Output should NOT end with newline character\n"
     printf "Raw output (hex): "
     printf '%s' "${OUTPUT}" | hexdump -C | head -1
     exit 1
 fi
-print_success "Trailing newline confirmed"
+print_success "No trailing newline confirmed (as expected)"
 
 print_success "All validation checks passed!"
 if [[ "${QUIET_MODE}" == "false" ]]; then
@@ -137,7 +136,7 @@ if [[ "${QUIET_MODE}" == "false" ]]; then
     printf "  - Strict compilation: PASSED\n"
     printf "  - Exit code (0): PASSED\n"
     printf "  - Output format: PASSED\n"
-    printf "  - Trailing newline: PASSED\n"
+    printf "  - No trailing newline: PASSED\n"
 else
     printf "Validation: All tests PASSED\n"
 fi
@@ -174,12 +173,12 @@ if [[ -f voice.c && -f voice.h ]]; then
         # Test 'say hello' command (expect exit code 0)
         SAY_OUTPUT=$(./voice_demo_test "say hello" 2>&1)
         SAY_EXIT_CODE=$?
-        if [[ ${SAY_EXIT_CODE} -eq 0 ]] && echo "${SAY_OUTPUT}" | grep -q "Hello world!"; then
+        if [[ ${SAY_EXIT_CODE} -eq 0 ]] && echo "${SAY_OUTPUT}" | grep -q "Ciao, Mondo!"; then
             print_success "Voice command 'say hello' works correctly"
         else
             print_error "Voice command 'say hello' failed or output incorrect"
             printf "Expected exit code: 0, Actual: %d\n" "${SAY_EXIT_CODE}"
-            printf "Expected output: Hello world!\nActual: %s\n" "${SAY_OUTPUT}"
+            printf "Expected output: Ciao, Mondo!\nActual: %s\n" "${SAY_OUTPUT}"
             exit 1
         fi
         
@@ -260,7 +259,7 @@ if [[ -f voice.c && -f voice.h ]]; then
         # Test interactive demo mode (full demo output)
         if DEMO_OUTPUT=$(./voice_demo_test 2>&1); then
             if echo "${DEMO_OUTPUT}" | grep -q "Voice-Driven Code Editing Demo" && \
-               echo "${DEMO_OUTPUT}" | grep -q "Hello world!" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Ciao, Mondo!" && \
                echo "${DEMO_OUTPUT}" | grep -q "Would change message to:" && \
                echo "${DEMO_OUTPUT}" | grep -q "Showing current code structure" && \
                echo "${DEMO_OUTPUT}" | grep -q "Voice command not recognized:"; then
