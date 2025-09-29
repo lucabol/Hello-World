@@ -53,7 +53,8 @@ static plugin_t my_plugin = {
     .version = my_plugin_version
 };
 
-// Required entry point
+// Required entry point (exported symbol)
+__attribute__((visibility("default")))
 plugin_t* get_plugin(void) {
     return &my_plugin;
 }
@@ -61,14 +62,56 @@ plugin_t* get_plugin(void) {
 
 ### Compilation
 
-Compile your plugin as a shared library:
+Compile your plugin as a shared library with hidden visibility:
 ```bash
-gcc -shared -fPIC -o plugins/my_plugin.so my_plugin.c
+gcc -Wall -Wextra -std=c99 -shared -fPIC -fvisibility=hidden -o plugins/my_plugin.so my_plugin.c
 ```
+
+The `-fvisibility=hidden` flag ensures that only the `get_plugin` function (marked with `__attribute__((visibility("default")))`) is exported from the plugin.
 
 ### Plugin Loading Order
 
 Plugins are loaded in the order they are found in the directory. Each plugin's transformation is applied in sequence.
+
+### Plugin Entry Point
+
+All plugins MUST export a function called `get_plugin` with this exact signature:
+
+```c
+__attribute__((visibility("default")))
+plugin_t* get_plugin(void);
+```
+
+This function should return a pointer to a static `plugin_t` structure containing the plugin's metadata and function pointers. The structure will be copied by the main program, so it can be static.
+
+**Note**: The `__attribute__((visibility("default")))` is required because plugins are compiled with `-fvisibility=hidden` to prevent accidental symbol exports.
+
+## Security and Safety Considerations
+
+**⚠️ IMPORTANT SECURITY NOTICE ⚠️**
+
+Loading plugins involves executing arbitrary code from shared libraries. This presents significant security risks:
+
+### Risks
+- **Arbitrary Code Execution**: Plugins can execute any code with the same privileges as the main program
+- **Memory Corruption**: Poorly written plugins can corrupt memory or cause crashes
+- **Data Access**: Plugins have full access to program memory and can read/modify any data
+- **System Access**: Plugins inherit all system permissions of the main program
+
+### Best Practices
+- **Only Load Trusted Plugins**: Never load plugins from untrusted sources
+- **Code Review**: Review all plugin source code before compilation and deployment
+- **Principle of Least Privilege**: Run the program with minimal necessary permissions
+- **Sandboxing**: Consider running in containers or sandboxed environments
+- **Input Validation**: Plugins should validate all inputs and handle errors gracefully
+- **Resource Limits**: Be aware that plugins can consume unlimited CPU, memory, or other resources
+
+### Recommended Deployment Practices
+- Ship only plugins you have personally reviewed and trust
+- Use containerization (Docker, etc.) to limit system access
+- Run as non-root user with restricted permissions
+- Monitor resource usage in production environments
+- Have incident response procedures for plugin-related security issues
 
 ## Example Plugins
 
@@ -120,9 +163,13 @@ mv plugins plugins_disabled
 #### `transform` Function
 - **Signature**: `char* transform(const char* input)`
 - **Purpose**: Transform the input message
-- **Parameters**: `input` - The current message
-- **Return**: Newly allocated transformed string, or NULL on error
-- **Note**: Caller frees the returned string
+- **Parameters**: `input` - The current message (read-only, do not modify or free)
+- **Return**: Newly allocated transformed string using `malloc()`, or NULL on error
+- **Memory Management**: 
+  - The plugin MUST allocate the return string using `malloc()` or compatible allocators
+  - The caller (main program) will `free()` the returned string
+  - If the function returns NULL, the main program falls back to the original message
+  - The input parameter should NOT be freed by the plugin
 
 #### `cleanup` Function
 - **Signature**: `void cleanup(void)`
@@ -137,12 +184,42 @@ mv plugins plugins_disabled
 - `PLUGIN_API_VERSION`: Current API version (1)
 - `MAX_MESSAGE_LEN`: Maximum message length (256)
 
+### API Versioning
+The plugin API uses `PLUGIN_API_VERSION` to ensure compatibility:
+
+- **Current Version**: 1 (initial release)
+- **Version Check**: Plugins must return `PLUGIN_API_VERSION` from their `version()` function
+- **Compatibility**: Plugins with different API versions are rejected during loading
+- **Future Changes**: API version will increment when breaking changes are made to:
+  - Function signatures in `plugin_t` structure
+  - Expected behavior of plugin functions
+  - Constants or data structures
+- **Plugin Updates**: When API version changes, existing plugins must be updated and recompiled
+
 ## Error Handling
 
-- Invalid plugins are skipped with warnings
-- Missing plugins directory is handled gracefully
-- Plugin initialization failures result in plugin being skipped
-- Memory allocation failures fall back to original message
+The plugin system includes comprehensive error handling:
+
+### Plugin Loading Errors
+When plugins fail to load, warnings are printed to stderr in this format:
+- `Warning: Cannot load plugin <path>: <dlerror_message>` - Shared library loading failed
+- `Warning: Plugin <path> missing get_plugin function` - Required entry point not found
+- `Warning: Plugin <path> has invalid descriptor` - get_plugin() returned NULL or invalid structure
+- `Warning: Plugin <path> has incompatible API version` - Version mismatch with PLUGIN_API_VERSION
+- `Warning: Plugin <path> initialization failed` - init() function returned non-zero
+
+### Runtime Behavior
+- **Failed Plugins**: Skipped entirely; cleanup() is only called for successfully initialized plugins
+- **Transform Failures**: If transform() returns NULL, the input message continues unchanged to the next plugin
+- **Memory Allocation Failures**: Program falls back to original message
+- **Missing Plugins Directory**: Silently ignored (not an error condition)
+
+### Warning Output
+Warnings are designed to be informative but not disruptive:
+- Printed only once per plugin during startup
+- Use stderr to avoid interfering with stdout message
+- Include specific error details when available
+- Normal operation continues even with plugin failures
 
 ## Limitations
 

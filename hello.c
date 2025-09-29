@@ -5,9 +5,16 @@
 int main() {
     const char* original_message = "Hello world!";
     char* final_message;
+    const char* plugins_dir;
     
-    // Load plugins from the plugins directory (if it exists)
-    load_plugins("plugins");
+    // Allow overriding plugins directory via environment variable
+    plugins_dir = getenv("PLUGINS_DIR");
+    if (!plugins_dir) {
+        plugins_dir = "plugins";
+    }
+    
+    // Load plugins from the specified directory (if it exists)
+    load_plugins(plugins_dir);
     
     // Apply plugin transformations
     final_message = apply_plugins(original_message);

@@ -42,7 +42,8 @@ static plugin_t emoji_plugin = {
     .version = emoji_version
 };
 
-// Required plugin entry point
+// Required plugin entry point (exported symbol)
+__attribute__((visibility("default")))
 plugin_t* get_plugin(void) {
     return &emoji_plugin;
 }

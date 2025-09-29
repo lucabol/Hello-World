@@ -42,7 +42,8 @@ static plugin_t uppercase_plugin = {
     .version = uppercase_version
 };
 
-// Required plugin entry point
+// Required plugin entry point (exported symbol)
+__attribute__((visibility("default")))
 plugin_t* get_plugin(void) {
     return &uppercase_plugin;
 }
