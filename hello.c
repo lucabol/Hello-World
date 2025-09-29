@@ -14,6 +14,7 @@
  * Returns: 0 on successful execution (implicit return)
  */
 int main() {
+    // Output message without trailing newline to satisfy byte-level test requirements
     printf("Hello world!");  // Output greeting message
     return 0;               // Explicitly return success status
 }
