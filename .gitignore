@@ -2,6 +2,7 @@
 hello
 hello_debug
 hello_optimized
+hello_opt
 hello_strict
 hello_clang
 hello_warnings

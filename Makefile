@@ -15,6 +15,7 @@ TARGET = hello
 TARGET_DEBUG = hello_debug
 TARGET_CLANG = hello_clang
 TARGET_STRICT = hello_strict
+TARGET_OPT = hello_opt
 
 # Default target
 all: $(TARGET)
@@ -40,19 +41,27 @@ clang: $(SRC)
 
 # Optimized build
 optimized: $(SRC)
-	$(CC) $(OPTIMIZE_FLAGS) -o $(TARGET) $(SRC)
+	$(CC) $(OPTIMIZE_FLAGS) -o $(TARGET_OPT) $(SRC)
 
 # Test target - runs validation script
 test: strict
+	@if [ ! -f ./test/validate.sh ]; then \
+		echo "Error: test/validate.sh not found"; \
+		exit 1; \
+	fi
 	./test/validate.sh
 
 # Quiet test for CI environments
 test-quiet: strict
+	@if [ ! -f ./test/validate.sh ]; then \
+		echo "Error: test/validate.sh not found"; \
+		exit 1; \
+	fi
 	./test/validate.sh --quiet
 
 # Clean build artifacts
 clean:
-	rm -f $(TARGET) $(TARGET_DEBUG) $(TARGET_CLANG) $(TARGET_STRICT)
+	rm -f $(TARGET) $(TARGET_DEBUG) $(TARGET_CLANG) $(TARGET_STRICT) $(TARGET_OPT)
 	rm -f *.exe *.out *.o
 
 # Show help
@@ -63,7 +72,7 @@ help:
 	@echo "  strict     - Build with strict flags (warnings as errors)"
 	@echo "  debug      - Build with debug symbols"
 	@echo "  clang      - Build using clang compiler"
-	@echo "  optimized  - Build with optimization"
+	@echo "  optimized  - Build with optimization (creates hello_opt)"
 	@echo "  test       - Run validation tests"
 	@echo "  test-quiet - Run validation tests (minimal output)"
 	@echo "  clean      - Remove build artifacts"
