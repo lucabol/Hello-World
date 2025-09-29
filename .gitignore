@@ -6,6 +6,8 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+metrics
+metrics_strict
 voice_demo
 voice_demo_test
 *.exe
