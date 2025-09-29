@@ -4,7 +4,21 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-/* Simple unit test framework for hello.c validation */
+/* 
+ * Automated Unit Tests for hello.c
+ * 
+ * This C unit test suite provides automated validation of the hello.c program
+ * to improve reliability and maintainability over shell-script-only testing.
+ * 
+ * Tests performed:
+ * 1. Binary existence and executability
+ * 2. Exact output string validation ("Hello world!" - 12 bytes, no newline)
+ * 3. Exit code validation (must be 0)
+ * 
+ * Usage: ./test_hello
+ * Build: gcc -Wall -Wextra -std=c99 -o test_hello test/test_hello.c
+ * Or use: make test-c
+ */
 
 static int tests_run = 0;
 static int tests_passed = 0;
