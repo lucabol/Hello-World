@@ -15,10 +15,10 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Build with GCC (with warnings)
-      run: gcc -Wall -Wextra -o hello hello.c
+      run: make
       
     - name: Run validation tests
-      run: bash test/validate.sh --quiet
+      run: make test-quiet
       
   build-and-test-clang:
     runs-on: ubuntu-latest
@@ -28,10 +28,31 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Build with Clang
-      run: clang -Wall -Wextra -o hello_clang hello.c
+      run: make clang
       
     - name: Test Clang build
       run: ./hello_clang
+
+  # Lightweight CI validation job for strict compliance
+  strict-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build with strict flags
+      run: make strict
+      
+    - name: Verify binary size and performance
+      run: |
+        echo "Binary sizes:"
+        ls -la hello_strict | awk '{print "Strict build: " $5 " bytes"}'
+        echo "Build timing test:"
+        time make clean && time make strict
+      
+    - name: Run byte-level validation
+      run: make test-quiet
 
   collaborative-editor-tests:
     runs-on: ubuntu-latest
