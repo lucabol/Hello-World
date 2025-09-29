@@ -25,9 +25,11 @@ voice_command_t* parse_voice_command(const char* input) {
         const char* param_start = input + 14;
         while (*param_start == ' ') param_start++; // Skip spaces
         if (*param_start != '\0') {
-            cmd->parameter = malloc(strlen(param_start) + 1);
+            size_t param_len = strlen(param_start);
+            cmd->parameter = malloc(param_len + 1);
             if (cmd->parameter) {
-                strcpy(cmd->parameter, param_start);
+                strncpy(cmd->parameter, param_start, param_len);
+                cmd->parameter[param_len] = '\0'; // Ensure null termination
             }
         }
     }
@@ -40,9 +42,11 @@ voice_command_t* parse_voice_command(const char* input) {
         const char* param_start = input + 11;
         while (*param_start == ' ') param_start++; // Skip spaces
         if (*param_start != '\0') {
-            cmd->parameter = malloc(strlen(param_start) + 1);
+            size_t param_len = strlen(param_start);
+            cmd->parameter = malloc(param_len + 1);
             if (cmd->parameter) {
-                strcpy(cmd->parameter, param_start);
+                strncpy(cmd->parameter, param_start, param_len);
+                cmd->parameter[param_len] = '\0'; // Ensure null termination
             }
         }
     }
@@ -52,9 +56,11 @@ voice_command_t* parse_voice_command(const char* input) {
         const char* param_start = input + 11;
         while (*param_start == ' ') param_start++; // Skip spaces
         if (*param_start != '\0') {
-            cmd->parameter = malloc(strlen(param_start) + 1);
+            size_t param_len = strlen(param_start);
+            cmd->parameter = malloc(param_len + 1);
             if (cmd->parameter) {
-                strcpy(cmd->parameter, param_start);
+                strncpy(cmd->parameter, param_start, param_len);
+                cmd->parameter[param_len] = '\0'; // Ensure null termination
             }
         }
     }
@@ -64,18 +70,22 @@ voice_command_t* parse_voice_command(const char* input) {
         const char* param_start = input + 8;
         while (*param_start == ' ') param_start++; // Skip spaces
         if (*param_start != '\0') {
-            cmd->parameter = malloc(strlen(param_start) + 1);
+            size_t param_len = strlen(param_start);
+            cmd->parameter = malloc(param_len + 1);
             if (cmd->parameter) {
-                strcpy(cmd->parameter, param_start);
+                strncpy(cmd->parameter, param_start, param_len);
+                cmd->parameter[param_len] = '\0'; // Ensure null termination
             }
         }
     }
     else {
         // Unknown command - store the full input
         cmd->type = VOICE_CMD_UNKNOWN;
-        cmd->parameter = malloc(strlen(input) + 1);
+        size_t input_len = strlen(input);
+        cmd->parameter = malloc(input_len + 1);
         if (cmd->parameter) {
-            strcpy(cmd->parameter, input);
+            strncpy(cmd->parameter, input, input_len);
+            cmd->parameter[input_len] = '\0'; // Ensure null termination
         }
     }
     
@@ -83,7 +93,7 @@ voice_command_t* parse_voice_command(const char* input) {
 }
 
 // Execute the parsed voice command
-int execute_voice_command(const voice_command_t* command) {
+int execute_voice_command(const voice_command_t* command, voice_safety_mode_t safety_mode) {
     if (!command) {
         return -1;
     }
@@ -95,9 +105,12 @@ int execute_voice_command(const voice_command_t* command) {
             
         case VOICE_CMD_CHANGE_MESSAGE:
             if (command->parameter) {
-                printf("Would change message to: %s\n", command->parameter);
-                // In a real implementation, this would modify hello.c
-                return change_hello_message(command->parameter);
+                if (safety_mode == VOICE_SAFETY_DEMO) {
+                    printf("Would change message to: %s\n", command->parameter);
+                } else {
+                    printf("Changing message to: %s\n", command->parameter);
+                }
+                return change_hello_message(command->parameter, safety_mode);
             } else {
                 printf("Error: No message specified for change command\n");
                 return -1;
@@ -109,9 +122,12 @@ int execute_voice_command(const voice_command_t* command) {
             
         case VOICE_CMD_INSERT_CODE:
             if (command->parameter) {
-                printf("Would insert code: %s\n", command->parameter);
-                // In a real implementation, this would modify hello.c
-                return insert_code_at_line(command->parameter, command->line_number);
+                if (safety_mode == VOICE_SAFETY_DEMO) {
+                    printf("Would insert code: %s\n", command->parameter);
+                } else {
+                    printf("Inserting code: %s\n", command->parameter);
+                }
+                return insert_code_at_line(command->parameter, command->line_number, safety_mode);
             } else {
                 printf("Error: No code specified for insert command\n");
                 return -1;
@@ -128,7 +144,11 @@ int execute_voice_command(const voice_command_t* command) {
             
         case VOICE_CMD_REFACTOR:
             if (command->parameter) {
-                printf("Would refactor: %s\n", command->parameter);
+                if (safety_mode == VOICE_SAFETY_DEMO) {
+                    printf("Would refactor: %s\n", command->parameter);
+                } else {
+                    printf("Refactoring: %s\n", command->parameter);
+                }
                 // In a real implementation, this would perform refactoring
                 return 0;
             } else {
@@ -190,14 +210,20 @@ int show_current_code(void) {
 }
 
 // Change hello message (demo implementation - shows what would be done)
-int change_hello_message(const char* new_message) {
+int change_hello_message(const char* new_message, voice_safety_mode_t safety_mode) {
     if (!new_message) {
         return -1;
     }
     
-    printf("Demo: Would update hello.c to print: '%s'\n", new_message);
-    printf("Note: This is a demonstration. In a real implementation,\n");
-    printf("      this would modify the actual hello.c file.\n");
+    if (safety_mode == VOICE_SAFETY_DEMO) {
+        printf("Demo: Would update hello.c to print: '%s'\n", new_message);
+        printf("Note: This is a demonstration. In a real implementation,\n");
+        printf("      this would modify the actual hello.c file.\n");
+    } else {
+        printf("WARNING: --apply mode not fully implemented yet.\n");
+        printf("Demo: Would update hello.c to print: '%s'\n", new_message);
+        printf("Note: File modification capabilities are planned for future versions.\n");
+    }
     
     // For safety, we're not actually modifying files in this demo
     // A real implementation would:
@@ -210,13 +236,20 @@ int change_hello_message(const char* new_message) {
 }
 
 // Insert code at specified line (demo implementation)
-int insert_code_at_line(const char* code, int line) {
+int insert_code_at_line(const char* code, int line, voice_safety_mode_t safety_mode) {
     if (!code) {
         return -1;
     }
     
-    printf("Demo: Would insert '%s' at line %d\n", code, line > 0 ? line : 1);
-    printf("Note: This is a demonstration. Real implementation would\n");
+    if (safety_mode == VOICE_SAFETY_DEMO) {
+        printf("Demo: Would insert '%s' at line %d\n", code, line > 0 ? line : 1);
+        printf("Note: This is a demonstration. Real implementation would\n");
+        printf("      modify the actual source file.\n");
+    } else {
+        printf("WARNING: --apply mode not fully implemented yet.\n");
+        printf("Demo: Would insert '%s' at line %d\n", code, line > 0 ? line : 1);
+        printf("Note: File modification capabilities are planned for future versions.\n");
+    };
     printf("      modify the actual source file.\n");
     
     return 0;
