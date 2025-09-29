@@ -29,8 +29,8 @@ else
     NC=''
 fi
 
-# Expected output (with trailing newline)
-EXPECTED_OUTPUT="Hello world!"$'\n'"Exit code: 0"$'\n'
+# Expected output (with trailing newline from puts)
+EXPECTED_OUTPUT="Hello world!"$'\n'
 
 # Function to print colored messages using safer printf formatting
 print_success() {
@@ -119,7 +119,7 @@ fi
 print_success "Output format is correct"
 
 # Step 6: Explicit trailing newline check using byte-level analysis
-# The program is expected to output a trailing newline
+# With puts, the program should output a trailing newline
 # Check if output ends with newline by examining the last character
 if [[ -z "${OUTPUT}" || "${OUTPUT: -1}" != $'\n' ]]; then
     print_error "Output missing expected trailing newline"
