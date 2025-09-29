@@ -45,7 +45,7 @@ test: unit-test validate
 
 # Run tests quietly (for CI environments)
 test-quiet: $(MAIN_TARGET) $(TEST_TARGET)
-	./$(TEST_TARGET)
+	./$(TEST_TARGET) --quiet
 	./test/validate.sh --quiet
 
 # Clean build artifacts
