@@ -7,6 +7,31 @@ on:
     branches: [ main ]
 
 jobs:
+  # Strict build job with pedantic warnings and -Werror
+  strict-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build with strict flags (make strict)
+      run: make strict
+      
+    - name: Run strict validation tests
+      run: make test-quiet
+
+  # Quick lint check with strict warnings (fails on warnings)
+  lint-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Lint with strict warnings (fail on warnings)
+      run: gcc -std=c99 -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -fsyntax-only hello.c
+
   build-and-test-gcc:
     runs-on: ubuntu-latest
     
