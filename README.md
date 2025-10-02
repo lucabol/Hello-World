@@ -32,7 +32,7 @@ gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -
 ./hello
 ```
 
-Expected output: `Hello world!` (without trailing newline)
+Expected output: `Hello world!` (without trailing newline, 12 bytes total)
 
 ## Testing and Validation
 
@@ -52,7 +52,7 @@ bash test/validate.sh --quiet
 
 ### What the Validation Script Tests
 
-The validation script (`test/validate.sh`) performs the following checks:
+The validation script ([`test/validate.sh`](test/validate.sh)) performs the following checks:
 
 1. **Strict Compilation**: Compiles with strict GCC flags including:
    - `-Wall -Wextra -Wpedantic`: Enable all warnings
@@ -92,9 +92,13 @@ The CI pipeline includes multiple jobs that run in parallel:
 This is the primary validation job:
 
 ```yaml
-- Checkout code
-- Build with GCC: gcc -Wall -Wextra -o hello hello.c
-- Run validation tests: bash test/validate.sh --quiet
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  - name: Build with GCC (with warnings)
+    run: gcc -Wall -Wextra -o hello hello.c
+  - name: Run validation tests
+    run: bash test/validate.sh --quiet
 ```
 
 **Purpose:** Ensures the code compiles cleanly with warnings enabled and passes all validation checks.
@@ -109,9 +113,13 @@ This is the primary validation job:
 Validates compiler compatibility:
 
 ```yaml
-- Checkout code
-- Build with Clang: clang -Wall -Wextra -o hello_clang hello.c
-- Test Clang build: ./hello_clang
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  - name: Build with Clang
+    run: clang -Wall -Wextra -o hello_clang hello.c
+  - name: Test Clang build
+    run: ./hello_clang
 ```
 
 **Purpose:** Confirms the code works with an alternative compiler (Clang).
@@ -126,13 +134,23 @@ Validates compiler compatibility:
 Tests advanced features if present:
 
 ```yaml
-- Checkout code
-- Setup Node.js
-- Install dependencies: npm ci
-- Run collaborative editor tests
-- Run OT correctness tests
-- Test backward compatibility: make test
-- Test server startup (smoke test)
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  - name: Setup Node.js
+    uses: actions/setup-node@v4
+  - name: Install dependencies
+    run: npm ci
+  - name: Run collaborative editor tests
+    run: ./test_collab.sh
+  - name: Run OT correctness tests
+    run: node test-ot.js
+  - name: Test backward compatibility
+    run: make test
+  - name: Test server startup (smoke test)
+    run: |
+      node collab_server.js &
+      # Health check with timeout
 ```
 
 **Purpose:** Validates additional functionality related to collaborative editing features.
@@ -148,10 +166,15 @@ Tests advanced features if present:
 Optional security validation:
 
 ```yaml
-- Checkout code
-- Setup Node.js
-- Install dependencies: npm ci
-- Run comprehensive security tests: node test-security.js
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  - name: Setup Node.js
+    uses: actions/setup-node@v4
+  - name: Install dependencies
+    run: npm ci
+  - name: Run comprehensive security tests
+    run: node test-security.js
 ```
 
 **Purpose:** Performs security-focused testing (continues on error for faster CI).
@@ -191,9 +214,10 @@ If CI fails, reproduce the failure locally:
    ./hello | hexdump -C
    ```
 
-   Expected hex output:
+   Expected hex output (12 bytes total):
    ```
    00000000  48 65 6c 6c 6f 20 77 6f  72 6c 64 21              |Hello world!|
+   0000000c
    ```
 
 5. **Verify exit code:**
@@ -291,9 +315,18 @@ Ensure all checks pass before pushing.
 
 ## Requirements
 
-- **GCC**: For compilation (tested with GCC 13.3.0)
-- **Clang**: Optional, for compiler compatibility testing
+- **GCC**: For compilation (tested with GCC 13.3.0 on Ubuntu 24.04)
+- **Clang**: Optional, for compiler compatibility testing (tested with Clang 18.1.3)
 - **Bash**: For running validation scripts
+- **OS**: Tested on Ubuntu 24.04 LTS (Linux x86_64)
+
+### Verification Environment
+
+The commands and examples in this README were verified in the following environment:
+- **OS**: Ubuntu 24.04 LTS (6.11.0-1018-azure kernel)
+- **GCC**: 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04)
+- **Clang**: 18.1.3 (Ubuntu clang version 18.1.3)
+- **Bash**: 5.2.21
 
 ## Additional Resources
 
