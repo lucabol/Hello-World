@@ -1,5 +1,29 @@
 /* Simple C Testing Framework - inspired by Unity
  * Lightweight testing framework with no external dependencies
+ * 
+ * Public API:
+ * - TEST_ASSERT_EQUAL_STRING(expected, actual) - Compare two strings for equality
+ * - TEST_ASSERT_NOT_NULL(ptr) - Verify a pointer is not NULL
+ * - TEST_ASSERT_EQUAL_INT(expected, actual) - Compare two integers for equality
+ * - RUN_TEST(test_func) - Execute a test function
+ * - TEST_SUMMARY() - Print test summary and return exit code (0 = pass, 1 = fail)
+ * 
+ * Features:
+ * - Colored output for test results (green=pass, red=fail, yellow=info)
+ * - Automatic test counting and statistics
+ * - Standard exit codes for CI integration
+ * 
+ * Usage:
+ *   #include "simple_test.h"
+ *   
+ *   void test_example(void) {
+ *       TEST_ASSERT_EQUAL_INT(5, 2 + 3);
+ *   }
+ *   
+ *   int main(void) {
+ *       RUN_TEST(test_example);
+ *       TEST_SUMMARY();
+ *   }
  */
 #ifndef SIMPLE_TEST_H
 #define SIMPLE_TEST_H

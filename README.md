@@ -53,6 +53,14 @@ The project uses a lightweight, self-contained testing framework (`test/simple_t
 - Multiple assertion types (string equality, null checks, integer equality)
 - Test summary with pass/fail counts
 
+**Build Process:**
+The test runner script (`test/run_unit_tests.sh`) compiles the code as follows:
+1. Compiles `hello.c` with `-DUNIT_TEST` to exclude the `main()` function
+2. Links it with `test/test_hello.c` which provides its own `main()` for tests
+3. Uses strict compiler flags: `-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99`
+
+**Note:** Test binaries (`test_hello_runner`, `*.o`) are automatically excluded by `.gitignore`
+
 ### Integration Tests
 
 Run the validation script to test compilation and program output:
@@ -60,6 +68,13 @@ Run the validation script to test compilation and program output:
 ```bash
 bash test/validate.sh
 ```
+
+**Note:** The `validate.sh` script is separate from the unit tests and performs end-to-end validation by:
+- Compiling the full program with strict flags
+- Running the binary and checking its output
+- Verifying the exit code
+
+The unit tests (`run_unit_tests.sh`) test individual functions, while `validate.sh` validates the complete program behavior.
 
 ## Repository Structure
 
@@ -101,6 +116,26 @@ To add new unit tests:
    ```
 4. Run `bash test/run_unit_tests.sh` to verify
 
+### Building Tests Manually
+
+If you need to build tests manually:
+
+```bash
+# Compile hello.c without main() using -DUNIT_TEST
+gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
+
+# Compile and link the test runner
+gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
+
+# Run tests
+./test_hello_runner
+
+# Clean up
+rm hello_lib.o test_hello_runner
+```
+
+The `-DUNIT_TEST` flag is crucial—it tells the preprocessor to exclude `main()` from `hello.c` so the test runner can provide its own.
+
 ## Testing Framework Details
 
 The `simple_test.h` framework provides the following assertions:
@@ -110,3 +145,13 @@ The `simple_test.h` framework provides the following assertions:
 - `TEST_ASSERT_EQUAL_INT(expected, actual)` - Compares two integers
 
 All assertions automatically track test counts and provide colored output for easy debugging.
+
+**Portability Notes:**
+- The framework uses ANSI color codes for terminal output. Colors may not display correctly on very old terminals but will not affect test results.
+- All code compiles cleanly with the strict flags on GCC >= 4.9 and Clang >= 3.5
+- The framework has no external dependencies beyond the C standard library (`stdio.h`, `string.h`)
+
+**Future Enhancements:**
+- Additional test coverage (e.g., testing that `get_greeting()` returns static storage)
+- CI integration with GitHub Actions to run tests automatically on push/PR
+- Support for additional compilers and platforms
