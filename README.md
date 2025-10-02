@@ -25,6 +25,11 @@ gcc -o hello hello.c
 gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -o hello hello.c
 ```
 
+**Compiler Requirements:**
+- GCC >= 4.9 or Clang >= 3.5
+- The strict compilation flags (`-Werror` with conversion warnings) are tested with GCC 13.3.0 and Clang 14+
+- Older compilers may generate additional warnings that need to be addressed
+
 ## Testing
 
 ### Unit Tests
