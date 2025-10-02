@@ -110,9 +110,9 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     printf "Expected length: %d\n" "${#EXPECTED_OUTPUT}"
     printf "Actual length:   %d\n" "${#OUTPUT}"
     # Show hex dump for detailed analysis
-    printf "Expected (hex): "
+    printf "Expected (hex):\n"
     printf '%s' "${EXPECTED_OUTPUT}" | hexdump -C | head -1
-    printf "Actual (hex):   "
+    printf "Actual (hex):\n"
     printf '%s' "${OUTPUT}" | hexdump -C | head -1
     exit 1
 fi
@@ -123,7 +123,7 @@ print_success "Output format is correct"
 if [[ -n "${OUTPUT}" && "${OUTPUT: -1}" == $'\n' ]]; then
     print_error "Output has unexpected trailing newline"
     printf "Output should NOT end with newline character\n"
-    printf "Raw output (hex): "
+    printf "Raw output (hex):\n"
     printf '%s' "${OUTPUT}" | hexdump -C | head -1
     exit 1
 fi
