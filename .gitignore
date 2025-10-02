@@ -8,6 +8,7 @@ hello_warnings
 hello_test*
 voice_demo
 voice_demo_test
+test_hello_runner
 *.exe
 *.out
 
