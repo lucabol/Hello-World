@@ -18,7 +18,8 @@ CFLAGS_STRICT = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversi
 CFLAGS_DEBUG = -g -Wall -Wextra $(STD_FLAGS)
 CFLAGS_OPTIMIZED = -O2 -Wall -Wextra $(STD_FLAGS)
 
-# Validation script
+# Validation script (must exist in repository and be executable)
+# The script supports --quiet flag for CI environments
 VALIDATE_SCRIPT = test/validate.sh
 
 # Declare phony targets
@@ -28,20 +29,20 @@ VALIDATE_SCRIPT = test/validate.sh
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS_BASIC) -o $(TARGET) $(SRC)
+	$(CC) $(CFLAGS_BASIC) -o $@ $<
 
 # Strict build (CI-quality with -Werror)
 # This target is used by CI and should match validation requirements
 strict: $(SRC)
-	$(CC) $(CFLAGS_STRICT) -o $(TARGET) $(SRC)
+	$(CC) $(CFLAGS_STRICT) -o $(TARGET) $<
 
 # Debug build
 debug: $(SRC)
-	$(CC) $(CFLAGS_DEBUG) -o $(TARGET_DEBUG) $(SRC)
+	$(CC) $(CFLAGS_DEBUG) -o $(TARGET_DEBUG) $<
 
 # Clang build (alternative compiler)
 clang: $(SRC)
-	$(CLANG) $(CFLAGS_BASIC) -o $(TARGET_CLANG) $(SRC)
+	$(CLANG) $(CFLAGS_BASIC) -o $(TARGET_CLANG) $<
 
 # Run validation tests
 # Expects: test/validate.sh to exist and be executable
@@ -58,6 +59,7 @@ test: strict
 	bash $(VALIDATE_SCRIPT)
 
 # Quiet test (minimal output for CI)
+# Uses --quiet flag supported by the validation script
 test-quiet: strict
 	@if [ ! -f $(VALIDATE_SCRIPT) ]; then \
 		echo "Error: $(VALIDATE_SCRIPT) not found"; \
