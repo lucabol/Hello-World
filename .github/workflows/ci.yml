@@ -17,6 +17,9 @@ jobs:
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
       
+    - name: Run unit tests
+      run: make unit-test
+      
     - name: Run validation tests
       run: bash test/validate.sh --quiet
       
@@ -32,6 +35,13 @@ jobs:
       
     - name: Test Clang build
       run: ./hello_clang
+      
+    - name: Run unit tests with Clang
+      run: |
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
+        ./test_hello_runner
+        rm -f hello_lib.o test_hello_runner
 
   collaborative-editor-tests:
     runs-on: ubuntu-latest

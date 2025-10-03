@@ -1,5 +1,13 @@
 # include <stdio.h>
+# include "hello.h"
 
-int main(){
-    printf("Hello world!");
+const char* get_greeting(void) {
+    return "Hello world!";
 }
+
+#ifndef UNIT_TEST
+int main(){
+    printf("%s", get_greeting());
+    return 0;
+}
+#endif
