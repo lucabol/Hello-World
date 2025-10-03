@@ -2,6 +2,12 @@
 
 A spreadsheet-like tool for analyzing C source code and displaying various metrics in tabular format.
 
+## Exit Codes
+
+- **0** - Success
+- **1** - File error (file not found, not readable, or empty)
+- **2** - Invalid command line arguments
+
 ## Features
 
 - **Summary Metrics Display**: Shows key code metrics in a clean, tabular format
@@ -20,6 +26,17 @@ A spreadsheet-like tool for analyzing C source code and displaying various metri
   - Summary metrics
   - Line-by-line data
   - Compatible with Excel, Google Sheets, LibreOffice Calc
+  - Proper escaping of quotes, commas, and special characters
+  - **Output filename format**: `<input_filename>_metrics.csv`
+
+## File Handling
+
+- **Single-file analysis only**: The tool analyzes one file at a time
+- **Line-by-line processing**: Minimizes memory usage, suitable for large files
+- **Limitations**:
+  - Lines longer than 1024 characters are truncated (warning issued)
+  - Files with more than 1000 lines will have line-by-line analysis truncated (warning issued)
+  - Summary metrics are calculated for all lines regardless of file size
 
 ## Building
 
@@ -64,36 +81,52 @@ Analyze the default file (hello.c):
 
 ## Example Output
 
+### Sample Input File (sample.c)
+```c
+#include <stdio.h>
+
+int main() {
+    printf("Hello world!");
+    return 0;
+}
+```
+
+### Command: `./metrics sample.c`
+
 ### Summary Metrics
 ```
 ================================================================================
                      CODE METRICS ANALYSIS SPREADSHEET
 ================================================================================
-File: hello.c
+File: sample.c
 
 +---------------------------------------------+
 | Metric                         |      Value |
 +---------------------------------------------+
-| Total Lines                    |          5 |
-| Code Lines                     |          4 |
+| Total Lines                    |          6 |
+| Code Lines                     |          5 |
 | Blank Lines                    |          1 |
 | Comment Lines                  |          0 |
 +---------------------------------------------+
 | Include Directives             |          1 |
 | Functions                      |          1 |
-| Statements                     |          1 |
+| Statements                     |          2 |
 +---------------------------------------------+
-| Total Characters               |         63 |
+| Total Characters               |         72 |
 | Avg Chars per Line             |         12 |
 +---------------------------------------------+
 
 Summary Statistics:
-  Code Density: 80.0% (code lines / total lines)
+  Code Density: 83.3% (code lines / total lines)
   Comment Ratio: 0.0% (comment lines / total lines)
-  Blank Ratio: 20.0% (blank lines / total lines)
+  Blank Ratio: 16.7% (blank lines / total lines)
+
+================================================================================
 ```
 
-### Line-by-Line Analysis (with --lines flag)
+### Command: `./metrics --lines sample.c`
+
+### Line-by-Line Analysis
 ```
 ================================================================================
                      LINE-BY-LINE ANALYSIS (Spreadsheet View)
@@ -102,33 +135,42 @@ Summary Statistics:
 +------+----------+-------+-----------+---------+---------------------------+
 | Line | Type     | Chars | Semicolon | Include | Content                   |
 +------+----------+-------+-----------+---------+---------------------------+
-|    1 | code     |    19 | No        | Yes     | # include <stdio.h>       |
+|    1 | code     |    18 | No        | Yes     | #include <stdio.h>        |
 |    2 | blank    |     0 | No        | No      |                           |
-|    3 | code     |    11 | No        | No      | int main(){               |
-|    4 | code     |    27 | Yes       | No      |     printf("Hello world!  |
-|    5 | code     |     1 | No        | No      | }                         |
+|    3 | code     |    12 | No        | No      | int main() {              |
+|    4 | code     |    24 | Yes       | No      |     printf("Hello world!  |
+|    5 | code     |    13 | Yes       | No      |     return 0;             |
+|    6 | code     |     1 | No        | No      | }                         |
 +------+----------+-------+-----------+---------+---------------------------+
 ```
 
-## CSV Export Format
+### Command: `./metrics --csv sample.c`
 
-The CSV file contains two sections:
+### CSV Export Format
 
-1. **Summary Metrics**: Metric name and value pairs
-2. **Line-by-Line Data**: Detailed analysis of each line
+Creates `sample.c_metrics.csv`:
 
-Example CSV structure:
 ```csv
 Metric,Value
-Total Lines,5
-Code Lines,4
-...
+Total Lines,6
+Code Lines,5
+Blank Lines,1
+Comment Lines,0
+Include Directives,1
+Functions,1
+Statements,2
+Total Characters,72
 
 Line,Type,Chars,Semicolon,Include,Content
-1,code,19,No,Yes,"# include <stdio.h>"
+1,code,18,No,Yes,"#include <stdio.h>"
 2,blank,0,No,No,""
-...
+3,code,12,No,No,"int main() {"
+4,code,24,Yes,No,"    printf(""Hello world!"");"
+5,code,13,Yes,No,"    return 0;"
+6,code,1,No,No,"}"
 ```
+
+**Note**: Quotes in content are escaped as `""` (CSV standard).
 
 ## Use Cases
 

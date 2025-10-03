@@ -1,10 +1,27 @@
 /* Code Metrics Analyzer - Spreadsheet-like Interface
- * Analyzes hello.c and displays various code metrics in tabular format
+ * 
+ * Copyright (c) 2025 Hello-World Project Contributors
+ * 
+ * This software is provided 'as-is', without any express or implied warranty.
+ * Permission is granted to use, copy, modify, and distribute this software
+ * for any purpose with or without fee.
+ * 
  * Features:
- * - Tabular display of metrics
+ * - Tabular display of code metrics
  * - Line-by-line analysis
- * - Interactive filtering options
- * - Export capabilities
+ * - CSV export for spreadsheet applications
+ * - Interactive command-line interface
+ * 
+ * Exit codes:
+ *   0 - Success
+ *   1 - File error (not found, not readable, or empty)
+ *   2 - Invalid command line arguments
+ * 
+ * Limitations:
+ * - MAX_LINE_LENGTH (1024): Lines longer than this are truncated
+ * - MAX_LINES (1000): Files with more lines will have truncated analysis
+ * - Comment detection is basic (only detects lines starting with comments)
+ * - Uses line-by-line processing to minimize memory usage
  */
 
 #include <stdio.h>
@@ -70,15 +87,28 @@ CodeMetrics analyze_file(const char *filename) {
     CodeMetrics metrics = {0, 0, 0, 0, 0, 0, 0, 0};
     FILE *file = fopen(filename, "r");
     char line[MAX_LINE_LENGTH];
+    int line_num = 0;
+    int warned_truncation = 0;
     
     if (!file) {
-        fprintf(stderr, "Error: Could not open file '%s'\n", filename);
+        /* Provide more specific error information */
+        perror(filename);
         return metrics;
     }
     
     while (fgets(line, sizeof(line), file)) {
+        line_num++;
+        size_t len = strlen(line);
+        
+        /* Warn if line might be truncated (no newline and buffer full) */
+        if (len == MAX_LINE_LENGTH - 1 && line[len-1] != '\n' && !warned_truncation) {
+            fprintf(stderr, "Warning: Line %d exceeds %d characters and may be truncated\n", 
+                    line_num, MAX_LINE_LENGTH);
+            warned_truncation = 1;
+        }
+        
         metrics.total_lines++;
-        metrics.chars += (int)strlen(line);
+        metrics.chars += (int)len;
         
         if (is_blank_line(line)) {
             metrics.blank_lines++;
@@ -140,14 +170,23 @@ LineAnalysis analyze_lines(const char *filename) {
         
         /* Determine line type */
         if (is_blank_line(line)) {
-            strcpy(info->type, "blank");
+            strncpy(info->type, "blank", sizeof(info->type) - 1);
         } else if (is_comment_line(line)) {
-            strcpy(info->type, "comment");
+            strncpy(info->type, "comment", sizeof(info->type) - 1);
         } else {
-            strcpy(info->type, "code");
+            strncpy(info->type, "code", sizeof(info->type) - 1);
         }
+        info->type[sizeof(info->type) - 1] = '\0';
         
         analysis.line_count++;
+    }
+    
+    /* Warn if file has more lines than we can analyze */
+    if (analysis.line_count == MAX_LINES) {
+        char buffer[MAX_LINE_LENGTH];
+        if (fgets(buffer, sizeof(buffer), file)) {
+            fprintf(stderr, "Warning: File has more than %d lines. Analysis truncated.\n", MAX_LINES);
+        }
     }
     
     fclose(file);
@@ -318,14 +357,26 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "--csv") == 0 || strcmp(argv[i], "-c") == 0) {
             export_csv_flag = 1;
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            printf("Code Metrics Analyzer - Spreadsheet Interface\n");
-            printf("Usage: %s [options] [filename]\n", argv[0]);
+            printf("Code Metrics Analyzer - Spreadsheet Interface\n\n");
+            printf("Usage: %s [options] [filename]\n\n", argv[0]);
             printf("Options:\n");
             printf("  -l, --lines    Show line-by-line analysis\n");
-            printf("  -c, --csv      Export metrics to CSV file\n");
-            printf("  -h, --help     Show this help message\n");
-            printf("\nDefault file: hello.c\n");
+            printf("  -c, --csv      Export metrics to CSV file (format: <filename>_metrics.csv)\n");
+            printf("  -h, --help     Show this help message\n\n");
+            printf("Default file: hello.c\n");
+            printf("Only single-file analysis is supported.\n\n");
+            printf("Exit codes:\n");
+            printf("  0 - Success\n");
+            printf("  1 - File error (not found, not readable, or empty)\n");
+            printf("  2 - Invalid arguments\n\n");
+            printf("CSV Output:\n");
+            printf("  Creates <filename>_metrics.csv with summary metrics and line-by-line data.\n");
+            printf("  Compatible with Excel, Google Sheets, LibreOffice Calc.\n");
             return 0;
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
+            fprintf(stderr, "Use --help for usage information\n");
+            return 2;
         } else {
             filename = argv[i];
         }
@@ -338,6 +389,10 @@ int main(int argc, char *argv[]) {
     
     if (metrics.total_lines == 0) {
         fprintf(stderr, "Error: Failed to analyze file or file is empty\n");
+        fprintf(stderr, "Possible causes:\n");
+        fprintf(stderr, "  - File does not exist\n");
+        fprintf(stderr, "  - File is not readable\n");
+        fprintf(stderr, "  - File is empty\n");
         return 1;
     }
     

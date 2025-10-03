@@ -182,3 +182,32 @@ jobs:
       
     - name: Run comprehensive security tests
       run: node test-security.js
+
+  metrics-tool-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build metrics tool with strict flags
+      run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -o metrics metrics.c
+      
+    - name: Test metrics tool help
+      run: ./metrics --help
+      
+    - name: Test metrics tool basic analysis
+      run: ./metrics hello.c
+      
+    - name: Test metrics tool with line analysis
+      run: ./metrics --lines hello.c
+      
+    - name: Test metrics tool CSV export
+      run: |
+        ./metrics --csv hello.c
+        test -f hello.c_metrics.csv
+        rm -f hello.c_metrics.csv
+      
+    - name: Run comprehensive metrics test suite
+      run: bash test/test_metrics.sh
