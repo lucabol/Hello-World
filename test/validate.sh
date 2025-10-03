@@ -29,8 +29,9 @@ else
     NC=''
 fi
 
-# Expected output (just the greeting message without trailing newline)
-EXPECTED_OUTPUT="Ciao, Mondo!"
+# Expected output (greeting message with exit code, no trailing newline)
+EXPECTED_OUTPUT="Ciao, Mondo!
+Exit code: 0"
 
 # Function to print colored messages using safer printf formatting
 print_success() {
