@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Editor - Hello World</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 140px);
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .workspace-container {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow: auto;
+        }
+        
+        .code-container {
+            flex: 0 0 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .code-preview {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .code-preview h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        
+        #generatedCode {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            overflow: auto;
+            white-space: pre;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .instructions {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        
+        .instructions ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .block-palette {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 8px;
+        }
+        
+        .block-palette h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .block-templates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .block-template {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .block-template:hover {
+            background: #3498db;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .workspace {
+            min-height: 300px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .code-block {
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .code-block.main-block {
+            border-color: #e74c3c;
+            background: #ffe8e8;
+        }
+        
+        .code-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .code-block-content {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .code-block-content input,
+        .code-block-content select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .nested-blocks {
+            margin-left: 20px;
+            border-left: 3px solid #3498db;
+            padding-left: 15px;
+            margin-top: 10px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧩 Visual C Code Editor</h1>
+        <p>Create C code using visual blocks - perfect for learning!</p>
+    </div>
+    
+    <div class="container">
+        <div class="workspace-container">
+            <div class="block-palette">
+                <h3>📦 Block Palette - Click to Add</h3>
+                <div class="block-templates">
+                    <div class="block-template" onclick="addPrintBlock()">➕ Print (no newline)</div>
+                    <div class="block-template" onclick="addPrintNewlineBlock()">➕ Print (with newline)</div>
+                    <div class="block-template" onclick="addCommentBlock()">➕ Comment</div>
+                </div>
+            </div>
+            
+            <div class="workspace">
+                <div class="code-block main-block">
+                    <div class="code-block-header">
+                        🎯 Main Function (Program Entry Point)
+                        <span style="font-size: 12px; font-weight: normal; color: #777;">This block cannot be deleted</span>
+                    </div>
+                    <div class="nested-blocks" id="mainFunctionBody">
+                        <!-- Blocks will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="code-container">
+            <div class="code-preview">
+                <h3>📄 Generated C Code</h3>
+                <div id="generatedCode">// Your code will appear here...</div>
+            </div>
+            
+            <div class="instructions">
+                <h3>📋 Quick Start</h3>
+                <ul>
+                    <li>Click blocks in the palette to add them</li>
+                    <li>Edit text in the input fields</li>
+                    <li>Code updates automatically</li>
+                    <li>Click "Download hello.c" to save</li>
+                    <li>Use the generated file in your project</li>
+                </ul>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn-secondary" onclick="resetWorkspace()">🔄 Reset</button>
+                <button class="btn-primary" onclick="downloadCode()">💾 Download hello.c</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+    
+    <script>
+        let blockCounter = 0;
+        
+        // Initialize with a default hello world print
+        window.addEventListener('DOMContentLoaded', function() {
+            addPrintBlock('Hello world!');
+            generateCode();
+        });
+        
+        function addPrintBlock(defaultText = '') {
+            const container = document.getElementById('mainFunctionBody');
+            const blockId = 'block_' + (blockCounter++);
+            
+            const blockHtml = `
+                <div class="code-block" id="${blockId}">
+                    <div class="code-block-header">
+                        🖨️ Print Statement
+                        <button class="delete-btn" onclick="removeBlock('${blockId}')">✖ Delete</button>
+                    </div>
+                    <div class="code-block-content">
+                        <label>Text to print (no newline at end):</label>
+                        <input type="text" value="${defaultText}" oninput="generateCode()" placeholder="Hello world!">
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', blockHtml);
+            generateCode();
+        }
+        
+        function addPrintNewlineBlock(defaultText = '') {
+            const container = document.getElementById('mainFunctionBody');
+            const blockId = 'block_' + (blockCounter++);
+            
+            const blockHtml = `
+                <div class="code-block" id="${blockId}">
+                    <div class="code-block-header">
+                        🖨️ Print Statement (with newline)
+                        <button class="delete-btn" onclick="removeBlock('${blockId}')">✖ Delete</button>
+                    </div>
+                    <div class="code-block-content">
+                        <label>Text to print (newline automatically added):</label>
+                        <input type="text" value="${defaultText}" oninput="generateCode()" placeholder="Hello world!">
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', blockHtml);
+            generateCode();
+        }
+        
+        function addCommentBlock(defaultText = '') {
+            const container = document.getElementById('mainFunctionBody');
+            const blockId = 'block_' + (blockCounter++);
+            
+            const blockHtml = `
+                <div class="code-block" id="${blockId}">
+                    <div class="code-block-header">
+                        💬 Comment
+                        <button class="delete-btn" onclick="removeBlock('${blockId}')">✖ Delete</button>
+                    </div>
+                    <div class="code-block-content">
+                        <label>Comment text:</label>
+                        <input type="text" value="${defaultText}" oninput="generateCode()" placeholder="This is a comment">
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', blockHtml);
+            generateCode();
+        }
+        
+        function removeBlock(blockId) {
+            const block = document.getElementById(blockId);
+            if (block) {
+                block.remove();
+                generateCode();
+            }
+        }
+        
+        function generateCode() {
+            const container = document.getElementById('mainFunctionBody');
+            const blocks = container.querySelectorAll('.code-block');
+            
+            let code = '# include <stdio.h>\n\nint main(){\n';
+            
+            blocks.forEach(block => {
+                const input = block.querySelector('input');
+                const header = block.querySelector('.code-block-header').textContent;
+                
+                if (input && input.value) {
+                    const value = input.value.replace(/"/g, '\\"'); // Escape quotes
+                    
+                    if (header.includes('Print Statement (with newline)')) {
+                        code += `    printf("${value}\\n");\n`;
+                    } else if (header.includes('Print Statement') && !header.includes('with newline')) {
+                        code += `    printf("${value}");\n`;
+                    } else if (header.includes('Comment')) {
+                        code += `    // ${value}\n`;
+                    }
+                }
+            });
+            
+            code += '}';
+            
+            document.getElementById('generatedCode').textContent = code;
+        }
+        
+        function downloadCode() {
+            const code = document.getElementById('generatedCode').textContent;
+            
+            if (!code || code === '// Your code will appear here...') {
+                showNotification('⚠️ Please add blocks to generate code first!', '#e74c3c');
+                return;
+            }
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('✅ hello.c downloaded successfully!', '#27ae60');
+        }
+        
+        function resetWorkspace() {
+            if (confirm('Are you sure you want to reset? This will clear all blocks.')) {
+                document.getElementById('mainFunctionBody').innerHTML = '';
+                addPrintBlock('Hello world!');
+                generateCode();
+                showNotification('✅ Workspace reset to default', '#3498db');
+            }
+        }
+        
+        function showNotification(message, color) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = color;
+            notification.style.display = 'block';
+            
+            setTimeout(function() {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
