@@ -13,6 +13,11 @@
 #
 # All specialized builds (strict/debug/optimized/clang) produce separate binaries
 # to avoid clobbering the default build output.
+#
+# Requirements:
+#   - GCC (tested with GCC 13.3.0)
+#   - Clang (optional, for 'make clang' target - tested with Clang 14+)
+#   - Bash (for test scripts)
 
 # Compiler settings
 CC = gcc
@@ -37,6 +42,9 @@ TARGET_CLANG = hello_clang
 TEST_RUNNER = test_hello_runner
 TEST_SRC = test/test_hello.c
 HELLO_OBJ = hello_lib.o
+
+# Portability
+RM ?= rm -f
 
 # Default target
 all: $(TARGET)
@@ -66,13 +74,15 @@ clang: $(SRC)
 
 # Build and run unit tests
 # Compiles hello.c with -DUNIT_TEST to exclude main(), links with test runner
+# Note: Production code (hello.c) is compiled with STRICT_ALL_FLAGS to ensure quality.
+# Test runner is compiled with WARNINGS only to avoid test-only warning failures.
 unit-test:
 	@echo "Building unit tests..."
 	$(CC) $(CFLAGS) $(STRICT_ALL_FLAGS) -I. -c -o $(HELLO_OBJ) $(SRC) -DUNIT_TEST
-	$(CC) $(CFLAGS) $(STRICT_ALL_FLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_OBJ)
+	$(CC) $(CFLAGS) $(WARNINGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_OBJ)
 	@echo "Running unit tests..."
-	./$(TEST_RUNNER)
-	@rm -f $(HELLO_OBJ) $(TEST_RUNNER)
+	./$(TEST_RUNNER) || ($(RM) $(HELLO_OBJ) $(TEST_RUNNER); exit 1)
+	@$(RM) $(HELLO_OBJ) $(TEST_RUNNER)
 
 # Run validation tests
 test:
@@ -84,9 +94,9 @@ test-quiet:
 
 # Clean build artifacts
 clean:
-	rm -f $(TARGET) $(TARGET_STRICT) $(TARGET_DEBUG) $(TARGET_OPTIMIZED) $(TARGET_CLANG) *.exe *.out *.o
-	rm -f $(TEST_RUNNER) $(HELLO_OBJ)
-	rm -f test/*.o test/*.exe
+	$(RM) $(TARGET) $(TARGET_STRICT) $(TARGET_DEBUG) $(TARGET_OPTIMIZED) $(TARGET_CLANG) *.exe *.out *.o
+	$(RM) $(TEST_RUNNER) $(HELLO_OBJ)
+	$(RM) test/*.o test/*.exe
 
 # Phony targets
 .PHONY: all strict debug optimized clang unit-test test test-quiet clean
