@@ -30,6 +30,27 @@ gcc -o hello hello.c plugin.c plugins/prefix_plugin.c
 *** Hello world!
 ```
 
+### rot13_plugin.c - ROT13 Cipher
+Applies the ROT13 substitution cipher to the message. ROT13 replaces each letter with the letter 13 positions after it in the alphabet. It's a reversible transformation - applying ROT13 twice returns the original message.
+
+**Build:**
+```bash
+gcc -o hello hello.c plugin.c plugins/rot13_plugin.c
+```
+
+**Output:**
+```
+Uryyb jbeyq!
+```
+
+**Reversibility:**
+```bash
+# Applying ROT13 twice returns the original
+gcc -o hello hello.c plugin.c plugins/rot13_plugin.c plugins/rot13_plugin.c
+./hello
+# Output: Hello world!
+```
+
 ## Plugin Chaining
 
 Multiple plugins can be combined. They are applied in the order specified during compilation.
@@ -43,6 +64,17 @@ gcc -o hello hello.c plugin.c plugins/prefix_plugin.c plugins/example_plugin.c
 **Output:**
 ```
 *** HELLO WORLD!
+```
+
+**Example - ROT13 then Uppercase:**
+```bash
+gcc -o hello hello.c plugin.c plugins/rot13_plugin.c plugins/example_plugin.c
+./hello
+```
+
+**Output:**
+```
+URYYB JBEYQ!
 ```
 
 ## Creating Your Own Plugin
