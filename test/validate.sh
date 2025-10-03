@@ -118,7 +118,7 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
 fi
 print_success "Output format is correct"
 
-# Step 6: Verify no trailing newline (program outputs exactly "Ciao, Mondo!" without newline)
+# Step 6: Verify no trailing newline (program outputs exactly "Hello world!" without newline)
 # Check if output ends without newline by examining the last character
 if [[ -n "${OUTPUT}" && "${OUTPUT: -1}" == $'\n' ]]; then
     print_error "Output has unexpected trailing newline"
