@@ -1,6 +1,15 @@
-# include <stdio.h>
+#include <stdio.h>
+#include "hello.h"
 
-int main(){
-    puts("Hello world!");
+/* Returns the greeting string */
+const char* get_greeting(void) {
+    return "Hello world!";
+}
+
+/* Main function - excluded when building unit tests */
+#ifndef UNIT_TEST
+int main(void) {
+    puts(get_greeting());
     return 0;
 }
+#endif
