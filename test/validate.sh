@@ -173,12 +173,12 @@ if [[ -f voice.c && -f voice.h ]]; then
         # Test 'say hello' command (expect exit code 0)
         SAY_OUTPUT=$(./voice_demo_test "say hello" 2>&1)
         SAY_EXIT_CODE=$?
-        if [[ ${SAY_EXIT_CODE} -eq 0 ]] && echo "${SAY_OUTPUT}" | grep -q "Ciao, Mondo!"; then
+        if [[ ${SAY_EXIT_CODE} -eq 0 ]] && echo "${SAY_OUTPUT}" | grep -q "Hello world!"; then
             print_success "Voice command 'say hello' works correctly"
         else
             print_error "Voice command 'say hello' failed or output incorrect"
             printf "Expected exit code: 0, Actual: %d\n" "${SAY_EXIT_CODE}"
-            printf "Expected output: Ciao, Mondo!\nActual: %s\n" "${SAY_OUTPUT}"
+            printf "Expected output: Hello world!\nActual: %s\n" "${SAY_OUTPUT}"
             exit 1
         fi
         
@@ -259,7 +259,7 @@ if [[ -f voice.c && -f voice.h ]]; then
         # Test interactive demo mode (full demo output)
         if DEMO_OUTPUT=$(./voice_demo_test 2>&1); then
             if echo "${DEMO_OUTPUT}" | grep -q "Voice-Driven Code Editing Demo" && \
-               echo "${DEMO_OUTPUT}" | grep -q "Ciao, Mondo!" && \
+               echo "${DEMO_OUTPUT}" | grep -q "Hello world!" && \
                echo "${DEMO_OUTPUT}" | grep -q "Would change message to:" && \
                echo "${DEMO_OUTPUT}" | grep -q "Showing current code structure" && \
                echo "${DEMO_OUTPUT}" | grep -q "Voice command not recognized:"; then
