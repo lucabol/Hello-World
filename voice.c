@@ -5,7 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 #include "voice.h"
-#include "hello.h"
 
 /* Helper function to trim leading whitespace */
 static const char* trim_leading(const char* str) {
@@ -23,7 +22,7 @@ int parse_voice_command(const char* command) {
     
     /* Command: "say hello" - Execute the program to show greeting */
     if (strcmp(command, "say hello") == 0) {
-        printf("%s\n", get_greeting());
+        printf("Ciao, Mondo!\n");
         return VOICE_SUCCESS;
     }
     
