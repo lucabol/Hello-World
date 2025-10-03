@@ -6,6 +6,7 @@
 #   debug      - Debug build with -g flag (produces hello_debug)
 #   optimized  - Optimized build with -O2 (produces hello_optimized)
 #   clang      - Build with Clang compiler (produces hello_clang)
+#   unit-test  - Build and run unit tests
 #   test       - Run validation script
 #   test-quiet - Run validation script in quiet mode (for CI)
 #   clean      - Remove all build artifacts
@@ -23,6 +24,9 @@ STRICT_FLAGS = -Wall -Wextra -Wpedantic -Werror
 DEBUG_FLAGS = -g -Wall -Wextra
 OPTIMIZE_FLAGS = -O2 -Wall -Wextra
 
+# Additional strict flags for format and conversion warnings
+STRICT_ALL_FLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
+
 # Source and output files
 SRC = hello.c
 TARGET = hello
@@ -30,6 +34,9 @@ TARGET_STRICT = hello_strict
 TARGET_DEBUG = hello_debug
 TARGET_OPTIMIZED = hello_optimized
 TARGET_CLANG = hello_clang
+TEST_RUNNER = test_hello_runner
+TEST_SRC = test/test_hello.c
+HELLO_OBJ = hello_lib.o
 
 # Default target
 all: $(TARGET)
@@ -57,6 +64,16 @@ optimized: $(SRC)
 clang: $(SRC)
 	$(CLANG) $(CFLAGS) $(WARNINGS) -o $(TARGET_CLANG) $(SRC)
 
+# Build and run unit tests
+# Compiles hello.c with -DUNIT_TEST to exclude main(), links with test runner
+unit-test:
+	@echo "Building unit tests..."
+	$(CC) $(CFLAGS) $(STRICT_ALL_FLAGS) -I. -c -o $(HELLO_OBJ) $(SRC) -DUNIT_TEST
+	$(CC) $(CFLAGS) $(STRICT_ALL_FLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_OBJ)
+	@echo "Running unit tests..."
+	./$(TEST_RUNNER)
+	@rm -f $(HELLO_OBJ) $(TEST_RUNNER)
+
 # Run validation tests
 test:
 	bash test/validate.sh
@@ -68,6 +85,8 @@ test-quiet:
 # Clean build artifacts
 clean:
 	rm -f $(TARGET) $(TARGET_STRICT) $(TARGET_DEBUG) $(TARGET_OPTIMIZED) $(TARGET_CLANG) *.exe *.out *.o
+	rm -f $(TEST_RUNNER) $(HELLO_OBJ)
+	rm -f test/*.o test/*.exe
 
 # Phony targets
-.PHONY: all strict debug optimized clang test test-quiet clean
+.PHONY: all strict debug optimized clang unit-test test test-quiet clean

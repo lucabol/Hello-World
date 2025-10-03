@@ -16,6 +16,11 @@ test_hello_runner
 *.o
 *.obj
 
+# Test artifacts
+test/*.o
+test/*.exe
+test/*.out
+
 # Debug files
 *.dSYM/
 *.pdb

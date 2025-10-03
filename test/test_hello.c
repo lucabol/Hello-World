@@ -1,5 +1,12 @@
 /* Unit tests for hello.c
  * Tests the greeting functionality using a simple testing framework
+ * 
+ * Contract for get_greeting():
+ * - Returns a pointer to a static string constant
+ * - The returned pointer remains valid for the lifetime of the program
+ * - Caller must NOT free() the returned pointer
+ * - The returned string is read-only and should not be modified
+ * - Multiple calls return the same static pointer
  */
 #include <stdio.h>
 #include <string.h>
@@ -31,29 +38,51 @@ void test_get_greeting_no_newline(void) {
     const char* greeting = get_greeting();
     const char* newline_pos = strchr(greeting, '\n');
     /* strchr returns NULL if character not found, which is what we want */
+    tests_run++;
     if (newline_pos == NULL) {
-        tests_run++;
         tests_passed++;
-        printf(COLOR_GREEN "  ✓ " COLOR_RESET "No newline test passed\n");
+        print_green("  ✓ ");
+        printf("No newline test passed\n");
     } else {
-        tests_run++;
         tests_failed++;
-        printf(COLOR_RED "  ✗ " COLOR_RESET "No newline test failed - greeting contains newline\n");
+        print_red("  ✗ ");
+        printf("No newline test failed - greeting contains newline\n");
+    }
+}
+
+/* Test that get_greeting returns static storage (pointer stable across calls) */
+void test_get_greeting_static_storage(void) {
+    const char* greeting1 = get_greeting();
+    const char* greeting2 = get_greeting();
+    
+    /* Both pointers should be identical (same memory address) for static storage */
+    tests_run++;
+    if (greeting1 == greeting2) {
+        tests_passed++;
+        print_green("  ✓ ");
+        printf("Static storage test passed\n");
+    } else {
+        tests_failed++;
+        print_red("  ✗ ");
+        printf("Static storage test failed - pointers differ\n");
+        printf("    First call:  %p\n", (void*)greeting1);
+        printf("    Second call: %p\n", (void*)greeting2);
     }
 }
 
 /* Main test runner */
 int main(void) {
     printf("\n");
-    printf(COLOR_YELLOW "========================================\n");
+    print_yellow("========================================\n");
     printf("Running Unit Tests for hello.c\n");
-    printf("========================================\n" COLOR_RESET);
+    print_yellow("========================================\n");
     printf("\n");
     
     RUN_TEST(test_get_greeting_not_null);
     RUN_TEST(test_get_greeting_returns_hello_world);
     RUN_TEST(test_get_greeting_length);
     RUN_TEST(test_get_greeting_no_newline);
+    RUN_TEST(test_get_greeting_static_storage);
     
     TEST_SUMMARY();
 }

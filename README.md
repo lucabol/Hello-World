@@ -42,9 +42,11 @@ gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -
 The repository includes a Makefile for convenient building:
 
 ```bash
-make        # Build with standard flags
-make strict # Build with strict flags (same as CI)
-make clean  # Remove build artifacts
+make          # Build with standard flags
+make strict   # Build with strict flags (same as CI)
+make unit-test # Build and run unit tests
+make test     # Run integration validation tests
+make clean    # Remove build artifacts
 ```
 
 ## Running the Program
@@ -63,6 +65,10 @@ The project includes automated unit tests for the greeting functionality.
 
 **Run unit tests:**
 ```bash
+# Using make (recommended)
+make unit-test
+
+# Or using the shell script directly
 bash test/run_unit_tests.sh
 ```
 
@@ -71,20 +77,22 @@ The unit tests verify:
 - The greeting contains the expected text "Hello world!"
 - The greeting has the correct length (12 characters)
 - The greeting does not contain a trailing newline
+- The greeting returns static storage (pointer stable across calls)
 
 **Test Framework:**
 The project uses a lightweight, self-contained testing framework (`test/simple_test.h`) with no external dependencies. This framework provides:
-- Colored test output
+- Colored test output (automatically disabled for non-TTY or when `SIMPLE_TEST_NO_COLOR=1`)
+- TTY detection for proper color support in CI systems
 - Multiple assertion types (string equality, null checks, integer equality)
 - Test summary with pass/fail counts
 
 **Build Process:**
-The test runner script (`test/run_unit_tests.sh`) compiles the code as follows:
+The test runner script (`test/run_unit_tests.sh`) or `make unit-test` compiles the code as follows:
 1. Compiles `hello.c` with `-DUNIT_TEST` to exclude the `main()` function
 2. Links it with `test/test_hello.c` which provides its own `main()` for tests
 3. Uses strict compiler flags: `-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99`
 
-**Note:** Test binaries (`test_hello_runner`, `*.o`) are automatically excluded by `.gitignore`
+**Note:** Test binaries (`test_hello_runner`, `*.o`) are automatically excluded by `.gitignore` and cleaned up after running.
 
 ### Integration Testing with Validation Script
 
@@ -424,14 +432,32 @@ The `simple_test.h` framework provides the following assertions:
 
 All assertions automatically track test counts and provide colored output for easy debugging.
 
-**Portability Notes:**
-- The framework uses ANSI color codes for terminal output. Colors may not display correctly on very old terminals but will not affect test results.
-- All code compiles cleanly with the strict flags on GCC >= 4.9 and Clang >= 3.5
-- The framework has no external dependencies beyond the C standard library (`stdio.h`, `string.h`)
+**Color Support:**
+- Colors are automatically disabled when output is not a TTY (e.g., piped or redirected)
+- Set `SIMPLE_TEST_NO_COLOR=1` environment variable to explicitly disable colors
+- This ensures compatibility with CI systems and non-ANSI terminals
 
-**Future Enhancements:**
-- Additional test coverage (e.g., testing that `get_greeting()` returns static storage)
-- Support for additional compilers and platforms
+**Portability Notes:**
+- The framework uses ANSI color codes for terminal output with automatic TTY detection
+- All code compiles cleanly with the strict flags on GCC >= 4.9 and Clang >= 3.5
+- The framework has no external dependencies beyond the C standard library (`stdio.h`, `string.h`, `stdlib.h`, `unistd.h`)
+- Platform-specific includes for Windows compatibility (`io.h`)
+
+**Test Coverage:**
+Current tests verify:
+- Return value validity (non-null)
+- String content accuracy
+- String length correctness
+- Absence of trailing newline
+- Static storage lifetime (pointer stability across calls)
+
+**Contract Documentation:**
+The `test/test_hello.c` file includes detailed comments documenting the contract for `get_greeting()`:
+- Returns a pointer to static string constant
+- Pointer remains valid for program lifetime
+- Caller must NOT free() the returned pointer
+- Returned string is read-only
+- Multiple calls return the same pointer
 
 ## Requirements
 
