@@ -3,7 +3,7 @@
 
 /* Returns the greeting string */
 const char* get_greeting(void) {
-    return "Hello world!";
+    return "Ciao, Mondo!";
 }
 
 /* Main function - excluded when building unit tests */
