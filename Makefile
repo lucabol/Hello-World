@@ -21,28 +21,32 @@ CSTD ?= c99
 CFLAGS = -std=$(CSTD)
 WARNINGS = -Wall -Wextra
 STRICT_FLAGS = -Wall -Wextra -Wpedantic -Werror
-STRICT_ALL_FLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
-DEBUG_FLAGS = -g $(WARNINGS)
-OPTIMIZE_FLAGS = -O2 $(WARNINGS)
+DEBUG_FLAGS = -g -Wall -Wextra
+OPTIMIZE_FLAGS = -O2 -Wall -Wextra
 
-# Source files
+# Additional strict flags for format and conversion warnings
+STRICT_ALL_FLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror
+
+# Source and output files
 SRC = hello.c
-TEST_SRC = test/test_hello.c
-
-# Binary targets
 TARGET = hello
 TARGET_STRICT = hello_strict
 TARGET_DEBUG = hello_debug
 TARGET_OPTIMIZED = hello_optimized
 TARGET_CLANG = hello_clang
 TEST_RUNNER = test_hello_runner
+TEST_SRC = test/test_hello.c
 HELLO_OBJ = hello_lib.o
 
 # Default target
-all: $(SRC)
+all: $(TARGET)
+
+# Basic build
+$(TARGET): $(SRC)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
 
-# Strict build with pedantic warnings and -Werror
+# Strict build with all warnings treated as errors and pedantic mode enabled
+# Includes -Wpedantic to catch language standard violations and -Werror to treat warnings as errors
 # Produces hello_strict binary to avoid clobbering default build
 strict: $(SRC)
 	$(CC) $(CFLAGS) $(STRICT_FLAGS) -o $(TARGET_STRICT) $(SRC)
