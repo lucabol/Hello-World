@@ -4,6 +4,20 @@
 
 The Hello World program supports a plugin architecture that allows external developers to extend its functionality without modifying the core `hello.c` file. Plugins can transform or modify the greeting message through a simple, well-defined interface.
 
+## Compiler Requirements and Portability
+
+**Supported Compilers:**
+- GCC 4.7 or later
+- Clang 3.3 or later
+
+**Not Supported:**
+- Microsoft Visual C++ (MSVC)
+- Some embedded toolchains without constructor attribute support
+
+The plugin system uses GCC/Clang-specific `__attribute__((constructor))` for automatic plugin registration. This is not standard C99, but is widely supported on Linux, macOS, and other Unix-like systems.
+
+If you need to support additional compilers, you will need to implement manual plugin registration or use alternative initialization mechanisms.
+
 ## Plugin Architecture
 
 ### Design Principles
@@ -73,22 +87,36 @@ typedef struct {
 
 ### Important Considerations
 
-1. **Memory Management**
-   - Return pointers to static storage or global buffers
-   - Do NOT return pointers to stack variables
-   - Do NOT use malloc() without ensuring proper cleanup
+1. **Memory Management (CRITICAL)**
+   - MUST return pointers to static/global storage or thread-local storage
+   - MUST NOT return pointers to stack variables (local arrays)
+   - MUST NOT use malloc() without ensuring proper cleanup strategy
+   - The returned pointer must remain valid for the program's lifetime
+   - Caller (apply_plugins) does NOT take ownership and will NOT free returned pointers
+   - All example plugins use static buffers for simplicity
 
-2. **Thread Safety**
-   - Static buffers are not thread-safe
-   - Consider using thread-local storage for concurrent applications
+2. **Error Handling**
+   - Return NULL to indicate "no transformation" (pass through)
+   - If your plugin cannot process the input, return NULL
+   - Print error messages to stderr before returning NULL
+   - Never call exit() or abort() from a plugin
+   - The plugin system will skip NULL-returning plugins and continue the chain
 
-3. **Buffer Sizes**
+3. **Thread Safety**
+   - Static buffers are NOT thread-safe
+   - If you need thread safety, use thread-local storage (`__thread` or `_Thread_local`)
+   - Plugin registration occurs at program startup (before main)
+   - Multiple threads calling apply_plugins() will share plugin state
+
+4. **Buffer Sizes**
    - Ensure your buffer is large enough for transformed messages
    - Check bounds to prevent buffer overflows
+   - Use snprintf() instead of sprintf() for safety
 
-4. **Return Value**
+5. **Return Value**
    - Return NULL to indicate "no transformation" (pass through)
    - Return a valid pointer to indicate transformation
+   - The pointer must point to valid memory that remains accessible
 
 ## Building with Plugins
 
@@ -223,10 +251,34 @@ The system supports up to 16 plugins by default (defined by `MAX_PLUGINS` in `pl
    gcc -Wall -Wextra -Wpedantic -Werror -std=c99 -o hello_test hello.c plugin.c plugins/your_plugin.c
    ```
 
-4. **Test plugin chaining**:
+4. **Test with AddressSanitizer (memory leak detection)**:
+   ```bash
+   gcc -Wall -Wextra -Wpedantic -Werror -std=c99 -fsanitize=address -fno-omit-frame-pointer -o hello_test hello.c plugin.c plugins/your_plugin.c
+   ./hello_test
+   ```
+   
+   AddressSanitizer (ASAN) will detect:
+   - Memory leaks
+   - Buffer overflows
+   - Use-after-free errors
+   - Double-free errors
+   
+   If ASAN reports errors, fix them before submitting your plugin.
+
+5. **Test plugin chaining**:
    ```bash
    gcc -o hello_test hello.c plugin.c plugins/plugin1.c plugins/your_plugin.c plugins/plugin3.c
    ```
+
+6. **Test error handling (NULL returns)**:
+   Create test cases where your plugin returns NULL to ensure the chain continues correctly.
+
+7. **Run the plugin test suite**:
+   ```bash
+   ./test/test_plugins.sh
+   ```
+   
+   This will run comprehensive tests including memory safety checks.
 
 ## Best Practices
 

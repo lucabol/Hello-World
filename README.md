@@ -13,7 +13,19 @@ This is a "Hello World" program with a twist - it features a powerful plugin sys
 - **Plugin Chaining**: Multiple plugins can be combined and applied sequentially
 - **Simple API**: Easy-to-use interface for plugin development
 - **Type-Safe**: C-based with strong typing
-- **Strict Compilation**: Compiles cleanly with `-Werror -Wpedantic`
+- **Strict Compilation**: Compiles cleanly with `-Werror -Wpedantic -std=c99`
+
+## Compiler Requirements
+
+**Supported:**
+- GCC 4.7+ 
+- Clang 3.3+
+
+**Not Supported:**
+- Microsoft Visual C++ (MSVC)
+- Compilers without `__attribute__((constructor))` support
+
+The plugin system uses GCC/Clang-specific features for automatic plugin registration. See [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for details.
 
 ## Quick Start
 
@@ -53,6 +65,15 @@ The plugin system allows external developers to extend the program's functionali
 - **Chainable**: Multiple plugins can be combined
 - **Independent**: Each plugin is a separate file
 - **Simple**: Easy to create and understand
+- **Memory-safe**: Uses static storage (no malloc/free)
+
+### Memory Management
+
+Plugins use static storage for transformed messages. This means:
+- No memory leaks (no dynamic allocation)
+- No need for manual memory management
+- Simple and predictable behavior
+- Thread-unsafe by default (use thread-local storage for thread safety)
 
 ### Available Example Plugins
 
@@ -105,6 +126,21 @@ gcc -Wall -Wextra -Wpedantic -Werror -std=c99 -o hello hello.c plugin.c
 gcc -Wall -Wextra -o hello hello.c plugin.c plugins/your_plugin.c
 ```
 
+### Testing with Memory Safety Checks
+
+```bash
+gcc -Wall -Wextra -Wpedantic -Werror -std=c99 -fsanitize=address -o hello hello.c plugin.c plugins/your_plugin.c
+./hello
+```
+
+To run the comprehensive test suite:
+
+```bash
+./test/test_plugins.sh
+```
+
+This runs all plugin tests including memory safety checks with AddressSanitizer (if available).
+
 ## Repository Structure
 
 ```
@@ -115,11 +151,15 @@ gcc -Wall -Wextra -o hello hello.c plugin.c plugins/your_plugin.c
 ├── plugins/                # Example plugins directory
 │   ├── README.md          # Plugin examples overview
 │   ├── example_plugin.c   # Uppercase transformation
-│   └── prefix_plugin.c    # Prefix transformation
+│   ├── prefix_plugin.c    # Prefix transformation
+│   ├── rot13_plugin.c     # ROT13 cipher
+│   └── null_test_plugin.c # Conditional/error handling example
 ├── PLUGIN_GUIDE.md        # Comprehensive plugin development guide
+├── ARCHITECTURE.md        # System architecture documentation
 ├── test/                  # Test framework and validation
 │   ├── simple_test.h      # Testing framework
 │   ├── test_hello.c       # Unit tests
+│   ├── test_plugins.sh    # Plugin system tests (with ASAN)
 │   └── validate.sh        # Validation script
 └── README.md              # This file
 ```
