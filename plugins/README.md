@@ -51,6 +51,25 @@ gcc -o hello hello.c plugin.c plugins/rot13_plugin.c plugins/rot13_plugin.c
 # Output: Hello world!
 ```
 
+### null_test_plugin.c - Conditional Transformation
+Demonstrates error handling and conditional transformations by returning NULL. This plugin only transforms messages containing "test" - all other messages pass through unchanged.
+
+**Build:**
+```bash
+gcc -o hello hello.c plugin.c plugins/null_test_plugin.c
+```
+
+**Output (with "Hello world!"):**
+```
+Hello world!
+```
+(Unchanged because message doesn't contain "test")
+
+**Use Cases:**
+- Conditional transformations based on input content
+- Error handling (return NULL on failure)
+- Input validation (skip transformation if invalid)
+
 ## Plugin Chaining
 
 Multiple plugins can be combined. They are applied in the order specified during compilation.

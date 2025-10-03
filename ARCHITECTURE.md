@@ -97,6 +97,38 @@ typedef struct {
 4. **Static Linking**: All plugins compiled into the final binary
 5. **Auto-Registration**: Plugins register themselves at program startup
 
+## Portability Constraints
+
+**Supported Compilers:**
+- GCC 4.7 or later
+- Clang 3.3 or later
+
+**Not Supported:**
+- Microsoft Visual C++ (MSVC)
+- Compilers without `__attribute__((constructor))` support
+
+The plugin system uses GCC/Clang-specific constructor attributes for automatic registration. The system includes compile-time checks to prevent compilation on unsupported toolchains.
+
+**Why Constructor Attributes:**
+- Automatic registration before main()
+- No manual initialization code needed
+- Plugins self-register at program startup
+- Deterministic ordering based on link order
+
+## Memory Management
+
+**No Dynamic Allocation:**
+- Plugins use static/global storage
+- No malloc/free required
+- No memory leaks possible
+- Simple and predictable
+
+**Ownership Model:**
+- Plugins own their output buffers
+- Caller (apply_plugins) does NOT take ownership
+- Returned pointers must remain valid for program lifetime
+- Thread-unsafe by default (use thread-local storage for concurrency)
+
 ## Compilation Models
 
 ### Without Plugins
@@ -120,13 +152,17 @@ hello.c + plugin.c + prefix_plugin.c + example_plugin.c
 ```
 Hello-World/
 ├── hello.c                 # Main program (9 lines)
-├── plugin.h                # Plugin interface (86 lines)
-├── plugin.c                # Plugin system (49 lines)
+├── plugin.h                # Plugin interface (extensively documented)
+├── plugin.c                # Plugin system (robust error handling)
 ├── plugins/                # Plugin implementations
-│   ├── example_plugin.c   # Uppercase transformer (45 lines)
-│   ├── prefix_plugin.c    # Prefix transformer (33 lines)
-│   └── rot13_plugin.c     # ROT13 cipher (60 lines)
+│   ├── example_plugin.c   # Uppercase transformer
+│   ├── prefix_plugin.c    # Prefix transformer
+│   ├── rot13_plugin.c     # ROT13 cipher
+│   └── null_test_plugin.c # Conditional transformation example
+├── test/
+│   └── test_plugins.sh    # Comprehensive tests with ASAN
 ├── PLUGIN_GUIDE.md        # Complete plugin development guide
+├── ARCHITECTURE.md        # This file
 └── README.md              # Project documentation
 ```
 
@@ -138,3 +174,5 @@ Hello-World/
 ✓ **Type Safety**: Strong typing via C interface
 ✓ **No Runtime Overhead**: Static linking, no dynamic loading
 ✓ **Composability**: Plugins can be chained in any order
+✓ **Memory Safe**: No dynamic allocation, no leaks (verified with ASAN)
+✓ **Error Resilient**: Graceful handling of NULL returns
