@@ -1,5 +1,9 @@
-# include <stdio.h>
+#include <stdio.h>
+#include "plugin.h"
 
 int main(){
-    printf("Hello world!");
+    const char* message = "Hello world!";
+    const char* final_message = apply_plugins(message);
+    printf("%s", final_message);
+    return 0;
 }
