@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "hello.h"
 
-/* Returns the greeting string - Italian version */
+/* Returns the greeting string - Italian version (Ciao, Mondo!) */
 const char* get_greeting(void) {
     return "Ciao, Mondo!";
 }
