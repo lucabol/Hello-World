@@ -131,6 +131,7 @@ fi
 print_success "Trailing newline confirmed (as expected from puts)"
 
 
+
 print_success "All validation checks passed!"
 if [[ "${QUIET_MODE}" == "false" ]]; then
     printf "\n"
