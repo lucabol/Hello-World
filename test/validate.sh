@@ -102,7 +102,7 @@ if [[ ${PROGRAM_EXIT_CODE} -ne 0 ]]; then
 fi
 print_success "Program exited with correct exit code (0)"
 
-# Step 5: Verify exact output format (must match exactly: "Hello world!" with trailing newline)
+# Step 5: Verify exact output format (must match exactly: "Ciao, Mondo!" with trailing newline)
 if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     print_error "Output mismatch!"
     printf "Expected: '%s'\n" "${EXPECTED_OUTPUT}"
