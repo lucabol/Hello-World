@@ -40,6 +40,17 @@
             padding: 10px;
         }
         
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .code-container {
+                flex: 1;
+            }
+        }
+        
         .workspace-container {
             flex: 1;
             background: white;
@@ -291,9 +302,9 @@
             <div class="block-palette">
                 <h3>📦 Block Palette - Click to Add</h3>
                 <div class="block-templates">
-                    <div class="block-template" onclick="addPrintBlock()">➕ Print (no newline)</div>
-                    <div class="block-template" onclick="addPrintNewlineBlock()">➕ Print (with newline)</div>
-                    <div class="block-template" onclick="addCommentBlock()">➕ Comment</div>
+                    <div class="block-template" onclick="addPrintBlock()" role="button" tabindex="0" onkeypress="if(event.key==='Enter'||event.key===' ')addPrintBlock()" aria-label="Add print statement without newline">➕ Print (no newline)</div>
+                    <div class="block-template" onclick="addPrintNewlineBlock()" role="button" tabindex="0" onkeypress="if(event.key==='Enter'||event.key===' ')addPrintNewlineBlock()" aria-label="Add print statement with newline">➕ Print (with newline)</div>
+                    <div class="block-template" onclick="addCommentBlock()" role="button" tabindex="0" onkeypress="if(event.key==='Enter'||event.key===' ')addCommentBlock()" aria-label="Add comment block">➕ Comment</div>
                 </div>
             </div>
             
@@ -328,8 +339,8 @@
             </div>
             
             <div class="buttons">
-                <button class="btn-secondary" onclick="resetWorkspace()">🔄 Reset</button>
-                <button class="btn-primary" onclick="downloadCode()">💾 Download hello.c</button>
+                <button class="btn-secondary" onclick="resetWorkspace()" aria-label="Reset workspace to default">🔄 Reset</button>
+                <button class="btn-primary" onclick="downloadCode()" aria-label="Download generated code as hello.c">💾 Download hello.c</button>
             </div>
         </div>
     </div>
@@ -427,14 +438,25 @@
                 const header = block.querySelector('.code-block-header').textContent;
                 
                 if (input && input.value) {
-                    const value = input.value.replace(/"/g, '\\"'); // Escape quotes
+                    // Sanitize input: escape quotes and backslashes, remove newlines
+                    const value = input.value
+                        .replace(/\\/g, '\\\\')  // Escape backslashes first
+                        .replace(/"/g, '\\"')     // Escape quotes
+                        .replace(/\n/g, '\\n')    // Escape newlines
+                        .replace(/\r/g, '')       // Remove carriage returns
+                        .replace(/\t/g, '\\t');   // Escape tabs
                     
                     if (header.includes('Print Statement (with newline)')) {
                         code += `    printf("${value}\\n");\n`;
                     } else if (header.includes('Print Statement') && !header.includes('with newline')) {
                         code += `    printf("${value}");\n`;
                     } else if (header.includes('Comment')) {
-                        code += `    // ${value}\n`;
+                        // For comments, sanitize to prevent breaking C code
+                        const sanitizedComment = input.value
+                            .replace(/\*\//g, '* /')  // Prevent closing comment blocks
+                            .replace(/\/\*/g, '/ *')  // Prevent opening comment blocks
+                            .replace(/\n/g, ' ');     // Replace newlines with spaces
+                        code += `    // ${sanitizedComment}\n`;
                     }
                 }
             });

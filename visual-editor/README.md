@@ -73,10 +73,13 @@ int main(){
 
 ## Technical Details
 
-- **Built with**: [Blockly](https://developers.google.com/blockly) - Google's visual programming library
-- **No dependencies**: Uses Blockly via CDN
-- **Browser compatibility**: Works in all modern browsers (Chrome, Firefox, Safari, Edge)
-- **No server required**: Pure client-side application
+- **Built with**: Pure HTML5/CSS3/JavaScript (vanilla, no frameworks)
+- **No dependencies**: Truly zero external dependencies - [see verification](DEPENDENCIES.md)
+- **No build process**: Single self-contained HTML file
+- **No npm/node requirements**: Runs directly in browser
+- **Runs entirely client-side**: No server needed
+
+See [DEPENDENCIES.md](DEPENDENCIES.md) for complete architecture and verification details.
 
 ## Integration with the Repository
 
@@ -84,6 +87,8 @@ The generated C code follows the same format as the repository's `hello.c`:
 - Uses `# include <stdio.h>` (with space after #, matching the repository style)
 - Implements `int main()` function
 - Compatible with the existing build and test infrastructure
+
+**Note**: The spacing in `# include` is intentional and matches the repository's code style convention.
 
 ### Testing Generated Code
 

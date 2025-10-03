@@ -104,3 +104,21 @@ Helpful tips and instructions for using the editor.
 - Delete blocks you don't need
 - Reset anytime to start fresh
 - No internet connection needed after page loads
+
+## Accessibility Features
+
+The visual editor includes several accessibility enhancements:
+
+- **Keyboard Navigation**: All interactive elements (palette buttons, input fields, action buttons) are keyboard accessible via Tab key
+- **ARIA Labels**: Screen reader support with descriptive labels for all interactive elements
+- **Keyboard Activation**: Press Enter or Space on focused palette buttons to add blocks
+- **Responsive Design**: Layout adapts to smaller screens (mobile/tablet) with vertical stacking
+- **High Contrast**: Color scheme designed for readability
+- **Focus Indicators**: Clear visual indicators for keyboard focus
+
+### Keyboard Shortcuts
+
+- **Tab**: Navigate between interactive elements
+- **Enter/Space**: Activate focused buttons (add blocks, download, reset)
+- **Type directly**: Input fields work normally with keyboard
+- **Shift+Tab**: Navigate backwards
