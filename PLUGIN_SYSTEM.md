@@ -14,6 +14,41 @@ The plugin system consists of:
 
 ## Quick Start
 
+### Using the Makefile (Recommended)
+
+The easiest way to build different configurations is using the provided Makefile:
+
+```bash
+# Show all available targets
+make help
+
+# Build default hello (no plugins)
+make
+
+# Build and test
+make test
+
+# Build plugin demo
+make demo
+./plugin_demo
+
+# Build with specific plugins
+make hello-uppercase
+./hello-uppercase  # Output: HELLO WORLD!
+
+make hello-reverse
+./hello-reverse    # Output: !dlrow olleH
+
+make hello-all-plugins
+./hello-all-plugins  # Output: !DLROW OLLEH
+
+# Test plugin system
+make test-plugins
+
+# Clean all build artifacts
+make clean
+```
+
 ### Basic Usage (No Plugins)
 
 The default hello.c works without any plugins:
