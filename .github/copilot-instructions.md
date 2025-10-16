@@ -8,7 +8,7 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 
 ### Quick Start - Build and Run
 - `make` or `gcc -o hello hello.c` -- compiles in under 1 second
-- `./hello` -- runs the program and outputs exactly "Hello world!" (no trailing newline)
+- `./hello` -- runs the program and outputs exactly "Hello world!" (with trailing newline)
 
 ### Development Workflow
 - **Primary build command:** `make` or `gcc -o hello hello.c`
@@ -38,7 +38,7 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 1. Build using `make strict` (with -Werror for quality assurance)
 2. Execute `./test/validate.sh` which validates:
    - Strict compilation passes without warnings/errors
-   - Program outputs exactly "Hello world!" (no trailing newline)
+   - Program outputs exactly "Hello world!" (with trailing newline)
    - Program exits with code 0
    - Byte-level output verification using hex dumps
 
@@ -46,7 +46,7 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 **ALWAYS run these validation steps after making any changes:**
 1. **Compile the program:** `make strict` (or `gcc -Wall -Wextra -Wpedantic -Werror -o hello hello.c`)
 2. **Run the program:** `./hello`
-3. **Verify output is exactly:** `Hello world!` (no trailing newline)
+3. **Verify output is exactly:** `Hello world!` (with trailing newline)
 4. **Check exit code:** `echo $?` should return 0
 
 ### Additional Validation
@@ -130,7 +130,7 @@ gcc -o hello hello.c && ./hello && echo "Build successful"
 ```
 
 ### Expected Output Format
-**Exact output:** "Hello world!" (no trailing newline, exit code 0)
+**Exact output:** "Hello world!" (with trailing newline, exit code 0)
 
 This format is validated by test scripts and CI to ensure exact byte-level compliance.
 
@@ -139,7 +139,7 @@ This format is validated by test scripts and CI to ensure exact byte-level compl
 ### Code Changes
 - **Always use make targets:** Use `make test` to validate changes
 - **Test immediately:** Run `make test` after any compilation to match CI
-- **Validate exact output format:** Must output exactly "Hello world!" with no trailing newline
+- **Validate exact output format:** Must output exactly "Hello world!" with trailing newline
 - **Check exit code:** Program should always return 0
 
 ### File Management
