@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Code Block Editor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        
+        #header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        #controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .instructions {
+            background-color: #e8f4f8;
+            padding: 10px 15px;
+            margin: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .instructions p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        #main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            margin: 15px;
+            gap: 15px;
+        }
+        
+        #workspace {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        #toolbox {
+            background-color: #34495e;
+            color: white;
+            padding: 15px;
+            border-bottom: 2px solid #2c3e50;
+        }
+        
+        #toolbox h3 {
+            margin: 0 0 10px 0;
+        }
+        
+        .block-template {
+            background-color: #3498db;
+            color: white;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .block-template:hover {
+            background-color: #2980b9;
+        }
+        
+        .block-template:active {
+            cursor: grabbing;
+        }
+        
+        #canvas {
+            flex: 1;
+            position: relative;
+            background-color: #f9f9f9;
+            overflow: auto;
+            padding: 20px;
+        }
+        
+        .block {
+            position: absolute;
+            background-color: #3498db;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: move;
+            min-width: 200px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .block.include {
+            background-color: #9b59b6;
+        }
+        
+        .block.main {
+            background-color: #e74c3c;
+        }
+        
+        .block.printf {
+            background-color: #27ae60;
+        }
+        
+        .block.variable {
+            background-color: #f39c12;
+        }
+        
+        .block input, .block select {
+            margin: 5px 0;
+            padding: 5px;
+            border: none;
+            border-radius: 3px;
+        }
+        
+        .block-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-size: 12px;
+        }
+        
+        #code-panel {
+            width: 400px;
+            background-color: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        #code-panel h2 {
+            margin: 0;
+            padding: 15px;
+            background-color: #34495e;
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        #generated-code {
+            flex: 1;
+            margin: 15px;
+            padding: 15px;
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow: auto;
+            border-radius: 5px;
+            white-space: pre;
+        }
+        
+        #download-btn {
+            margin: 15px;
+            background-color: #27ae60;
+        }
+        
+        #download-btn:hover {
+            background-color: #229954;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🧱 C Code Block Editor</h1>
+        <div id="controls">
+            <button onclick="generateCode()">Generate Code</button>
+            <button onclick="clearAll()">Clear All</button>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <p><strong>Instructions:</strong> Drag blocks from the toolbox to the canvas below to create your C program. Edit the fields in each block, then click "Generate Code" to see the result.</p>
+    </div>
+    
+    <div id="main-content">
+        <div id="workspace">
+            <div id="toolbox">
+                <h3>Block Toolbox</h3>
+                <div class="block-template" draggable="true" data-type="include">📚 Include Header</div>
+                <div class="block-template" draggable="true" data-type="main">⚙️ Main Function</div>
+                <div class="block-template" draggable="true" data-type="printf">📝 Printf Statement</div>
+                <div class="block-template" draggable="true" data-type="variable">🔢 Variable Declaration</div>
+            </div>
+            <div id="canvas"></div>
+        </div>
+        <div id="code-panel">
+            <h2>Generated C Code</h2>
+            <div id="generated-code">// Drag blocks to the canvas and click "Generate Code"...</div>
+            <button id="download-btn" onclick="downloadCode()">💾 Export to hello.c</button>
+        </div>
+    </div>
+
+    <script>
+        let blocks = [];
+        let blockIdCounter = 0;
+        let draggedBlock = null;
+        
+        // Add drag event listeners to templates
+        document.querySelectorAll('.block-template').forEach(template => {
+            template.addEventListener('dragstart', function(e) {
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('blockType', this.dataset.type);
+            });
+        });
+        
+        // Canvas drop zone
+        const canvas = document.getElementById('canvas');
+        canvas.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+        
+        canvas.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const blockType = e.dataTransfer.getData('blockType');
+            if (blockType) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left + canvas.scrollLeft;
+                const y = e.clientY - rect.top + canvas.scrollTop;
+                createBlock(blockType, x, y);
+            }
+        });
+        
+        // Create a block
+        function createBlock(type, x, y) {
+            const blockId = blockIdCounter++;
+            const block = {
+                id: blockId,
+                type: type,
+                x: x,
+                y: y,
+                data: {}
+            };
+            
+            const blockEl = document.createElement('div');
+            blockEl.className = `block ${type}`;
+            blockEl.id = `block-${blockId}`;
+            blockEl.style.left = x + 'px';
+            blockEl.style.top = y + 'px';
+            
+            // Block content based on type
+            if (type === 'include') {
+                block.data.header = 'stdio.h';
+                blockEl.innerHTML = `
+                    <button class="delete-btn" onclick="deleteBlock(${blockId})">×</button>
+                    <div class="block-label">Include Header</div>
+                    <select onchange="updateBlockData(${blockId}, 'header', this.value)">
+                        <option value="stdio.h">stdio.h</option>
+                        <option value="stdlib.h">stdlib.h</option>
+                        <option value="string.h">string.h</option>
+                        <option value="math.h">math.h</option>
+                    </select>
+                `;
+            } else if (type === 'main') {
+                blockEl.innerHTML = `
+                    <button class="delete-btn" onclick="deleteBlock(${blockId})">×</button>
+                    <div class="block-label">Main Function</div>
+                    <div>int main() { ... }</div>
+                `;
+            } else if (type === 'printf') {
+                block.data.text = 'Hello world!';
+                blockEl.innerHTML = `
+                    <button class="delete-btn" onclick="deleteBlock(${blockId})">×</button>
+                    <div class="block-label">Printf Statement</div>
+                    <input type="text" value="Hello world!" 
+                           onchange="updateBlockData(${blockId}, 'text', this.value)" 
+                           style="width: 100%;">
+                `;
+            } else if (type === 'variable') {
+                block.data.varType = 'int';
+                block.data.name = 'x';
+                block.data.value = '0';
+                blockEl.innerHTML = `
+                    <button class="delete-btn" onclick="deleteBlock(${blockId})">×</button>
+                    <div class="block-label">Variable Declaration</div>
+                    <select onchange="updateBlockData(${blockId}, 'varType', this.value)">
+                        <option value="int">int</option>
+                        <option value="float">float</option>
+                        <option value="double">double</option>
+                        <option value="char">char</option>
+                    </select>
+                    <input type="text" value="x" placeholder="name"
+                           onchange="updateBlockData(${blockId}, 'name', this.value)">
+                    <input type="text" value="0" placeholder="value"
+                           onchange="updateBlockData(${blockId}, 'value', this.value)">
+                `;
+            }
+            
+            // Make block draggable within canvas
+            blockEl.addEventListener('mousedown', startDrag);
+            
+            canvas.appendChild(blockEl);
+            blocks.push(block);
+        }
+        
+        // Drag block within canvas
+        let currentBlock = null;
+        let offsetX = 0, offsetY = 0;
+        
+        function startDrag(e) {
+            if (e.target.tagName === 'BUTTON') return;
+            currentBlock = e.currentTarget;
+            const rect = currentBlock.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+        
+        function drag(e) {
+            if (!currentBlock) return;
+            const canvasRect = canvas.getBoundingClientRect();
+            let x = e.clientX - canvasRect.left - offsetX + canvas.scrollLeft;
+            let y = e.clientY - canvasRect.top - offsetY + canvas.scrollTop;
+            
+            x = Math.max(0, x);
+            y = Math.max(0, y);
+            
+            currentBlock.style.left = x + 'px';
+            currentBlock.style.top = y + 'px';
+            
+            const blockId = parseInt(currentBlock.id.split('-')[1]);
+            const block = blocks.find(b => b.id === blockId);
+            if (block) {
+                block.x = x;
+                block.y = y;
+            }
+        }
+        
+        function stopDrag() {
+            currentBlock = null;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+        
+        // Update block data
+        function updateBlockData(blockId, key, value) {
+            const block = blocks.find(b => b.id === blockId);
+            if (block) {
+                block.data[key] = value;
+            }
+        }
+        
+        // Delete block
+        function deleteBlock(blockId) {
+            const blockEl = document.getElementById(`block-${blockId}`);
+            if (blockEl) {
+                blockEl.remove();
+            }
+            blocks = blocks.filter(b => b.id !== blockId);
+            generateCode();
+        }
+        
+        // Generate C code
+        function generateCode() {
+            let code = '';
+            const sortedBlocks = [...blocks].sort((a, b) => a.y - b.y);
+            
+            // Find includes
+            const includes = sortedBlocks.filter(b => b.type === 'include');
+            const mainBlock = sortedBlocks.find(b => b.type === 'main');
+            const statements = sortedBlocks.filter(b => b.type !== 'include' && b.type !== 'main');
+            
+            // Generate includes
+            includes.forEach(block => {
+                code += `# include <${block.data.header}>\n`;
+            });
+            
+            if (includes.length > 0) {
+                code += '\n';
+            }
+            
+            // Generate main function
+            if (mainBlock || statements.length > 0) {
+                code += 'int main(){\n';
+                
+                statements.forEach(block => {
+                    if (block.type === 'printf') {
+                        code += `    printf("${block.data.text}");\n`;
+                    } else if (block.type === 'variable') {
+                        code += `    ${block.data.varType} ${block.data.name} = ${block.data.value};\n`;
+                    }
+                });
+                
+                code += '}\n';
+            }
+            
+            document.getElementById('generated-code').textContent = code || '// No blocks added yet...';
+        }
+        
+        // Clear all blocks
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all blocks?')) {
+                canvas.innerHTML = '';
+                blocks = [];
+                generateCode();
+            }
+        }
+        
+        // Download code
+        function downloadCode() {
+            const code = document.getElementById('generated-code').textContent;
+            if (!code || code.trim() === '' || code.includes('No blocks')) {
+                alert('No code to export! Please add some blocks first.');
+                return;
+            }
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('Code exported successfully as hello.c!');
+        }
+        
+        // Load initial example
+        function loadExample() {
+            createBlock('include', 50, 20);
+            createBlock('main', 50, 80);
+            createBlock('printf', 50, 180);
+            generateCode();
+        }
+        
+        // Load example on page load
+        loadExample();
+    </script>
+</body>
+</html>
