@@ -6,6 +6,7 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+hello-plugin
 voice_demo
 voice_demo_test
 test_hello_runner
@@ -15,6 +16,11 @@ test_hello_runner
 # Object files
 *.o
 *.obj
+
+# Plugin binaries
+plugins/*.so
+plugins/*.dll
+plugins/*.dylib
 
 # Test artifacts
 test/*.o
