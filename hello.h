@@ -1,0 +1,7 @@
+#ifndef HELLO_H
+#define HELLO_H
+
+const char* get_greeting(void);
+void print_message(const char* message);
+
+#endif
