@@ -22,13 +22,13 @@ void test_get_greeting_not_null(void) {
 /* Test that get_greeting returns the expected string */
 void test_get_greeting_returns_hello_world(void) {
     const char* greeting = get_greeting();
-    TEST_ASSERT_EQUAL_STRING("Hello world!", greeting);
+    TEST_ASSERT_EQUAL_STRING("Ciao, Mondo!", greeting);
 }
 
 /* Test that the greeting has the correct length */
 void test_get_greeting_length(void) {
     const char* greeting = get_greeting();
-    int expected_length = 12; /* "Hello world!" is 12 characters */
+    int expected_length = 13; /* "Ciao, Mondo!" is 13 characters */
     int actual_length = (int)strlen(greeting);
     TEST_ASSERT_EQUAL_INT(expected_length, actual_length);
 }
