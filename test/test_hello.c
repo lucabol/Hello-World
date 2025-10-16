@@ -1,6 +1,6 @@
 /* Unit tests for hello.c
  * Tests the greeting functionality using a simple testing framework
- * 
+ *
  * Contract for get_greeting():
  * - Returns a pointer to a static string constant
  * - The returned pointer remains valid for the lifetime of the program
@@ -10,8 +10,8 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include "simple_test.h"
 #include "../hello.h"
+#include "simple_test.h"
 
 /* Test that get_greeting returns a non-null pointer */
 void test_get_greeting_not_null(void) {
@@ -50,12 +50,14 @@ void test_get_greeting_no_newline(void) {
     }
 }
 
-/* Test that get_greeting returns static storage (pointer stable across calls) */
+/* Test that get_greeting returns static storage (pointer stable across calls)
+ */
 void test_get_greeting_static_storage(void) {
     const char* greeting1 = get_greeting();
     const char* greeting2 = get_greeting();
-    
-    /* Both pointers should be identical (same memory address) for static storage */
+
+    /* Both pointers should be identical (same memory address) for static
+     * storage */
     tests_run++;
     if (greeting1 == greeting2) {
         tests_passed++;
@@ -77,12 +79,12 @@ int main(void) {
     printf("Running Unit Tests for hello.c\n");
     print_yellow("========================================\n");
     printf("\n");
-    
+
     RUN_TEST(test_get_greeting_not_null);
     RUN_TEST(test_get_greeting_returns_hello_world);
     RUN_TEST(test_get_greeting_length);
     RUN_TEST(test_get_greeting_no_newline);
     RUN_TEST(test_get_greeting_static_storage);
-    
+
     TEST_SUMMARY();
 }
