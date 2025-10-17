@@ -16,6 +16,11 @@ test_hello_runner
 *.o
 *.obj
 
+# Shared libraries (plugins)
+*.so
+*.dylib
+*.dll
+
 # Test artifacts
 test/*.o
 test/*.exe
