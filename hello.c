@@ -2,7 +2,7 @@
 
 int main(){
     int exit_code = 0;
-    printf("Hello world!");
-    printf("\nExit code: %d\n", exit_code);
+    printf("Hello world!\n");
+    printf("Exit code: %d\n", exit_code);
     return exit_code;
 }
