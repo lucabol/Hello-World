@@ -29,8 +29,10 @@ else
     NC=''
 fi
 
-# Expected output (just the greeting message without trailing newline)
-EXPECTED_OUTPUT="Hello world!"
+# Expected output (greeting message followed by exit code with newlines)
+EXPECTED_OUTPUT="Hello world!
+Exit code: 0
+"
 
 # Function to print colored messages using safer printf formatting
 print_success() {
@@ -118,16 +120,17 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
 fi
 print_success "Output format is correct"
 
-# Step 6: Verify no trailing newline (program outputs exactly "Hello world!" without newline)
-# Check if output ends without newline by examining the last character
+# Step 6: Verify trailing newline is present (program now outputs with newline)
+# Check if output ends with newline by examining the last character
 if [[ -n "${OUTPUT}" && "${OUTPUT: -1}" == $'\n' ]]; then
-    print_error "Output has unexpected trailing newline"
-    printf "Output should NOT end with newline character\n"
+    print_success "Trailing newline present (as expected)"
+else
+    print_error "Output missing expected trailing newline"
+    printf "Output should end with newline character\n"
     printf "Raw output (hex):\n"
-    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    printf '%s' "${OUTPUT}" | hexdump -C | head -5
     exit 1
 fi
-print_success "No trailing newline confirmed (as expected)"
 
 print_success "All validation checks passed!"
 if [[ "${QUIET_MODE}" == "false" ]]; then
@@ -136,7 +139,7 @@ if [[ "${QUIET_MODE}" == "false" ]]; then
     printf "  - Strict compilation: PASSED\n"
     printf "  - Exit code (0): PASSED\n"
     printf "  - Output format: PASSED\n"
-    printf "  - No trailing newline: PASSED\n"
+    printf "  - Trailing newline: PASSED\n"
 else
     printf "Validation: All tests PASSED\n"
 fi
