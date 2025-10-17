@@ -2,6 +2,8 @@
 hello
 hello_debug
 hello_optimized
+hello_optimized_gcc
+hello_optimized_clang
 hello_strict
 hello_clang
 hello_warnings
