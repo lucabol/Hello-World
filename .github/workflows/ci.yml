@@ -5,6 +5,15 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      size_threshold_kb:
+        description: 'Binary size threshold in KB'
+        required: false
+        default: '20'
+
+env:
+  SIZE_THRESHOLD_KB: ${{ github.event.inputs.size_threshold_kb || '20' }}
 
 jobs:
   build-and-test-gcc:
@@ -42,3 +51,98 @@ jobs:
         clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
         ./test_hello_runner
         rm -f hello_lib.o test_hello_runner
+  
+  size-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build optimized binary with GCC
+      run: |
+        echo "Building optimized binary with GCC -Os -s..."
+        START_TIME=$(date +%s%3N)
+        gcc -Os -s -o hello_optimized_gcc hello.c
+        END_TIME=$(date +%s%3N)
+        BUILD_TIME_GCC=$((END_TIME - START_TIME))
+        echo "GCC build time: ${BUILD_TIME_GCC}ms"
+        echo "BUILD_TIME_GCC=${BUILD_TIME_GCC}" >> $GITHUB_ENV
+        
+    - name: Build optimized binary with Clang
+      run: |
+        echo "Building optimized binary with Clang -Os -s..."
+        START_TIME=$(date +%s%3N)
+        clang -Os -s -o hello_optimized_clang hello.c
+        END_TIME=$(date +%s%3N)
+        BUILD_TIME_CLANG=$((END_TIME - START_TIME))
+        echo "Clang build time: ${BUILD_TIME_CLANG}ms"
+        echo "BUILD_TIME_CLANG=${BUILD_TIME_CLANG}" >> $GITHUB_ENV
+        
+    - name: Check binary sizes
+      run: |
+        echo "=== Binary Size Check ==="
+        echo "Threshold: ${SIZE_THRESHOLD_KB} KB ($(( ${SIZE_THRESHOLD_KB} * 1024 )) bytes)"
+        echo ""
+        
+        # Get GCC binary size
+        GCC_SIZE=$(stat -c%s hello_optimized_gcc)
+        GCC_SIZE_KB=$(echo "scale=2; ${GCC_SIZE} / 1024" | bc)
+        echo "GCC optimized binary size: ${GCC_SIZE} bytes (${GCC_SIZE_KB} KB)"
+        
+        # Get Clang binary size
+        CLANG_SIZE=$(stat -c%s hello_optimized_clang)
+        CLANG_SIZE_KB=$(echo "scale=2; ${CLANG_SIZE} / 1024" | bc)
+        echo "Clang optimized binary size: ${CLANG_SIZE} bytes (${CLANG_SIZE_KB} KB)"
+        
+        echo ""
+        echo "=== Build Times ==="
+        echo "GCC build time: ${BUILD_TIME_GCC}ms"
+        echo "Clang build time: ${BUILD_TIME_CLANG}ms"
+        
+        echo ""
+        echo "=== Size Breakdown (GCC) ==="
+        size hello_optimized_gcc
+        
+        echo ""
+        echo "=== Size Breakdown (Clang) ==="
+        size hello_optimized_clang
+        
+        # Check threshold
+        THRESHOLD_BYTES=$(( ${SIZE_THRESHOLD_KB} * 1024 ))
+        echo ""
+        echo "=== Threshold Check ==="
+        
+        if [ ${GCC_SIZE} -gt ${THRESHOLD_BYTES} ]; then
+          echo "❌ FAILED: GCC binary (${GCC_SIZE} bytes) exceeds threshold (${THRESHOLD_BYTES} bytes)"
+          exit 1
+        else
+          echo "✅ PASSED: GCC binary (${GCC_SIZE} bytes) is within threshold (${THRESHOLD_BYTES} bytes)"
+        fi
+        
+        if [ ${CLANG_SIZE} -gt ${THRESHOLD_BYTES} ]; then
+          echo "❌ FAILED: Clang binary (${CLANG_SIZE} bytes) exceeds threshold (${THRESHOLD_BYTES} bytes)"
+          exit 1
+        else
+          echo "✅ PASSED: Clang binary (${CLANG_SIZE} bytes) is within threshold (${THRESHOLD_BYTES} bytes)"
+        fi
+        
+    - name: Test optimized binaries
+      run: |
+        echo "Testing GCC optimized binary..."
+        OUTPUT_GCC=$(./hello_optimized_gcc)
+        if [ "$OUTPUT_GCC" = "Hello world!" ]; then
+          echo "✅ GCC binary output correct"
+        else
+          echo "❌ GCC binary output incorrect: $OUTPUT_GCC"
+          exit 1
+        fi
+        
+        echo "Testing Clang optimized binary..."
+        OUTPUT_CLANG=$(./hello_optimized_clang)
+        if [ "$OUTPUT_CLANG" = "Hello world!" ]; then
+          echo "✅ Clang binary output correct"
+        else
+          echo "❌ Clang binary output incorrect: $OUTPUT_CLANG"
+          exit 1
+        fi
