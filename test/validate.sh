@@ -53,7 +53,7 @@ print_info() {
 cleanup() {
     # Only clean up the strict binary if we built it directly (not via make)
     if [[ -f hello_strict && "${USED_DIRECT_BUILD:-}" == "true" ]]; then
-        rm -f hello_strict
+        rm -f hello_strict hello_lib.o main.o
     fi
 }
 
@@ -66,7 +66,10 @@ print_info "Starting validation of Hello World program..."
 print_info "Building with strict compilation flags..."
 # Use GCC directly with strict flags to ensure code quality
 STRICT_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
-if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -o hello_strict hello.c 2>&1); then
+# Build library and main separately, then link
+if BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -I. -c hello_lib.c -o hello_lib.o 2>&1) && \
+   BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -I. -c main.c -o main.o 2>&1) && \
+   BUILD_OUTPUT=$(gcc ${STRICT_FLAGS} -o hello_strict main.o hello_lib.o 2>&1); then
     print_success "Strict compilation passed with GCC"
     USED_DIRECT_BUILD=true
 else
