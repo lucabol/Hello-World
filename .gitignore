@@ -9,6 +9,7 @@ hello_test*
 voice_demo
 voice_demo_test
 test_hello_runner
+spreadsheet
 *.exe
 *.out
 
@@ -39,3 +40,6 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Code metrics exports
+*_metrics.csv
