@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Editor - Hello World</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 100px);
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .blocks-container {
+            width: 300px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .blocks-container h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        
+        .block-category {
+            margin-bottom: 20px;
+        }
+        
+        .block-category h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #34495e;
+            font-weight: 600;
+        }
+        
+        .block {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+        
+        .block:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .block:active {
+            transform: scale(0.98);
+        }
+        
+        .block.include { background-color: #9b59b6; }
+        .block.main { background-color: #e74c3c; }
+        .block.printf { background-color: #27ae60; }
+        .block.variable { background-color: #f39c12; }
+        .block.comment { background-color: #95a5a6; }
+        .block.return { background-color: #e67e22; }
+        
+        .workspace-container {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .workspace-header {
+            margin-bottom: 15px;
+        }
+        
+        .workspace-header h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        
+        .instructions {
+            background-color: #e8f4f8;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        #workspace {
+            flex: 1;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+        }
+        
+        #workspace.empty:before {
+            content: "Drop blocks here or click 'Add' buttons below";
+            display: block;
+            text-align: center;
+            color: #95a5a6;
+            margin-top: 100px;
+            font-size: 16px;
+        }
+        
+        .workspace-block {
+            background-color: white;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .workspace-block.include { border-left-color: #9b59b6; }
+        .workspace-block.main { border-left-color: #e74c3c; }
+        .workspace-block.printf { border-left-color: #27ae60; }
+        .workspace-block.variable { border-left-color: #f39c12; }
+        .workspace-block.comment { border-left-color: #95a5a6; }
+        .workspace-block.return { border-left-color: #e67e22; }
+        
+        .workspace-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .workspace-block-title {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .workspace-block-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .btn-small:hover {
+            opacity: 0.8;
+        }
+        
+        .btn-remove {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-edit {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .block-field {
+            margin-bottom: 8px;
+        }
+        
+        .block-field label {
+            display: block;
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 3px;
+        }
+        
+        .block-field input,
+        .block-field textarea,
+        .block-field select {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .block-field textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .output-container {
+            width: 400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .output-header {
+            margin-bottom: 15px;
+        }
+        
+        .output-header h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        
+        #codeOutput {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 4px;
+            overflow: auto;
+            white-space: pre;
+            line-height: 1.5;
+            min-height: 300px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧩 Visual C Code Editor</h1>
+        <p>Create and modify C code using a simple block-based interface</p>
+    </div>
+    
+    <div class="container">
+        <div class="blocks-container">
+            <h2>Available Blocks</h2>
+            
+            <div class="block-category">
+                <h3>Program Structure</h3>
+                <div class="block include" onclick="addBlock('include')">
+                    #include &lt;header.h&gt;
+                </div>
+                <div class="block main" onclick="addBlock('main')">
+                    int main() { }
+                </div>
+            </div>
+            
+            <div class="block-category">
+                <h3>Output</h3>
+                <div class="block printf" onclick="addBlock('printf')">
+                    printf("text");
+                </div>
+            </div>
+            
+            <div class="block-category">
+                <h3>Variables</h3>
+                <div class="block variable" onclick="addBlock('variable')">
+                    int var = value;
+                </div>
+            </div>
+            
+            <div class="block-category">
+                <h3>Control Flow</h3>
+                <div class="block return" onclick="addBlock('return')">
+                    return 0;
+                </div>
+            </div>
+            
+            <div class="block-category">
+                <h3>Other</h3>
+                <div class="block comment" onclick="addBlock('comment')">
+                    // comment
+                </div>
+            </div>
+        </div>
+        
+        <div class="workspace-container">
+            <div class="workspace-header">
+                <h2>Program Workspace</h2>
+                <div class="instructions">
+                    <strong>Instructions:</strong> Click on blocks to add them to your program. 
+                    Edit values, then click "Generate Code" to see the C code. 
+                    Click "Download hello.c" to save your program.
+                </div>
+            </div>
+            <div id="workspace" class="empty"></div>
+        </div>
+        
+        <div class="output-container">
+            <div class="output-header">
+                <h2>Generated C Code</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="generateCode()">Generate Code</button>
+                    <button class="btn-success" onclick="downloadCode()">Download hello.c</button>
+                </div>
+            </div>
+            <div id="codeOutput">// Click "Generate Code" to see your C code here</div>
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Block management system
+        let blocks = [];
+        let blockIdCounter = 0;
+        
+        // Block templates
+        const blockTemplates = {
+            include: {
+                type: 'include',
+                title: '#include',
+                fields: [
+                    { name: 'header', label: 'Header file', type: 'text', default: 'stdio.h' }
+                ],
+                generate: (data) => `#include <${data.header}>\n`
+            },
+            main: {
+                type: 'main',
+                title: 'int main()',
+                fields: [
+                    { name: 'body', label: 'Function body (statements inside main)', type: 'textarea', default: '    printf("Hello world!");' }
+                ],
+                generate: (data) => `\nint main(){\n${data.body}\n}\n`
+            },
+            printf: {
+                type: 'printf',
+                title: 'printf',
+                fields: [
+                    { name: 'text', label: 'Text to print', type: 'text', default: 'Hello world!' }
+                ],
+                generate: (data) => `    printf("${data.text}");\n`
+            },
+            variable: {
+                type: 'variable',
+                title: 'Variable Declaration',
+                fields: [
+                    { name: 'varType', label: 'Type', type: 'select', options: ['int', 'char', 'float', 'double'], default: 'int' },
+                    { name: 'varName', label: 'Name', type: 'text', default: 'x' },
+                    { name: 'varValue', label: 'Value', type: 'text', default: '0' }
+                ],
+                generate: (data) => `    ${data.varType} ${data.varName} = ${data.varValue};\n`
+            },
+            return: {
+                type: 'return',
+                title: 'return',
+                fields: [
+                    { name: 'value', label: 'Return value', type: 'text', default: '0' }
+                ],
+                generate: (data) => `    return ${data.value};\n`
+            },
+            comment: {
+                type: 'comment',
+                title: 'Comment',
+                fields: [
+                    { name: 'text', label: 'Comment text', type: 'text', default: 'Your comment here' }
+                ],
+                generate: (data) => `// ${data.text}\n`
+            }
+        };
+        
+        // Initialize with default blocks
+        function initializeDefaultProgram() {
+            blocks = [];
+            addBlockData('include', { header: 'stdio.h' });
+            addBlockData('main', { body: '    printf("Hello world!");' });
+            renderWorkspace();
+            generateCode();
+        }
+        
+        // Add a new block to the workspace
+        function addBlock(type) {
+            const template = blockTemplates[type];
+            if (!template) return;
+            
+            const blockData = { type };
+            template.fields.forEach(field => {
+                blockData[field.name] = field.default;
+            });
+            
+            addBlockData(type, blockData);
+            renderWorkspace();
+            generateCode();
+            showMessage('Block added successfully!', 'success');
+        }
+        
+        // Add block with existing data
+        function addBlockData(type, data) {
+            const block = {
+                id: blockIdCounter++,
+                type: type,
+                data: data
+            };
+            blocks.push(block);
+        }
+        
+        // Remove a block from the workspace
+        function removeBlock(id) {
+            blocks = blocks.filter(b => b.id !== id);
+            renderWorkspace();
+            generateCode();
+            showMessage('Block removed', 'info');
+        }
+        
+        // Update block data
+        function updateBlock(id, field, value) {
+            const block = blocks.find(b => b.id === id);
+            if (block) {
+                block.data[field] = value;
+                generateCode();
+            }
+        }
+        
+        // Render the workspace
+        function renderWorkspace() {
+            const workspace = document.getElementById('workspace');
+            
+            if (blocks.length === 0) {
+                workspace.className = 'empty';
+                workspace.innerHTML = '';
+                return;
+            }
+            
+            workspace.className = '';
+            workspace.innerHTML = blocks.map(block => {
+                const template = blockTemplates[block.type];
+                const fieldsHtml = template.fields.map(field => {
+                    let inputHtml = '';
+                    if (field.type === 'text') {
+                        inputHtml = `<input type="text" value="${escapeHtml(block.data[field.name])}" 
+                                    onchange="updateBlock(${block.id}, '${field.name}', this.value)">`;
+                    } else if (field.type === 'textarea') {
+                        inputHtml = `<textarea onchange="updateBlock(${block.id}, '${field.name}', this.value)">${escapeHtml(block.data[field.name])}</textarea>`;
+                    } else if (field.type === 'select') {
+                        const options = field.options.map(opt => 
+                            `<option value="${opt}" ${block.data[field.name] === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('');
+                        inputHtml = `<select onchange="updateBlock(${block.id}, '${field.name}', this.value)">${options}</select>`;
+                    }
+                    return `
+                        <div class="block-field">
+                            <label>${field.label}:</label>
+                            ${inputHtml}
+                        </div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="workspace-block ${block.type}">
+                        <div class="workspace-block-header">
+                            <div class="workspace-block-title">${template.title}</div>
+                            <div class="workspace-block-actions">
+                                <button class="btn-small btn-remove" onclick="removeBlock(${block.id})">Remove</button>
+                            </div>
+                        </div>
+                        ${fieldsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Generate C code from blocks
+        function generateCode() {
+            if (blocks.length === 0) {
+                document.getElementById('codeOutput').textContent = '// No blocks in workspace. Add some blocks to get started!';
+                return;
+            }
+            
+            let code = '';
+            blocks.forEach(block => {
+                const template = blockTemplates[block.type];
+                if (template && template.generate) {
+                    code += template.generate(block.data);
+                }
+            });
+            
+            document.getElementById('codeOutput').textContent = code;
+        }
+        
+        // Download generated code as hello.c
+        function downloadCode() {
+            const code = document.getElementById('codeOutput').textContent;
+            if (!code || code.startsWith('//')) {
+                showMessage('No code to download. Please add blocks and generate code first.', 'info');
+                return;
+            }
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            showMessage('hello.c downloaded successfully! You can now compile it with: gcc -o hello hello.c', 'success');
+        }
+        
+        // Show message to user
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            setTimeout(function() {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Escape HTML for security
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize on page load
+        window.onload = function() {
+            initializeDefaultProgram();
+        };
+    </script>
+</body>
+</html>
