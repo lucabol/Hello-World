@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <assert.h>
 #include "hello.h"
 
 /* Print a custom message to stdout */
 void print_message(const char* message) {
+    assert(message != NULL);
     printf("%s", message);
 }
 
