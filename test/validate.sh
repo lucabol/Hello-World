@@ -29,8 +29,9 @@ else
     NC=''
 fi
 
-# Expected output (greeting message with trailing newline)
+# Expected output (greeting message with exit code and trailing newlines)
 EXPECTED_OUTPUT="Hello world!
+Exit code: 0
 "
 
 # Function to print colored messages using safer printf formatting
