@@ -11,6 +11,10 @@ voice_demo_test
 test_hello_runner
 test_plugin_runner
 hello_with_plugins
+hello_plugin_demo
+plugin_chain_demo
+hello_prefix
+chain_demo
 *.exe
 *.out
 
