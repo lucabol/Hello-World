@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Block Editor</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        #header p {
+            margin: 8px 0 0 0;
+            font-size: 15px;
+            opacity: 0.95;
+        }
+        
+        #main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+        
+        #palette-container {
+            width: 280px;
+            background-color: white;
+            border-right: 2px solid #e1e4e8;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .palette-category {
+            margin-bottom: 20px;
+        }
+        
+        .palette-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #24292e;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .block-template {
+            background-color: #f6f8fa;
+            border: 2px solid #d1d5da;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: move;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .block-template:hover {
+            background-color: #e1e4e8;
+            border-color: #959da5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .block-template.include { border-left: 4px solid #0366d6; }
+        .block-template.main { border-left: 4px solid #28a745; }
+        .block-template.printf { border-left: 4px solid #f9826c; }
+        .block-template.return { border-left: 4px solid #6f42c1; }
+        .block-template.comment { border-left: 4px solid #959da5; }
+        
+        #workspace-container {
+            flex: 1;
+            background-color: #fafbfc;
+            overflow: auto;
+            padding: 20px;
+            position: relative;
+        }
+        
+        #workspace {
+            min-height: 100%;
+            position: relative;
+        }
+        
+        .workspace-block {
+            background-color: white;
+            border: 2px solid #d1d5da;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: move;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: box-shadow 0.2s;
+        }
+        
+        .workspace-block:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .workspace-block.include { border-left: 4px solid #0366d6; }
+        .workspace-block.main { border-left: 4px solid #28a745; }
+        .workspace-block.printf { border-left: 4px solid #f9826c; }
+        .workspace-block.return { border-left: 4px solid #6f42c1; }
+        .workspace-block.comment { border-left: 4px solid #959da5; }
+        
+        .workspace-block input,
+        .workspace-block select {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 4px 8px;
+            border: 1px solid #d1d5da;
+            border-radius: 3px;
+            background-color: #fafbfc;
+            margin: 0 4px;
+        }
+        
+        .workspace-block input:focus,
+        .workspace-block select:focus {
+            outline: none;
+            border-color: #0366d6;
+            background-color: white;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: #d73a49;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .delete-btn:hover {
+            opacity: 1;
+        }
+        
+        #code-panel {
+            width: 450px;
+            background-color: white;
+            border-left: 2px solid #e1e4e8;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #code-panel-header {
+            background-color: #24292e;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        #code-output {
+            flex: 1;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: auto;
+            background-color: #f6f8fa;
+            border: none;
+            resize: none;
+            color: #24292e;
+        }
+        
+        #button-panel {
+            padding: 20px;
+            background-color: #fafbfc;
+            border-top: 1px solid #e1e4e8;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        #export-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        #export-btn:hover {
+            background-color: #22863a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+        
+        #copy-btn {
+            background-color: #0366d6;
+            color: white;
+        }
+        
+        #copy-btn:hover {
+            background-color: #0256c4;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(3, 102, 214, 0.3);
+        }
+        
+        #clear-btn {
+            background-color: #e1e4e8;
+            color: #24292e;
+        }
+        
+        #clear-btn:hover {
+            background-color: #d1d5da;
+        }
+        
+        #load-example-btn {
+            background-color: #6f42c1;
+            color: white;
+        }
+        
+        #load-example-btn:hover {
+            background-color: #5a32a3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(111, 66, 193, 0.3);
+        }
+        
+        .message {
+            padding: 12px 16px;
+            margin: 0 20px 15px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .empty-workspace {
+            text-align: center;
+            color: #959da5;
+            padding: 60px 20px;
+            font-size: 16px;
+        }
+        
+        .empty-workspace-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🧩 Visual C Code Block Editor</h1>
+        <p>Drag blocks from the left panel into the workspace to create C code, then export to hello.c</p>
+    </div>
+    
+    <div id="main-container">
+        <div id="palette-container">
+            <div class="palette-category">
+                <div class="palette-title">📚 Libraries</div>
+                <div class="block-template include" draggable="true" data-type="include">
+                    #include &lt;stdio.h&gt;
+                </div>
+            </div>
+            
+            <div class="palette-category">
+                <div class="palette-title">⚙️ Functions</div>
+                <div class="block-template main" draggable="true" data-type="main">
+                    int main() { ... }
+                </div>
+            </div>
+            
+            <div class="palette-category">
+                <div class="palette-title">📤 Output</div>
+                <div class="block-template printf" draggable="true" data-type="printf">
+                    printf("text");
+                </div>
+                <div class="block-template printf" draggable="true" data-type="printf_newline">
+                    printf("text\n");
+                </div>
+            </div>
+            
+            <div class="palette-category">
+                <div class="palette-title">↩️ Control</div>
+                <div class="block-template return" draggable="true" data-type="return">
+                    return 0;
+                </div>
+            </div>
+            
+            <div class="palette-category">
+                <div class="palette-title">💬 Comments</div>
+                <div class="block-template comment" draggable="true" data-type="comment">
+                    // comment
+                </div>
+            </div>
+        </div>
+        
+        <div id="workspace-container">
+            <div id="workspace"></div>
+        </div>
+        
+        <div id="code-panel">
+            <div id="code-panel-header">Generated C Code</div>
+            <textarea id="code-output" readonly></textarea>
+            <div id="message" class="message"></div>
+            <div id="button-panel">
+                <button id="load-example-btn">📋 Load Example</button>
+                <button id="copy-btn">📄 Copy Code</button>
+                <button id="clear-btn">🗑️ Clear All</button>
+                <button id="export-btn">💾 Export to hello.c</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Block storage
+        let blocks = [];
+        let blockIdCounter = 0;
+        
+        // Block templates
+        const blockTemplates = {
+            include: {
+                html: '<select class="library-select"><option>stdio.h</option><option>stdlib.h</option><option>string.h</option><option>math.h</option></select>',
+                generate: (block) => {
+                    const lib = block.element.querySelector('.library-select').value;
+                    return `# include <${lib}>`;
+                },
+                cssClass: 'include'
+            },
+            main: {
+                html: 'int main() { <span style="color: #6a737d;">// statements go inside</span> }',
+                generate: () => '\nint main(){\n    printf("Hello world!");\n}',
+                cssClass: 'main'
+            },
+            printf: {
+                html: 'printf("<input type="text" class="text-input" value="Hello world!" style="width: 200px;">"); ',
+                generate: (block) => {
+                    const text = block.element.querySelector('.text-input').value;
+                    return `    printf("${text}");`;
+                },
+                cssClass: 'printf'
+            },
+            printf_newline: {
+                html: 'printf("<input type="text" class="text-input" value="Hello world!" style="width: 200px;">\\n");',
+                generate: (block) => {
+                    const text = block.element.querySelector('.text-input').value;
+                    return `    printf("${text}\\n");`;
+                },
+                cssClass: 'printf'
+            },
+            return: {
+                html: 'return <input type="number" class="return-value" value="0" style="width: 60px;">;',
+                generate: (block) => {
+                    const value = block.element.querySelector('.return-value').value;
+                    return `    return ${value};`;
+                },
+                cssClass: 'return'
+            },
+            comment: {
+                html: '// <input type="text" class="comment-input" value="Comment" style="width: 250px;">',
+                generate: (block) => {
+                    const text = block.element.querySelector('.comment-input').value;
+                    return `// ${text}`;
+                },
+                cssClass: 'comment'
+            }
+        };
+        
+        // Drag and drop handlers
+        document.querySelectorAll('.block-template').forEach(template => {
+            template.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('blockType', e.target.dataset.type);
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+        
+        const workspace = document.getElementById('workspace');
+        const workspaceContainer = document.getElementById('workspace-container');
+        
+        workspaceContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+        
+        workspaceContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const blockType = e.dataTransfer.getData('blockType');
+            if (blockType) {
+                addBlock(blockType);
+            }
+        });
+        
+        // Add block to workspace
+        function addBlock(type) {
+            const template = blockTemplates[type];
+            if (!template) return;
+            
+            const blockId = blockIdCounter++;
+            const blockElement = document.createElement('div');
+            blockElement.className = `workspace-block ${template.cssClass}`;
+            blockElement.dataset.id = blockId;
+            blockElement.innerHTML = template.html + '<button class="delete-btn">×</button>';
+            
+            workspace.appendChild(blockElement);
+            
+            const block = {
+                id: blockId,
+                type: type,
+                element: blockElement,
+                generate: () => template.generate(block)
+            };
+            
+            blocks.push(block);
+            
+            // Delete button handler
+            blockElement.querySelector('.delete-btn').addEventListener('click', () => {
+                deleteBlock(blockId);
+            });
+            
+            // Input change handlers
+            blockElement.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('input', updateCode);
+            });
+            
+            updateCode();
+            updateEmptyState();
+        }
+        
+        // Delete block
+        function deleteBlock(id) {
+            blocks = blocks.filter(block => block.id !== id);
+            const element = workspace.querySelector(`[data-id="${id}"]`);
+            if (element) {
+                element.remove();
+            }
+            updateCode();
+            updateEmptyState();
+        }
+        
+        // Update generated code
+        function updateCode() {
+            if (blocks.length === 0) {
+                document.getElementById('code-output').value = '';
+                return;
+            }
+            
+            const code = blocks.map(block => block.generate()).join('\n');
+            document.getElementById('code-output').value = code;
+        }
+        
+        // Update empty state message
+        function updateEmptyState() {
+            if (blocks.length === 0) {
+                workspace.innerHTML = '<div class="empty-workspace"><div class="empty-workspace-icon">👈</div><div>Drag blocks from the left panel to get started!</div></div>';
+            } else {
+                const emptyMsg = workspace.querySelector('.empty-workspace');
+                if (emptyMsg) {
+                    emptyMsg.remove();
+                }
+            }
+        }
+        
+        // Load example
+        function loadExample() {
+            clearWorkspace();
+            addBlock('include');
+            addBlock('main');
+            showMessage('Example loaded! The blocks create a simple Hello World program.', 'success');
+        }
+        
+        // Clear workspace
+        function clearWorkspace() {
+            blocks = [];
+            workspace.innerHTML = '';
+            updateCode();
+            updateEmptyState();
+        }
+        
+        // Copy code to clipboard
+        function copyCode() {
+            const codeOutput = document.getElementById('code-output');
+            if (!codeOutput.value.trim()) {
+                showMessage('No code to copy! Add some blocks first.', 'error');
+                return;
+            }
+            
+            codeOutput.select();
+            document.execCommand('copy');
+            showMessage('Code copied to clipboard! ✓', 'success');
+        }
+        
+        // Export code to hello.c
+        function exportCode() {
+            const code = document.getElementById('code-output').value;
+            
+            if (!code.trim()) {
+                showMessage('No code to export! Add some blocks first.', 'error');
+                return;
+            }
+            
+            // Create download
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showMessage('Code exported to hello.c! Check your downloads folder. ✓', 'success');
+        }
+        
+        // Show message function
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 4000);
+        }
+        
+        // Event listeners
+        document.getElementById('load-example-btn').addEventListener('click', loadExample);
+        document.getElementById('copy-btn').addEventListener('click', copyCode);
+        document.getElementById('export-btn').addEventListener('click', exportCode);
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            if (blocks.length > 0 && confirm('Are you sure you want to clear all blocks?')) {
+                clearWorkspace();
+                showMessage('Workspace cleared.', 'success');
+            }
+        });
+        
+        // Initialize
+        updateEmptyState();
+        loadExample();
+    </script>
+</body>
+</html>
