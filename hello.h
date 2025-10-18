@@ -6,7 +6,7 @@
 #ifndef HELLO_H
 #define HELLO_H
 
-/* Get the greeting message
+/* Get the default greeting message
  * 
  * Returns: A pointer to a static string constant containing the greeting
  * 
@@ -18,5 +18,15 @@
  * - Multiple calls return the same static pointer
  */
 const char* get_greeting(void);
+
+/* Print a custom message without trailing newline
+ * 
+ * Prints the given message to stdout without adding a trailing newline.
+ * This maintains the program's contract of producing output with no trailing newline.
+ * 
+ * Parameters:
+ * - message: The message to print (must not be NULL)
+ */
+void print_custom_message(const char* message);
 
 #endif /* HELLO_H */
