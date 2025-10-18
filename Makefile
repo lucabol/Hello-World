@@ -25,6 +25,7 @@ EXCLAIM_OBJ = plugins/exclaim.o
 HELLO = hello
 HELLO_PLUGINS = hello_with_plugins
 PLUGIN_DEMO = hello_plugin_demo
+TEST_PLUGIN_RUNNER = test_plugin_runner
 
 .PHONY: all plugin-demo plugins test clean strict help
 
@@ -68,6 +69,15 @@ strict: hello.c
 test:
 	@./test/validate.sh
 
+# Run plugin system tests
+test-plugins: $(PLUGIN_OBJ)
+	@echo "Building and running plugin system tests..."
+	$(CC) $(CFLAGS) -I. -o $(TEST_PLUGIN_RUNNER) test/test_plugin.c $(PLUGIN_OBJ)
+	@./$(TEST_PLUGIN_RUNNER)
+
+# Run all tests
+test-all: test test-plugins
+
 # Run plugin demo
 demo: $(PLUGIN_DEMO)
 	@echo "Running plugin system demo..."
@@ -75,7 +85,7 @@ demo: $(PLUGIN_DEMO)
 
 # Clean build artifacts
 clean:
-	rm -f $(HELLO) $(HELLO_PLUGINS) $(PLUGIN_DEMO) hello_strict
+	rm -f $(HELLO) $(HELLO_PLUGINS) $(PLUGIN_DEMO) hello_strict $(TEST_PLUGIN_RUNNER)
 	rm -f $(PLUGIN_OBJ) $(UPPERCASE_OBJ) $(EXCLAIM_OBJ)
 	rm -f *.o plugins/*.o
 
@@ -87,6 +97,8 @@ help:
 	@echo "  make plugin-demo  - Build and run plugin demonstration"
 	@echo "  make plugins      - Build all plugin components"
 	@echo "  make test         - Run validation tests"
+	@echo "  make test-plugins - Run plugin system unit tests"
+	@echo "  make test-all     - Run all tests"
 	@echo "  make strict       - Build with strict error checking"
 	@echo "  make demo         - Build and run the plugin demo"
 	@echo "  make clean        - Remove all built files"

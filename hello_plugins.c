@@ -18,6 +18,9 @@ int main(int argc, char* argv[]) {
     char output[256];
     int demo_mode = 0;
     
+    /* Avoid unused parameter warning */
+    (void)argv;
+    
     /* Check for demo mode argument */
     if (argc > 1) {
         demo_mode = 1;

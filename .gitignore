@@ -9,6 +9,7 @@ hello_test*
 voice_demo
 voice_demo_test
 test_hello_runner
+test_plugin_runner
 hello_with_plugins
 *.exe
 *.out
