@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Code Block Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: #4a5568;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .panel-content {
+            padding: 20px;
+        }
+        
+        .blocks-container {
+            min-height: 500px;
+        }
+        
+        .block-section {
+            margin-bottom: 25px;
+        }
+        
+        .block-section h3 {
+            color: #4a5568;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .block-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            user-select: none;
+        }
+        
+        .block-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .block-item.selected {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            transform: scale(1.02);
+        }
+        
+        .block-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .block-desc {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .workspace {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 500px;
+        }
+        
+        .workspace-item {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .workspace-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .workspace-item-title {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .remove-btn {
+            background: #fc8181;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .remove-btn:hover {
+            background: #f56565;
+        }
+        
+        .workspace-item input,
+        .workspace-item select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .workspace-item label {
+            display: block;
+            color: #4a5568;
+            font-size: 12px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .code-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 500px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955; }
+        .function { color: #dcdcaa; }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.success {
+            background: #48bb78;
+        }
+        
+        button.success:hover {
+            background: #38a169;
+        }
+        
+        button.danger {
+            background: #f56565;
+        }
+        
+        button.danger:hover {
+            background: #e53e3e;
+        }
+        
+        .info-box {
+            flex: 1;
+            min-width: 300px;
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .status {
+            background: #e6fffa;
+            border: 2px solid #81e6d9;
+            color: #234e52;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.error {
+            background: #fff5f5;
+            border-color: #fc8181;
+            color: #742a2a;
+        }
+        
+        .empty-workspace {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+        
+        .empty-workspace-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧱 C Code Block Editor</h1>
+            <div class="subtitle">Click on blocks to add them to your program, customize their values, and export to hello.c</div>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">📦 Available Blocks</div>
+                <div class="panel-content blocks-container">
+                    <div class="block-section">
+                        <h3>Program Structure</h3>
+                        <div class="block-item" data-type="include">
+                            <div class="block-title">#include Library</div>
+                            <div class="block-desc">Include a standard C library</div>
+                        </div>
+                    </div>
+                    
+                    <div class="block-section">
+                        <h3>Output</h3>
+                        <div class="block-item" data-type="printf">
+                            <div class="block-title">Print Text</div>
+                            <div class="block-desc">Output text without newline</div>
+                        </div>
+                        <div class="block-item" data-type="printf_newline">
+                            <div class="block-title">Print with Newline</div>
+                            <div class="block-desc">Output text with newline at the end</div>
+                        </div>
+                    </div>
+                    
+                    <div class="block-section">
+                        <h3>Variables</h3>
+                        <div class="block-item" data-type="int_var">
+                            <div class="block-title">Integer Variable</div>
+                            <div class="block-desc">Declare an integer variable</div>
+                        </div>
+                        <div class="block-item" data-type="char_array">
+                            <div class="block-title">String Variable</div>
+                            <div class="block-desc">Declare a character array (string)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="block-section">
+                        <h3>Control Flow</h3>
+                        <div class="block-item" data-type="if">
+                            <div class="block-title">If Statement</div>
+                            <div class="block-desc">Conditional execution</div>
+                        </div>
+                        <div class="block-item" data-type="for">
+                            <div class="block-title">For Loop</div>
+                            <div class="block-desc">Repeat code with counter</div>
+                        </div>
+                    </div>
+                    
+                    <div class="block-section">
+                        <h3>Other</h3>
+                        <div class="block-item" data-type="comment">
+                            <div class="block-title">Comment</div>
+                            <div class="block-desc">Add a code comment</div>
+                        </div>
+                        <div class="block-item" data-type="return">
+                            <div class="block-title">Return</div>
+                            <div class="block-desc">Return from main function</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">🎨 Your Program</div>
+                <div class="panel-content">
+                    <div id="workspace" class="workspace">
+                        <div class="empty-workspace">
+                            <div class="empty-workspace-icon">👆</div>
+                            <div>Click blocks on the left to add them here</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-header">💻 Generated C Code</div>
+            <div class="panel-content">
+                <div id="codeOutput" class="code-output">// Click blocks to build your program
+// The C code will appear here automatically</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="generateAndShowCode()">🔄 Update Preview</button>
+            <button onclick="exportCode()" class="success">💾 Export to hello.c</button>
+            <button onclick="loadExample()">📄 Load Hello World Example</button>
+            <button onclick="clearWorkspace()" class="danger">🗑️ Clear All</button>
+            <div class="info-box">
+                <strong>Quick Start:</strong> Click on blocks from the left panel to add them to your program. Customize values, then export to hello.c.
+            </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        let blockCounter = 0;
+        let workspaceBlocks = [];
+        
+        // Block templates
+        const blockTemplates = {
+            include: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="include">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">#include Library</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Library:</label>
+                        <select onchange="updateCode()">
+                            <option value="stdio.h">stdio.h</option>
+                            <option value="stdlib.h">stdlib.h</option>
+                            <option value="string.h">string.h</option>
+                            <option value="math.h">math.h</option>
+                        </select>
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const lib = element.querySelector('select').value;
+                    return `# include <${lib}>`;
+                }
+            },
+            printf: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="printf">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">Print Text</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Text to print:</label>
+                        <input type="text" value="Hello world!" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const text = element.querySelector('input').value;
+                    return `    printf("${text}");`;
+                }
+            },
+            printf_newline: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="printf_newline">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">Print with Newline</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Text to print:</label>
+                        <input type="text" value="Hello world!" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const text = element.querySelector('input').value;
+                    return `    printf("${text}\\n");`;
+                }
+            },
+            int_var: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="int_var">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">Integer Variable</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Variable name:</label>
+                        <input type="text" value="count" onchange="updateCode()" style="margin-bottom: 10px;" />
+                        <label>Initial value:</label>
+                        <input type="number" value="0" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const inputs = element.querySelectorAll('input');
+                    const name = inputs[0].value;
+                    const value = inputs[1].value;
+                    return `    int ${name} = ${value};`;
+                }
+            },
+            char_array: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="char_array">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">String Variable</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Variable name:</label>
+                        <input type="text" value="message" onchange="updateCode()" style="margin-bottom: 10px;" />
+                        <label>String value:</label>
+                        <input type="text" value="Hello" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const inputs = element.querySelectorAll('input');
+                    const name = inputs[0].value;
+                    const value = inputs[1].value;
+                    return `    char ${name}[] = "${value}";`;
+                }
+            },
+            if: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="if">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">If Statement</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Condition:</label>
+                        <input type="text" value="x > 0" onchange="updateCode()" style="margin-bottom: 10px;" />
+                        <label>Code to execute:</label>
+                        <input type="text" value="printf(\"Positive\");" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const inputs = element.querySelectorAll('input');
+                    const condition = inputs[0].value;
+                    const code = inputs[1].value;
+                    return `    if (${condition}) {\n        ${code}\n    }`;
+                }
+            },
+            for: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="for">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">For Loop</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Counter variable:</label>
+                        <input type="text" value="i" onchange="updateCode()" style="margin-bottom: 10px;" />
+                        <label>Loop count:</label>
+                        <input type="number" value="10" onchange="updateCode()" style="margin-bottom: 10px;" />
+                        <label>Code to repeat:</label>
+                        <input type="text" value="printf(\"*\");" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const inputs = element.querySelectorAll('input');
+                    const counter = inputs[0].value;
+                    const count = inputs[1].value;
+                    const code = inputs[2].value;
+                    return `    for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {\n        ${code}\n    }`;
+                }
+            },
+            comment: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="comment">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">Comment</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Comment text:</label>
+                        <input type="text" value="This is a comment" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const text = element.querySelector('input').value;
+                    return `    // ${text}`;
+                }
+            },
+            return: {
+                html: (id) => `
+                    <div class="workspace-item" data-id="${id}" data-type="return">
+                        <div class="workspace-item-header">
+                            <div class="workspace-item-title">Return</div>
+                            <button class="remove-btn" onclick="removeBlock(${id})">Remove</button>
+                        </div>
+                        <label>Return value:</label>
+                        <input type="number" value="0" onchange="updateCode()" />
+                    </div>
+                `,
+                generateCode: (element) => {
+                    const value = element.querySelector('input').value;
+                    return `    return ${value};`;
+                }
+            }
+        };
+        
+        // Add block to workspace
+        document.querySelectorAll('.block-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const type = this.dataset.type;
+                addBlock(type);
+                
+                // Visual feedback
+                this.classList.add('selected');
+                setTimeout(() => this.classList.remove('selected'), 300);
+            });
+        });
+        
+        function addBlock(type) {
+            const id = blockCounter++;
+            const template = blockTemplates[type];
+            
+            if (!template) return;
+            
+            const workspace = document.getElementById('workspace');
+            const emptyMessage = workspace.querySelector('.empty-workspace');
+            if (emptyMessage) {
+                workspace.innerHTML = '';
+            }
+            
+            workspace.insertAdjacentHTML('beforeend', template.html(id));
+            workspaceBlocks.push({ id, type });
+            
+            updateCode();
+            showStatus('Block added successfully!', 'success');
+        }
+        
+        function removeBlock(id) {
+            const element = document.querySelector(`[data-id="${id}"]`);
+            if (element) {
+                element.remove();
+                workspaceBlocks = workspaceBlocks.filter(b => b.id !== id);
+                
+                const workspace = document.getElementById('workspace');
+                if (workspace.children.length === 0) {
+                    workspace.innerHTML = `
+                        <div class="empty-workspace">
+                            <div class="empty-workspace-icon">👆</div>
+                            <div>Click blocks on the left to add them here</div>
+                        </div>
+                    `;
+                }
+                
+                updateCode();
+                showStatus('Block removed', 'success');
+            }
+        }
+        
+        function updateCode() {
+            generateAndShowCode();
+        }
+        
+        function generateAndShowCode() {
+            const workspace = document.getElementById('workspace');
+            const blocks = workspace.querySelectorAll('.workspace-item');
+            
+            if (blocks.length === 0) {
+                document.getElementById('codeOutput').innerHTML = 
+                    '<span class="comment">// Click blocks to build your program\n// The C code will appear here automatically</span>';
+                return;
+            }
+            
+            let code = '';
+            let includes = [];
+            let statements = [];
+            
+            blocks.forEach(block => {
+                const type = block.dataset.type;
+                const template = blockTemplates[type];
+                
+                if (template) {
+                    const generatedCode = template.generateCode(block);
+                    
+                    if (type === 'include') {
+                        includes.push(generatedCode);
+                    } else {
+                        statements.push(generatedCode);
+                    }
+                }
+            });
+            
+            // Build complete program
+            if (includes.length > 0) {
+                code += includes.join('\n') + '\n\n';
+            }
+            
+            code += 'int main(){\n';
+            
+            if (statements.length > 0) {
+                code += statements.join('\n') + '\n';
+            }
+            
+            code += '}';
+            
+            // Syntax highlighting
+            const highlighted = highlightCode(code);
+            document.getElementById('codeOutput').innerHTML = highlighted;
+        }
+        
+        function highlightCode(code) {
+            code = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            code = code.replace(/\b(int|char|void|float|double|if|else|while|for|return|include|printf)\b/g, '<span class="keyword">$1</span>');
+            code = code.replace(/\b(main)\b/g, '<span class="function">$1</span>');
+            code = code.replace(/"([^"]*)"/g, '<span class="string">"$1"</span>');
+            code = code.replace(/\/\/(.*?)$/gm, '<span class="comment">//$1</span>');
+            code = code.replace(/#(.*?)$/gm, '<span class="comment">#$1</span>');
+            return code;
+        }
+        
+        function exportCode() {
+            const workspace = document.getElementById('workspace');
+            const blocks = workspace.querySelectorAll('.workspace-item');
+            
+            if (blocks.length === 0) {
+                showStatus('No blocks to export. Add some blocks first!', 'error');
+                return;
+            }
+            
+            let code = '';
+            let includes = [];
+            let statements = [];
+            
+            blocks.forEach(block => {
+                const type = block.dataset.type;
+                const template = blockTemplates[type];
+                
+                if (template) {
+                    const generatedCode = template.generateCode(block);
+                    
+                    if (type === 'include') {
+                        includes.push(generatedCode);
+                    } else {
+                        statements.push(generatedCode);
+                    }
+                }
+            });
+            
+            // Build complete program
+            if (includes.length > 0) {
+                code += includes.join('\n') + '\n\n';
+            }
+            
+            code += 'int main(){\n';
+            
+            if (statements.length > 0) {
+                code += statements.join('\n') + '\n';
+            }
+            
+            code += '}\n';
+            
+            // Create download
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('✅ Successfully exported to hello.c! Check your downloads.', 'success');
+        }
+        
+        function loadExample() {
+            // Clear workspace first
+            clearWorkspace(true);
+            
+            // Add example blocks
+            setTimeout(() => {
+                addBlock('include');
+                setTimeout(() => addBlock('printf'), 100);
+                
+                showStatus('📄 Example loaded! This is the classic Hello World program.', 'success');
+            }, 100);
+        }
+        
+        function clearWorkspace(silent = false) {
+            if (!silent && !confirm('Clear all blocks?')) {
+                return;
+            }
+            
+            const workspace = document.getElementById('workspace');
+            workspace.innerHTML = `
+                <div class="empty-workspace">
+                    <div class="empty-workspace-icon">👆</div>
+                    <div>Click blocks on the left to add them here</div>
+                </div>
+            `;
+            
+            workspaceBlocks = [];
+            blockCounter = 0;
+            
+            document.getElementById('codeOutput').innerHTML = 
+                '<span class="comment">// Click blocks to build your program\n// The C code will appear here automatically</span>';
+            
+            if (!silent) {
+                showStatus('Workspace cleared', 'success');
+            }
+        }
+        
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status show ' + type;
+            
+            setTimeout(() => {
+                status.className = 'status';
+            }, 4000);
+        }
+        
+        // Initialize with example on load
+        window.addEventListener('load', () => {
+            loadExample();
+        });
+    </script>
+</body>
+</html>
