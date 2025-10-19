@@ -1,14 +1,6 @@
 # Compiled binaries
 hello
-hello_debug
-hello_optimized
-hello_strict
-hello_clang
-hello_warnings
-hello_test*
-hello_with_plugins
-hello_multi_plugins
-hello_lib
+hello_*
 test_plugin
 voice_demo
 voice_demo_test
@@ -45,6 +37,6 @@ test-helpers/
 *.temp
 
 # Example binaries
-examples/demo
+examples/demo*
 examples/*.exe
 examples/*.out
