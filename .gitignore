@@ -9,6 +9,7 @@ hello_test*
 hello_with_plugins
 hello_example
 hello_custom
+demo_plugins
 voice_demo
 voice_demo_test
 test_hello_runner

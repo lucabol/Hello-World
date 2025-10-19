@@ -23,6 +23,10 @@ hello_with_plugins: hello.c plugin.c plugins/uppercase.c
 example: hello_with_plugins.c plugin.c plugins/uppercase.c plugins/reverse.c
 	$(CC) $(CFLAGS) -o hello_example hello_with_plugins.c plugin.c plugins/uppercase.c plugins/reverse.c
 
+# Build comprehensive demo with all plugins
+demo: demo_plugins.c plugin.c plugins/uppercase.c plugins/reverse.c plugins/exclaim.c
+	$(CC) $(CFLAGS) -o demo_plugins demo_plugins.c plugin.c plugins/uppercase.c plugins/reverse.c plugins/exclaim.c
+
 # Build with debug symbols
 debug: hello.c
 	$(CC) $(CFLAGS) -g -o hello_debug hello.c
@@ -42,8 +46,8 @@ test-quiet: strict
 # Clean build artifacts
 clean:
 	rm -f hello hello_debug hello_optimized hello_strict hello_clang hello_warnings
-	rm -f hello_with_plugins hello_example
+	rm -f hello_with_plugins hello_example demo_plugins
 	rm -f *.o *.exe *.out
 	rm -f test/*.o test/*.exe test/*.out
 
-.PHONY: all strict debug clang test test-quiet clean example
+.PHONY: all strict debug clang test test-quiet clean example demo

@@ -168,6 +168,20 @@ Input:  Hello world!
 Output: !dlrow olleH
 ```
 
+### Exclaim Plugin (`plugins/exclaim.c`)
+
+Adds excitement to the message:
+
+```c
+char* exclaim_plugin(const char* input);
+```
+
+**Example Output:**
+```
+Input:  Hello world!
+Output: Hello world!!!!
+```
+
 ## Building Options
 
 ### Original Hello (No Plugins)
@@ -184,6 +198,14 @@ make
 make example
 ./hello_example
 # Output: HELLO WORLD! (with uppercase plugin)
+```
+
+### Plugin Demo (All Examples)
+
+```bash
+make demo
+./demo_plugins
+# Shows comprehensive examples of single and chained plugins
 ```
 
 ### Custom Build with Specific Plugins

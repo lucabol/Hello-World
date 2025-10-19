@@ -28,6 +28,18 @@ register_plugin(reverse_plugin);
 - Input: `Hello world!`
 - Output: `!dlrow olleH`
 
+### exclaim.c
+Adds excitement to the message.
+
+**Usage:**
+```c
+register_plugin(exclaim_plugin);
+```
+
+**Example:**
+- Input: `Hello world!`
+- Output: `Hello world!!!!`
+
 ## Creating Your Own Plugin
 
 See [PLUGINS.md](../PLUGINS.md) in the root directory for detailed documentation on creating custom plugins.
@@ -65,6 +77,10 @@ char* my_plugin(const char* input) {
 # Build example with uppercase plugin
 make example
 ./hello_example
+
+# Build comprehensive demo with all plugins
+make demo
+./demo_plugins
 
 # Custom build
 gcc -o my_hello main.c plugin.c plugins/my_plugin.c
