@@ -1,5 +1,14 @@
-# include <stdio.h>
+#include <stdio.h>
+#include "hello.h"
 
-int main(){
-    printf("Hello world!");
+/* Get the greeting message - returns a static string constant */
+const char* get_greeting(void) {
+    return "Hello world!";
 }
+
+#ifndef UNIT_TEST
+int main(void) {
+    printf("%s\n", get_greeting());
+    return 0;
+}
+#endif

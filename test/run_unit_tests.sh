@@ -45,14 +45,33 @@ else
     exit 1
 fi
 
+# Compile the test framework compile check
+print_info "Building test framework compile check..."
+if gcc ${STRICT_FLAGS} -I. -o test_framework_compile test/test_simple_test_compile.c 2>&1; then
+    print_success "Test framework compile check built successfully"
+else
+    print_error "Failed to compile test framework compile check"
+    exit 1
+fi
+
 print_info "Running unit tests..."
 echo ""
 
-# Run the tests
+# Run the main unit tests
 if ./test_hello_runner; then
-    print_success "Unit tests completed successfully"
+    print_success "Main unit tests completed successfully"
+else
+    print_error "Main unit tests failed"
+    exit 1
+fi
+
+echo ""
+print_info "Running test framework compile check..."
+# Run the framework compile test
+if ./test_framework_compile; then
+    print_success "Test framework compile check passed"
     exit 0
 else
-    print_error "Unit tests failed"
+    print_error "Test framework compile check failed"
     exit 1
 fi

@@ -1,6 +1,11 @@
 /* Simple C Testing Framework - inspired by Unity
  * Lightweight testing framework with no external dependencies
  * 
+ * IMPORTANT: Single-file test programs only!
+ * This is a header-only test framework designed for single-file test programs.
+ * All test functions and main() must be in the same translation unit (.c file).
+ * Do NOT split tests across multiple .c files as each would get separate counters.
+ * 
  * Public API:
  * - TEST_ASSERT_EQUAL_STRING(expected, actual) - Compare two strings for equality
  * - TEST_ASSERT_NOT_NULL(ptr) - Verify a pointer is not NULL
@@ -13,6 +18,7 @@
  * - Automatic test counting and statistics
  * - Standard exit codes for CI integration
  * - TTY detection for color support (set SIMPLE_TEST_NO_COLOR=1 to disable)
+ * - Compiles cleanly under strict C99 flags (-Wall -Wextra -Wpedantic -Werror)
  * 
  * Usage:
  *   #include "simple_test.h"
@@ -51,13 +57,19 @@
     #include <unistd.h>
 #endif
 
-/* Test statistics */
+/* Test statistics - file-scope static variables for single-file test programs
+ * These variables track test counts within a single translation unit.
+ * Using 'static' gives each .c file its own counters, which is correct for
+ * single-file test programs where all tests and main() are in one file.
+ * This design is simpler and compiles cleanly under strict flags without
+ * requiring a separate .c file for the test framework implementation.
+ */
 static int tests_run = 0;
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-/* Check if colors should be used */
-static int use_colors(void) {
+/* Check if colors should be used - inline to avoid unused warnings */
+static inline int use_colors(void) {
     static int checked = 0;
     static int should_use_colors = 0;
     
@@ -82,8 +94,8 @@ static int use_colors(void) {
     return should_use_colors;
 }
 
-/* Helper functions to print with or without colors */
-static void print_color(const char* color_code, const char* text) {
+/* Helper functions to print with or without colors - inline to avoid unused warnings */
+static inline void print_color(const char* color_code, const char* text) {
     if (use_colors()) {
         printf("%s%s\033[0m", color_code, text);
     } else {
@@ -91,15 +103,15 @@ static void print_color(const char* color_code, const char* text) {
     }
 }
 
-static void print_green(const char* text) {
+static inline void print_green(const char* text) {
     print_color("\033[0;32m", text);
 }
 
-static void print_red(const char* text) {
+static inline void print_red(const char* text) {
     print_color("\033[0;31m", text);
 }
 
-static void print_yellow(const char* text) {
+static inline void print_yellow(const char* text) {
     print_color("\033[1;33m", text);
 }
 
