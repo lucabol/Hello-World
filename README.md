@@ -24,6 +24,7 @@ gcc -o demo examples/demo.c hello_lib.c plugin.c
 
 ### Documentation
 
+- **[Quick Start](QUICKSTART.md)** - Get started in 2 minutes
 - [Plugin Guide](PLUGIN_GUIDE.md) - Complete guide to creating and using plugins
 - [Plugin Examples](plugins/README.md) - Example plugins included in this repo
 - [Demo Programs](examples/README.md) - Working examples demonstrating the plugin system
