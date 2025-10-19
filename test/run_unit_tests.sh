@@ -33,15 +33,16 @@ print_info "Building unit tests..."
 # Compile the unit tests with strict flags
 STRICT_FLAGS="-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99"
 
-# Create a temporary object file without main() by compiling with -c flag
+# Compile hello_lib.c (core functionality without main) and plugin.c
 # Then link with the test file
-if gcc ${STRICT_FLAGS} -I. -c -o hello_lib.o hello.c -DUNIT_TEST 2>&1 && \
-   gcc ${STRICT_FLAGS} -I. -o test_hello_runner test/test_hello.c hello_lib.o 2>&1; then
+if gcc ${STRICT_FLAGS} -I. -c -o hello_lib.o hello_lib.c 2>&1 && \
+   gcc ${STRICT_FLAGS} -I. -c -o plugin.o plugin.c 2>&1 && \
+   gcc ${STRICT_FLAGS} -I. -o test_hello_runner test/test_hello.c hello_lib.o plugin.o 2>&1; then
     print_success "Unit tests compiled successfully"
-    rm -f hello_lib.o
+    rm -f hello_lib.o plugin.o
 else
     print_error "Failed to compile unit tests"
-    rm -f hello_lib.o
+    rm -f hello_lib.o plugin.o
     exit 1
 fi
 

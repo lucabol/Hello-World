@@ -43,3 +43,8 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Example binaries
+examples/demo
+examples/*.exe
+examples/*.out
