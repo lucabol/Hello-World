@@ -7,25 +7,25 @@
 #ifndef EXCLAMATION_PLUGIN_H
 #define EXCLAMATION_PLUGIN_H
 
-#include "../plugin.h"
+#include "plugin.h"
 
-/* Static buffer for transformed message */
-static char exclamation_buffer[256];
+/* Static buffer for transformed message - use unique name to avoid collisions */
+static char PLUGIN_BUFFER(exclamation)[256];
 
 /* Plugin function: adds extra exclamation marks */
 static const char* add_exclamation(const char* message) {
     int len = 0;
     while (message[len] != '\0' && len < 250) {
-        exclamation_buffer[len] = message[len];
+        PLUGIN_BUFFER(exclamation)[len] = message[len];
         len++;
     }
     /* Add extra exclamation marks */
     if (len < 253) {
-        exclamation_buffer[len++] = '!';
-        exclamation_buffer[len++] = '!';
-        exclamation_buffer[len] = '\0';
+        PLUGIN_BUFFER(exclamation)[len++] = '!';
+        PLUGIN_BUFFER(exclamation)[len++] = '!';
+        PLUGIN_BUFFER(exclamation)[len] = '\0';
     }
-    return exclamation_buffer;
+    return PLUGIN_BUFFER(exclamation);
 }
 
 /* Register the plugin */

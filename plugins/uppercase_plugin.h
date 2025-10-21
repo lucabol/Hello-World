@@ -9,20 +9,20 @@
 #define UPPERCASE_PLUGIN_H
 
 #include <ctype.h>
-#include "../plugin.h"
+#include "plugin.h"
 
-/* Static buffer for transformed message */
-static char uppercase_buffer[256];
+/* Static buffer for transformed message - use unique name to avoid collisions */
+static char PLUGIN_BUFFER(uppercase)[256];
 
 /* Plugin function: transforms message to uppercase */
 static const char* uppercase_transform(const char* message) {
     int i = 0;
     while (message[i] != '\0' && i < 255) {
-        uppercase_buffer[i] = (char)toupper((unsigned char)message[i]);
+        PLUGIN_BUFFER(uppercase)[i] = (char)toupper((unsigned char)message[i]);
         i++;
     }
-    uppercase_buffer[i] = '\0';
-    return uppercase_buffer;
+    PLUGIN_BUFFER(uppercase)[i] = '\0';
+    return PLUGIN_BUFFER(uppercase);
 }
 
 /* Register the plugin using the DEFINE_PLUGIN macro */
