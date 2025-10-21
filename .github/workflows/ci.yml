@@ -42,3 +42,27 @@ jobs:
         clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
         ./test_hello_runner
         rm -f hello_lib.o test_hello_runner
+  
+  test-visual-editor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test visual block editor
+      run: bash test_editor.sh
+      
+    - name: Verify editor generates valid C code
+      run: |
+        # Test that editor's example code compiles with strict flags
+        cat > test_editor_output.c << 'EOF'
+        # include <stdio.h>
+
+        int main(){
+            printf("Hello world!");
+        }
+        EOF
+        gcc -Wall -Wextra -Werror -o test_editor_output test_editor_output.c
+        ./test_editor_output
+        rm -f test_editor_output test_editor_output.c

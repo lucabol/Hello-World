@@ -36,3 +36,17 @@ python3 -m http.server 8000
 5. Compile and run: `gcc -o hello hello.c && ./hello`
 
 For detailed instructions, see [EDITOR_GUIDE.md](EDITOR_GUIDE.md)
+
+### Screenshots
+
+**Visual Editor with Example:**
+
+![Visual Editor](docs/images/editor-example.png)
+
+**Empty Workspace:**
+
+![Empty Workspace](docs/images/editor-cleared.png)
+
+**Input Sanitization:**
+
+![Sanitization](docs/images/editor-sanitization.png)

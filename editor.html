@@ -1,4 +1,27 @@
 <!DOCTYPE html>
+<!--
+ * Visual Block-Based C Code Editor
+ * 
+ * Copyright (c) 2024 lucabol/Hello-World Contributors
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -288,6 +311,39 @@
         let blockIdCounter = 0;
         let draggedElement = null;
 
+        // Security: Sanitize string input for C code generation
+        function sanitizeForCString(input) {
+            if (typeof input !== 'string') {
+                input = String(input);
+            }
+            // Escape special characters that have meaning in C strings
+            return input
+                .replace(/\\/g, '\\\\')  // Backslash must be first
+                .replace(/"/g, '\\"')     // Escape double quotes
+                .replace(/\n/g, '\\n')    // Escape newlines
+                .replace(/\r/g, '\\r')    // Escape carriage returns
+                .replace(/\t/g, '\\t');   // Escape tabs
+        }
+
+        // Security: Validate and sanitize return value (must be numeric)
+        function sanitizeReturnValue(input) {
+            if (typeof input !== 'string') {
+                input = String(input);
+            }
+            // Only allow digits, minus sign, and basic numeric expressions
+            const sanitized = input.replace(/[^0-9\-]/g, '');
+            // Ensure it's a valid integer
+            const num = parseInt(sanitized, 10);
+            return isNaN(num) ? '0' : String(num);
+        }
+
+        // Security: Whitelist of allowed include libraries
+        const ALLOWED_INCLUDES = ['stdio.h', 'stdlib.h', 'string.h', 'math.h'];
+        
+        function sanitizeInclude(library) {
+            return ALLOWED_INCLUDES.includes(library) ? library : 'stdio.h';
+        }
+
         // Initialize drag and drop
         document.querySelectorAll('.block-template').forEach(template => {
             template.addEventListener('dragstart', function(e) {
@@ -316,13 +372,13 @@
                 data: data
             };
             
-            // Set default values
+            // Set default values with sanitization
             if (type === 'include') {
-                block.data.library = data.library || 'stdio.h';
+                block.data.library = sanitizeInclude(data.library || 'stdio.h');
             } else if (type === 'printf') {
                 block.data.text = data.text || 'Hello world!';
             } else if (type === 'return') {
-                block.data.value = data.value || '0';
+                block.data.value = sanitizeReturnValue(data.value || '0');
             } else if (type === 'main') {
                 block.data.statements = data.statements || [];
             }
@@ -440,7 +496,15 @@
         function updateBlockData(id, field, value) {
             const block = blocks.find(b => b.id === id);
             if (block) {
-                block.data[field] = value;
+                // Sanitize input based on field type
+                if (field === 'library') {
+                    block.data[field] = sanitizeInclude(value);
+                } else if (field === 'value') {
+                    block.data[field] = sanitizeReturnValue(value);
+                } else {
+                    // For text fields, store as-is but will sanitize during code generation
+                    block.data[field] = value;
+                }
                 updateCode();
             }
         }
@@ -449,10 +513,11 @@
         function generateCode() {
             let code = '';
             
-            // Generate includes
+            // Generate includes (already sanitized via whitelist)
             const includes = blocks.filter(b => b.type === 'include');
             includes.forEach(block => {
-                code += `# include <${block.data.library}>\n`;
+                const lib = sanitizeInclude(block.data.library);
+                code += `# include <${lib}>\n`;
             });
             
             // Generate main function
@@ -461,20 +526,22 @@
                 code += '\n';
                 code += 'int main(){\n';
                 
-                // Add printf statements
+                // Add printf statements (sanitize text for C string)
                 const printfs = blocks.filter(b => b.type === 'printf');
                 printfs.forEach(block => {
-                    code += `    printf("${block.data.text}");\n`;
+                    const sanitizedText = sanitizeForCString(block.data.text || '');
+                    code += `    printf("${sanitizedText}");\n`;
                 });
                 
-                // Add return statements
+                // Add return statements (sanitize to ensure numeric)
                 const returns = blocks.filter(b => b.type === 'return');
                 if (returns.length === 0 && printfs.length > 0) {
                     // Auto-add implicit return if missing
                     // code += '    return 0;\n';
                 }
                 returns.forEach(block => {
-                    code += `    return ${block.data.value};\n`;
+                    const sanitizedValue = sanitizeReturnValue(block.data.value || '0');
+                    code += `    return ${sanitizedValue};\n`;
                 });
                 
                 code += '}\n';

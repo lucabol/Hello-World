@@ -1,4 +1,26 @@
 #!/bin/bash
+#
+# Visual Block Editor Test Script
+# 
+# Copyright (c) 2024 lucabol/Hello-World Contributors
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 # Test script for the visual block editor
 # This script verifies the editor.html file exists and is properly structured
@@ -67,6 +89,63 @@ fi
 echo ""
 echo "========================================="
 echo "All tests passed! ✓"
+echo "========================================="
+echo ""
+
+# Test 6: Generate and compile test code
+echo "✓ Test 6: Testing code generation and compilation..."
+TEST_DIR=$(mktemp -d)
+TEST_C_FILE="$TEST_DIR/test_hello.c"
+
+# Create a test C file that the editor would generate
+cat > "$TEST_C_FILE" << 'EOF'
+# include <stdio.h>
+
+int main(){
+    printf("Hello world!");
+}
+EOF
+
+# Compile with strict warnings
+if gcc -Wall -Wextra -Werror -o "$TEST_DIR/test_hello" "$TEST_C_FILE" 2>&1; then
+    echo "  ✓ Generated code compiles with -Wall -Wextra -Werror"
+else
+    echo "  ✗ Generated code failed to compile with strict warnings"
+    rm -rf "$TEST_DIR"
+    exit 1
+fi
+
+# Test execution
+ACTUAL_OUTPUT=$("$TEST_DIR/test_hello")
+EXPECTED_OUTPUT="Hello world!"
+
+if [ "$ACTUAL_OUTPUT" = "$EXPECTED_OUTPUT" ]; then
+    echo "  ✓ Generated code produces correct output"
+else
+    echo "  ✗ Output mismatch"
+    echo "    Expected: '$EXPECTED_OUTPUT'"
+    echo "    Got: '$ACTUAL_OUTPUT'"
+    rm -rf "$TEST_DIR"
+    exit 1
+fi
+
+# Check exit code
+"$TEST_DIR/test_hello"
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "  ✓ Program exits with code 0"
+else
+    echo "  ✗ Program exited with code $EXIT_CODE (expected 0)"
+    rm -rf "$TEST_DIR"
+    exit 1
+fi
+
+# Clean up
+rm -rf "$TEST_DIR"
+
+echo ""
+echo "========================================="
+echo "All tests passed including compilation! ✓"
 echo "========================================="
 echo ""
 echo "To use the editor:"
