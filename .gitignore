@@ -11,6 +11,7 @@ voice_demo_test
 test_hello_runner
 spreadsheet
 spreadsheet_strict
+spreadsheet_asan
 *.exe
 *.out
 
