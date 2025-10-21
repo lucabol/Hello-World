@@ -20,6 +20,15 @@ jobs:
     - name: Run unit tests
       run: make unit-test
       
+    - name: Build voice demo
+      run: make voice-demo
+      
+    - name: Test voice commands
+      run: |
+        ./voice_demo "say hello"
+        ./voice_demo "show code"
+        ./voice_demo "change message Test message"
+      
     - name: Run validation tests
       run: bash test/validate.sh --quiet
       

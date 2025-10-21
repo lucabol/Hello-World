@@ -26,6 +26,8 @@ make voice-demo
 
 This repository includes a demonstration of voice-driven code editing. See [VOICE_COMMANDS.md](VOICE_COMMANDS.md) for detailed documentation.
 
+**Note:** The voice demo only simulates file edits for safety. All commands that could modify files (like `change message`) display what would be changed but require explicit user confirmation before actual modification.
+
 Supported commands:
 - `say hello` - Execute and display program output
 - `change message <text>` - Simulate changing the greeting (safe demo mode)
