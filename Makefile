@@ -19,16 +19,30 @@ spreadsheet: spreadsheet.c metrics.c metrics.h
 strict: hello.c
 	$(CC) $(STRICT_FLAGS) -o hello_strict hello.c
 
-# Test target
+# Strict build for spreadsheet tool
+strict-spreadsheet: spreadsheet.c metrics.c metrics.h
+	$(CC) $(STRICT_FLAGS) -o spreadsheet_strict spreadsheet.c metrics.c
+
+# Strict build for all
+strict-all: strict strict-spreadsheet
+
+# Test target for hello.c
 test: strict
 	./test/validate.sh
 
+# Test target for metrics
+test-metrics: spreadsheet
+	./test/test_metrics.sh
+
+# Test all
+test-all: test test-metrics
+
 # Clean build artifacts
 clean:
-	rm -f hello hello_strict spreadsheet *.o metrics.csv
+	rm -f hello hello_strict spreadsheet spreadsheet_strict *.o metrics.csv test/test_metrics_runner test/test_*.c.tmp
 
 # Build with debug symbols
 debug: CFLAGS += -g
 debug: all
 
-.PHONY: all clean test strict debug
+.PHONY: all clean test test-metrics test-all strict strict-spreadsheet strict-all debug

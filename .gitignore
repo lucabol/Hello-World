@@ -10,6 +10,7 @@ voice_demo
 voice_demo_test
 test_hello_runner
 spreadsheet
+spreadsheet_strict
 *.exe
 *.out
 
@@ -21,6 +22,8 @@ spreadsheet
 test/*.o
 test/*.exe
 test/*.out
+test/test_metrics_runner
+test/*.c.tmp
 
 # Debug files
 *.dSYM/
@@ -42,4 +45,4 @@ test-helpers/
 *.temp
 
 # Metrics output files
-metrics.csv
+*.csv

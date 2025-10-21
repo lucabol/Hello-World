@@ -17,11 +17,20 @@ jobs:
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
       
+    - name: Build spreadsheet tool
+      run: make spreadsheet
+      
+    - name: Run strict build for all
+      run: make strict-all
+      
     - name: Run unit tests
       run: make unit-test
       
     - name: Run validation tests
       run: bash test/validate.sh --quiet
+      
+    - name: Run metrics tests
+      run: bash test/test_metrics.sh
       
   build-and-test-clang:
     runs-on: ubuntu-latest

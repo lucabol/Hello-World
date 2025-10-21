@@ -1,32 +1,81 @@
+#define _POSIX_C_SOURCE 200809L
 #include "metrics.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
+
+/* Helper function to check if a substring is within a string literal */
+static int is_in_string_literal(const char* line, const char* pos) {
+    int in_string = 0;
+    int escape = 0;
+    
+    for (const char* p = line; p < pos; p++) {
+        if (escape) {
+            escape = 0;
+            continue;
+        }
+        if (*p == '\\') {
+            escape = 1;
+            continue;
+        }
+        if (*p == '"') {
+            in_string = !in_string;
+        }
+    }
+    return in_string;
+}
+
+/* Helper function to find a pattern not in string literal or comment */
+static int contains_pattern_safe(const char* line, const char* pattern, int in_comment) {
+    if (in_comment) {
+        return 0; /* Already in comment, don't count */
+    }
+    
+    const char* found = strstr(line, pattern);
+    if (!found) {
+        return 0;
+    }
+    
+    /* Check if it's in a string literal */
+    if (is_in_string_literal(line, found)) {
+        return 0;
+    }
+    
+    /* Check if it's after a // comment */
+    const char* comment_pos = strstr(line, "//");
+    if (comment_pos && comment_pos < found) {
+        return 0;
+    }
+    
+    return 1;
+}
 
 CodeMetrics analyze_file(const char* filename) {
     CodeMetrics metrics = {0, 0, 0, 0, 0, 0, 0, 0};
     FILE* file = fopen(filename, "r");
     
     if (!file) {
-        fprintf(stderr, "Error: Cannot open file %s\n", filename);
         return metrics;
     }
     
-    char line[1024];
+    char* line = NULL;
+    size_t line_cap = 0;
+    ssize_t line_len;
     int in_multiline_comment = 0;
     
-    while (fgets(line, sizeof(line), file)) {
+    /* Use getline for handling arbitrarily long lines */
+    while ((line_len = getline(&line, &line_cap, file)) != -1) {
         metrics.total_lines++;
-        int len = (int)strlen(line);
         
-        /* Track max line length */
-        if (len > metrics.max_line_length) {
-            metrics.max_line_length = len;
+        /* Track max line length (including newline) */
+        if (line_len > metrics.max_line_length) {
+            metrics.max_line_length = (int)line_len;
         }
         
         /* Check for blank lines */
         int is_blank = 1;
-        for (int i = 0; i < len; i++) {
+        for (ssize_t i = 0; i < line_len; i++) {
             if (!isspace((unsigned char)line[i])) {
                 is_blank = 0;
                 break;
@@ -70,22 +119,30 @@ CodeMetrics analyze_file(const char* filename) {
         }
         
         /* Count includes (handles both #include and # include) */
-        if (strstr(line, "#include") || strstr(line, "# include")) {
-            metrics.include_count++;
+        /* Only count if not in comment or string */
+        if (!is_comment) {
+            if (contains_pattern_safe(line, "#include", in_multiline_comment) || 
+                contains_pattern_safe(line, "# include", in_multiline_comment) ||
+                contains_pattern_safe(line, "#  include", in_multiline_comment)) {
+                metrics.include_count++;
+            }
         }
         
         /* Count function definitions (simple heuristic) */
-        if (strstr(line, "int main") || strstr(line, "void ") || 
-            (strstr(line, "int ") && strchr(line, '('))) {
+        /* This is a basic heuristic - see documentation for limitations */
+        if (!is_comment && (strstr(line, "int main") || 
+            (strstr(line, "void ") && strchr(line, '(')) ||
+            (strstr(line, "int ") && strchr(line, '(') && strchr(line, '{')))) {
             metrics.function_count++;
         }
         
-        /* Count printf calls */
-        if (strstr(line, "printf")) {
+        /* Count printf calls (not in comments or strings) */
+        if (!is_comment && contains_pattern_safe(line, "printf", in_multiline_comment)) {
             metrics.printf_count++;
         }
     }
     
+    free(line);
     fclose(file);
     return metrics;
 }

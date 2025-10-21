@@ -47,6 +47,30 @@ Specify a different C source file:
 ./spreadsheet myfile.c
 ```
 
+### Plain Text Mode (No Colors)
+
+Disable colors for compatibility with terminals that don't support ANSI codes:
+
+```bash
+./spreadsheet --plain hello.c
+# or
+./spreadsheet --no-color hello.c
+```
+
+### Custom CSV Output Path
+
+Specify a custom path for CSV export:
+
+```bash
+./spreadsheet --csv /path/to/output.csv hello.c
+```
+
+### Display Help
+
+```bash
+./spreadsheet --help
+```
+
 ## Interactive Menu
 
 Once the tool is running, you'll see an interactive menu with the following options:
@@ -95,7 +119,7 @@ Code Lines,4
 Blank Lines,1
 Comment Lines,0
 Function Count,1
-Include Count,0
+Include Count,1
 Printf Count,1
 Max Line Length,28
 ```
@@ -123,9 +147,60 @@ Main application that:
 
 ## Limitations
 
-- Function counting uses simple heuristics (looks for `int main`, `void`, `int` with `(`)
-- Comment detection may not handle edge cases with strings containing comment-like patterns
-- Designed for simple C programs; complex codebases may need more sophisticated analysis
+### Metric Detection Heuristics
+
+The tool uses heuristic-based pattern matching for code analysis, which has some limitations:
+
+#### Function Counting
+- **Detection Method**: Looks for patterns like `int main`, `void` followed by `(`, or `int` followed by `(` and `{`
+- **Limitations**:
+  - May count function prototypes/declarations in addition to definitions
+  - May miss functions with complex return types (e.g., `struct MyType* function()`)
+  - Does not distinguish between K&R style and ANSI C style declarations
+  - Function pointers and nested macros may cause false positives/negatives
+
+#### Include Counting
+- **Detection Method**: Searches for `#include`, `# include`, and `#  include` patterns
+- **Limitations**:
+  - Includes within comments are correctly excluded (✓)
+  - Includes within string literals are correctly excluded (✓)
+  - Non-standard spacing beyond two spaces may not be detected
+
+#### Printf Counting
+- **Detection Method**: Searches for `printf` pattern outside of comments
+- **Limitations**:
+  - Printf calls within comments are correctly excluded (✓)
+  - Printf within string literals doesn't cause false counts (✓)
+  - Macros that wrap printf are not detected
+  - Custom printf-like functions (e.g., `my_printf`) are not distinguished
+
+#### Comment Detection
+- **Detection Method**: Tracks `//` and `/* */` style comments
+- **Limitations**:
+  - Handles multi-line comments correctly (✓)
+  - May not handle edge cases with comment markers inside string literals perfectly
+  - Nested comments (not standard C) are not supported
+
+#### Line Length
+- **Detection Method**: Uses `getline()` to handle arbitrarily long lines
+- **Limitations**: None - handles lines of any length safely (✓)
+
+### General Limitations
+
+- **C-Specific**: Designed for C source files; may not work correctly with C++ or other languages
+- **Single File**: Analyzes one file at a time; does not follow `#include` directives
+- **No Preprocessing**: Does not run the C preprocessor, so macro expansions are not evaluated
+- **Basic Metrics**: Does not calculate advanced metrics like cyclomatic complexity or Halstead metrics
+
+## Error Handling
+
+The tool includes comprehensive error handling:
+
+- **File Access**: Validates file existence and readability before analysis
+- **CSV Export**: Checks for file creation/write errors and reports them
+- **Input Validation**: Handles invalid menu choices and EOF (Ctrl-D) gracefully
+- **Memory Safety**: Uses `getline()` for safe handling of arbitrarily long lines
+- **Exit Codes**: Returns 0 on success, 1 on error (CI-friendly)
 
 ## Future Enhancements
 
