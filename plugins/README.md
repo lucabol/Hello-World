@@ -13,6 +13,8 @@ Transforms the greeting message to uppercase.
 // Transforms "Hello world!" to "HELLO WORLD!"
 ```
 
+**Note:** Uses `PLUGIN_BUFFER(uppercase)` to avoid name collisions.
+
 ### exclamation_plugin.h
 Adds extra exclamation marks to the greeting.
 
@@ -22,21 +24,33 @@ Adds extra exclamation marks to the greeting.
 // Transforms "Hello world!" to "Hello world!!!"
 ```
 
+**Note:** Uses `PLUGIN_BUFFER(exclamation)` for unique buffer naming.
+
 ## Creating Your Own Plugin
 
 1. Create a new `.h` file in this directory
 2. Follow the pattern in the example plugins
-3. Include your plugin header in your main program
-4. Build and test
+3. **Use `PLUGIN_BUFFER(uniquename)` macro** for buffer names
+4. **Always bounds-check** and null-terminate strings
+5. Include your plugin header in your main program (in ONLY ONE .c file)
+6. Build and test
 
 See the [Plugin Guide](../PLUGIN_GUIDE.md) for detailed instructions.
+
+## Best Practices
+
+✅ **Unique Buffer Names**: Use `PLUGIN_BUFFER(pluginname)` macro  
+✅ **Bounds Checking**: Prevent buffer overflows  
+✅ **Null Termination**: Always terminate strings properly  
+✅ **Single Include**: Include each plugin header in only ONE .c file  
+✅ **Thread Safety**: Use thread-local storage if needed  
 
 ## Usage Example
 
 ```c
 #include "hello.h"
 #include "plugin.h"
-#include "plugins/your_plugin.h"
+#include "plugins/your_plugin.h"  /* Include in ONE .c file only */
 
 int main() {
     const char* greeting = get_greeting();
@@ -48,5 +62,5 @@ int main() {
 
 Build:
 ```bash
-gcc -o my_program my_program.c hello_lib.c plugin.c
+gcc -I. -o my_program my_program.c hello_lib.c plugin.c
 ```
