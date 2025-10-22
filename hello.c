@@ -1,8 +1,15 @@
-# include <stdio.h>
+#include <stdio.h>
+#include "hello.h"
 
-int main(){
-    int exit_code = 0;
-    printf("Ciao, Mondo!\n");
-    printf("Exit code: %d\n", exit_code);
-    return exit_code;
+/* Get the greeting message */
+const char* get_greeting(void) {
+    return "Ciao, Mondo!";
 }
+
+#ifndef UNIT_TEST
+int main() {
+    printf("%s\n", get_greeting());
+    printf("Exit code: 0\n");
+    return 0;
+}
+#endif
