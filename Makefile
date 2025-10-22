@@ -1,9 +1,10 @@
 # Makefile for Hello World C program
 # Provides standard build targets for development and CI workflows
 
-# Compiler settings
-CC = gcc
-CLANG = clang
+# Compiler settings (can be overridden via environment or command line)
+CC ?= gcc
+CLANG ?= clang
+RM ?= rm -f
 CFLAGS_BASE = -Wall -Wextra
 CFLAGS_STRICT = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
 CFLAGS_DEBUG = -g -Wall -Wextra
@@ -57,30 +58,29 @@ unit-test:
 		bash test/run_unit_tests.sh; \
 	else \
 		echo "Compiling unit tests..."; \
-		$(CC) $(CFLAGS_STRICT) -I. -c -o $(LIB_OBJ) $(SRC) -DUNIT_TEST; \
-		$(CC) $(CFLAGS_STRICT) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(LIB_OBJ); \
+		$(CC) $(CFLAGS_STRICT) -I. -DUNIT_TEST -c -o $(LIB_OBJ) $(SRC) || exit 1; \
+		$(CC) $(CFLAGS_STRICT) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(LIB_OBJ) || exit 1; \
 		echo "Running unit tests..."; \
-		./$(TEST_RUNNER); \
-		rm -f $(LIB_OBJ) $(TEST_RUNNER); \
+		./$(TEST_RUNNER) && $(RM) $(LIB_OBJ) $(TEST_RUNNER) || { echo "Tests failed - artifacts preserved for debugging"; exit 1; }; \
 	fi
 
 # Run all tests (validation script and unit tests)
-test: unit-test
+test: build unit-test
 	@echo "Running validation tests..."
 	@bash test/validate.sh
 
 # Run tests in quiet mode (CI-friendly output)
-test-quiet: unit-test
+test-quiet: build unit-test
 	@bash test/validate.sh --quiet
 
 # Clean all build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	@rm -f $(BIN) $(BIN_STRICT) $(BIN_DEBUG) $(BIN_CLANG)
-	@rm -f $(TEST_RUNNER) $(LIB_OBJ)
-	@rm -f *.exe *.out *.o *.obj
-	@rm -f test/*.o test/*.exe test/*.out
-	@rm -f hello_warnings hello_optimized hello_test* voice_demo voice_demo_test
+	@$(RM) $(BIN) $(BIN_STRICT) $(BIN_DEBUG) $(BIN_CLANG)
+	@$(RM) $(TEST_RUNNER) $(LIB_OBJ)
+	@$(RM) *.exe *.out *.o *.obj
+	@$(RM) test/*.o test/*.exe test/*.out
+	@$(RM) hello_warnings hello_optimized hello_test* voice_demo voice_demo_test
 	@echo "✓ Clean complete"
 
 # Help target - display available targets
