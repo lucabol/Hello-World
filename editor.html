@@ -130,6 +130,11 @@
             user-select: none;
         }
         
+        .block:focus {
+            outline: 3px solid #3498db;
+            outline-offset: 2px;
+        }
+        
         .block:hover {
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             transform: translateY(-2px);
@@ -207,22 +212,22 @@
                 <h3>📦 Available Blocks</h3>
                 <p style="font-size: 12px; color: #7f8c8d;">Click on a block to add it to your program</p>
                 
-                <div class="block" onclick="addBlock('include', 'stdio.h')">
+                <div class="block" onclick="addBlock('include', 'stdio.h')" onkeypress="if(event.key==='Enter')addBlock('include', 'stdio.h')" tabindex="0" role="button" aria-label="Add include header block">
                     <div class="block-header">📚 Include Header</div>
                     <div class="block-content">#include &lt;<span id="include-lib">stdio.h</span>&gt;</div>
                 </div>
                 
-                <div class="block" onclick="addBlock('main')">
+                <div class="block" onclick="addBlock('main')" onkeypress="if(event.key==='Enter')addBlock('main')" tabindex="0" role="button" aria-label="Add main function block">
                     <div class="block-header">🏁 Main Function</div>
                     <div class="block-content">int main() { ... }</div>
                 </div>
                 
-                <div class="block" onclick="addBlock('printf', 'Hello world!')">
+                <div class="block" onclick="addBlock('printf', 'Hello world!')" onkeypress="if(event.key==='Enter')addBlock('printf', 'Hello world!')" tabindex="0" role="button" aria-label="Add print statement block">
                     <div class="block-header">💬 Print Statement</div>
                     <div class="block-content">printf("<span id="printf-text">text</span>");</div>
                 </div>
                 
-                <div class="block" onclick="addBlock('return', '0')">
+                <div class="block" onclick="addBlock('return', '0')" onkeypress="if(event.key==='Enter')addBlock('return', '0')" tabindex="0" role="button" aria-label="Add return statement block">
                     <div class="block-header">↩️ Return Statement</div>
                     <div class="block-content">return <span id="return-val">0</span>;</div>
                 </div>
@@ -241,8 +246,8 @@
             </div>
             
             <div id="controls">
-                <button class="button" onclick="generateCode()">🔄 Generate Code</button>
-                <button class="button button-success" onclick="downloadCode()">💾 Export to hello.c</button>
+                <button class="button" onclick="generateCode()" aria-label="Generate C code from blocks">🔄 Generate Code</button>
+                <button class="button button-success" onclick="downloadCode()" aria-label="Export generated code to hello.c file">💾 Export to hello.c</button>
                 
                 <div id="instructions">
                     <h3>📖 Instructions:</h3>
@@ -364,6 +369,13 @@
             }
         }
 
+        // HTML escape function to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Render workspace
         function renderWorkspace() {
             const container = document.getElementById('workspaceBlocks');
@@ -373,14 +385,21 @@
                 return;
             }
             
-            container.innerHTML = programBlocks.map(block => {
-                const indentStyle = `margin-left: ${block.indent * 30}px;`;
+            // Clear container first
+            container.innerHTML = '';
+            
+            // Create blocks using DOM manipulation to avoid XSS
+            programBlocks.forEach(block => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'block active';
+                blockDiv.style.marginLeft = `${block.indent * 30}px`;
+                
                 let blockContent = '';
                 let blockColor = '#3498db';
                 
                 switch(block.type) {
                     case 'include':
-                        blockContent = `#include &lt;${block.value || 'stdio.h'}&gt;`;
+                        blockContent = `#include <${escapeHtml(block.value || 'stdio.h')}>`;
                         blockColor = '#9b59b6';
                         break;
                     case 'main':
@@ -388,29 +407,56 @@
                         blockColor = '#27ae60';
                         break;
                     case 'printf':
-                        blockContent = `printf("${block.value || 'text'}");`;
+                        blockContent = `printf("${escapeHtml(block.value || 'text')}");`;
                         blockColor = '#e74c3c';
                         break;
                     case 'return':
-                        blockContent = `return ${block.value || '0'};`;
+                        blockContent = `return ${escapeHtml(block.value || '0')};`;
                         blockColor = '#f39c12';
                         break;
                 }
                 
-                return `
-                    <div class="block active" style="${indentStyle} border-color: ${blockColor};">
-                        <div class="block-content">${blockContent}</div>
-                        <div style="margin-top: 8px; font-size: 11px;">
-                            <button style="font-size: 11px; padding: 4px 8px; margin-right: 5px;" onclick="editBlock(${block.id})">✏️ Edit</button>
-                            <button style="font-size: 11px; padding: 4px 8px; margin-right: 5px;" onclick="moveBlockUp(${block.id})">⬆️</button>
-                            <button style="font-size: 11px; padding: 4px 8px; margin-right: 5px;" onclick="moveBlockDown(${block.id})">⬇️</button>
-                            <button style="font-size: 11px; padding: 4px 8px; margin-right: 5px;" onclick="decreaseIndent(${block.id})">⬅️</button>
-                            <button style="font-size: 11px; padding: 4px 8px; margin-right: 5px;" onclick="increaseIndent(${block.id})">➡️</button>
-                            <button style="font-size: 11px; padding: 4px 8px; background-color: #e74c3c; color: white; border: none; cursor: pointer;" onclick="removeBlock(${block.id})">🗑️ Remove</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                blockDiv.style.borderColor = blockColor;
+                
+                // Create content div
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'block-content';
+                contentDiv.textContent = blockContent;
+                blockDiv.appendChild(contentDiv);
+                
+                // Create controls div
+                const controlsDiv = document.createElement('div');
+                controlsDiv.style.marginTop = '8px';
+                controlsDiv.style.fontSize = '11px';
+                
+                // Helper function to create buttons
+                const createButton = (text, onClick, isRemove = false) => {
+                    const btn = document.createElement('button');
+                    btn.textContent = text;
+                    btn.style.fontSize = '11px';
+                    btn.style.padding = '4px 8px';
+                    btn.style.marginRight = '5px';
+                    btn.setAttribute('aria-label', text);
+                    if (isRemove) {
+                        btn.style.backgroundColor = '#e74c3c';
+                        btn.style.color = 'white';
+                        btn.style.border = 'none';
+                        btn.style.cursor = 'pointer';
+                    }
+                    btn.onclick = onClick;
+                    return btn;
+                };
+                
+                controlsDiv.appendChild(createButton('✏️ Edit', () => editBlock(block.id)));
+                controlsDiv.appendChild(createButton('⬆️', () => moveBlockUp(block.id)));
+                controlsDiv.appendChild(createButton('⬇️', () => moveBlockDown(block.id)));
+                controlsDiv.appendChild(createButton('⬅️', () => decreaseIndent(block.id)));
+                controlsDiv.appendChild(createButton('➡️', () => increaseIndent(block.id)));
+                controlsDiv.appendChild(createButton('🗑️ Remove', () => removeBlock(block.id), true));
+                
+                blockDiv.appendChild(controlsDiv);
+                container.appendChild(blockDiv);
+            });
         }
 
         // Generate C code from blocks
@@ -428,7 +474,7 @@
                 
                 switch(block.type) {
                     case 'include':
-                        code += `# include <${block.value || 'stdio.h'}>\n`;
+                        code += `#include <${block.value || 'stdio.h'}>\n`;
                         break;
                     case 'main':
                         if (insideMain) {

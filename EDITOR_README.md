@@ -6,12 +6,17 @@ This project includes a web-based visual block editor that allows you to create 
 
 ### Opening the Editor
 
-1. Open `editor.html` in your web browser
-2. Or, if you have Python installed, you can run a local server:
+**Recommended approach:** Serve the file via HTTP to avoid browser restrictions
+
+1. Using Python's built-in HTTP server:
    ```bash
    python3 -m http.server 8080
    ```
    Then navigate to `http://localhost:8080/editor.html`
+
+2. Or open `editor.html` directly in your browser:
+   - Most modern browsers support opening local HTML files via `file://` protocol
+   - If you encounter issues with file downloads, use the HTTP server method above
 
 ### Using the Editor
 
@@ -55,7 +60,7 @@ A typical C program structure:
 
 The generated code will look like:
 ```c
-# include <stdio.h>
+#include <stdio.h>
 
 int main(){
     printf("Hello world!");
@@ -87,6 +92,10 @@ int main(){
 - All code generation happens in the browser
 - The exported file is a standard C source file compatible with GCC and other C compilers
 - No internet connection required after the page loads
+- **Important:** The editor uses `file://` protocol which works in most browsers, but serving via HTTP is recommended for best compatibility
+- User input is properly escaped to prevent XSS vulnerabilities
+- Keyboard navigation is fully supported with Tab and Enter keys
+- ARIA labels are provided for screen reader accessibility
 
 ## Troubleshooting
 
@@ -99,9 +108,19 @@ int main(){
 - Check that printf statements are inside the main function
 - Verify that the main function has a return statement
 
+**Q: The export produces an empty file**
+- Make sure you have added blocks to your program before exporting
+- The editor will alert you if there are no blocks to export
+- Try adding at least an include header and main function
+
 **Q: How do I start over?**
 - Use the 🗑️ Remove button on each block to clear the workspace
 - Refresh the page to reload the default "Hello world!" program
+
+**Q: Does the editor save my work?**
+- Currently, the editor does not persist blocks to localStorage
+- Your work is lost when you refresh the page or close the browser
+- Always export your code before closing the editor
 
 ## Example Workflows
 

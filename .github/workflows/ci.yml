@@ -23,6 +23,9 @@ jobs:
     - name: Run validation tests
       run: bash test/validate.sh --quiet
       
+    - name: Test visual editor generated code
+      run: bash test/test_editor_output.sh
+      
   build-and-test-clang:
     runs-on: ubuntu-latest
     
