@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Editor - hello.c</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #cccccc;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ec9b0;
+        }
+        
+        .status-dot.disconnected {
+            background: #f48771;
+        }
+        
+        .users-count {
+            background: #094771;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #editor {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            outline: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            tab-size: 4;
+        }
+        
+        .info-bar {
+            background: #007acc;
+            color: white;
+            padding: 10px 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-bar.success {
+            background: #4ec9b0;
+        }
+        
+        .info-bar.error {
+            background: #f48771;
+        }
+        
+        .footer {
+            background: #007acc;
+            color: white;
+            padding: 8px 20px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .cursors {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .remote-cursor {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: #f48771;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        
+        .toolbar {
+            background: #252526;
+            border-bottom: 1px solid #3e3e42;
+            padding: 8px 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #1177bb;
+        }
+        
+        .btn:active {
+            background: #094771;
+        }
+        
+        .version-info {
+            color: #858585;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 Collaborative Editor - hello.c</h1>
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot" id="connection-status"></div>
+                <span id="connection-text">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span class="users-count" id="users-count">0 users</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toolbar">
+        <button class="btn" id="save-btn">💾 Save</button>
+        <button class="btn" id="reload-btn">🔄 Reload</button>
+        <span class="version-info">Version: <span id="version">0</span></span>
+    </div>
+    
+    <div class="editor-container">
+        <div class="editor-wrapper">
+            <textarea id="editor" spellcheck="false"></textarea>
+            <div class="cursors" id="cursors"></div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <span>Real-time collaborative editing enabled • Changes are synchronized automatically</span>
+        <span id="last-save">Not saved yet</span>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Initialize socket connection
+        const socket = io();
+        
+        const editor = document.getElementById('editor');
+        const connectionStatus = document.getElementById('connection-status');
+        const connectionText = document.getElementById('connection-text');
+        const usersCount = document.getElementById('users-count');
+        const versionDisplay = document.getElementById('version');
+        const lastSaveDisplay = document.getElementById('last-save');
+        const saveBtn = document.getElementById('save-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+        
+        let currentVersion = 0;
+        let userId = null;
+        let isLocalEdit = false;
+        let lastCursorPosition = 0;
+        
+        // Connection status
+        socket.on('connect', () => {
+            connectionStatus.classList.remove('disconnected');
+            connectionText.textContent = 'Connected';
+            console.log('Connected to server');
+        });
+        
+        socket.on('disconnect', () => {
+            connectionStatus.classList.add('disconnected');
+            connectionText.textContent = 'Disconnected';
+            console.log('Disconnected from server');
+        });
+        
+        // Initialize editor with current file content
+        socket.on('init', (data) => {
+            userId = data.userId;
+            editor.value = data.content;
+            currentVersion = data.version;
+            versionDisplay.textContent = currentVersion;
+            console.log('Initialized with version', currentVersion);
+        });
+        
+        // Handle remote edits
+        socket.on('remote-edit', (data) => {
+            if (data.userId !== userId) {
+                console.log('Remote edit received:', data);
+                
+                // Save cursor position
+                const cursorPos = editor.selectionStart;
+                
+                // Apply operation
+                isLocalEdit = true;
+                const operation = data.operation;
+                
+                if (operation.type === 'insert') {
+                    editor.value = editor.value.slice(0, operation.position) + 
+                                   operation.text + 
+                                   editor.value.slice(operation.position);
+                    
+                    // Adjust cursor if needed
+                    if (cursorPos >= operation.position) {
+                        editor.setSelectionRange(
+                            cursorPos + operation.text.length,
+                            cursorPos + operation.text.length
+                        );
+                    }
+                } else if (operation.type === 'delete') {
+                    editor.value = editor.value.slice(0, operation.position) + 
+                                   editor.value.slice(operation.position + operation.length);
+                    
+                    // Adjust cursor if needed
+                    if (cursorPos > operation.position) {
+                        const newPos = Math.max(operation.position, cursorPos - operation.length);
+                        editor.setSelectionRange(newPos, newPos);
+                    }
+                } else if (operation.type === 'replace') {
+                    editor.value = operation.text;
+                }
+                
+                currentVersion = data.version;
+                versionDisplay.textContent = currentVersion;
+                isLocalEdit = false;
+            }
+        });
+        
+        // Handle user count updates
+        socket.on('users-update', (data) => {
+            const count = data.count;
+            usersCount.textContent = count === 1 ? '1 user' : `${count} users`;
+        });
+        
+        // Handle edit acknowledgment
+        socket.on('edit-ack', (data) => {
+            currentVersion = data.version;
+            versionDisplay.textContent = currentVersion;
+            lastSaveDisplay.textContent = `Saved at ${new Date().toLocaleTimeString()}`;
+        });
+        
+        // Handle edit errors
+        socket.on('edit-error', (data) => {
+            alert('Error: ' + data.message);
+        });
+        
+        // Track local edits and send to server
+        let editTimeout = null;
+        let lastContent = '';
+        
+        editor.addEventListener('input', (e) => {
+            if (isLocalEdit) return;
+            
+            const currentContent = editor.value;
+            const cursorPos = editor.selectionStart;
+            
+            // Detect change type
+            let operation = null;
+            
+            if (currentContent.length > lastContent.length) {
+                // Insertion
+                const diff = currentContent.length - lastContent.length;
+                const insertPos = cursorPos - diff;
+                const insertedText = currentContent.slice(insertPos, cursorPos);
+                
+                operation = {
+                    type: 'insert',
+                    position: insertPos,
+                    text: insertedText
+                };
+            } else if (currentContent.length < lastContent.length) {
+                // Deletion
+                const diff = lastContent.length - currentContent.length;
+                
+                operation = {
+                    type: 'delete',
+                    position: cursorPos,
+                    length: diff
+                };
+            } else {
+                // Replacement (paste or similar)
+                operation = {
+                    type: 'replace',
+                    position: 0,
+                    text: currentContent
+                };
+            }
+            
+            lastContent = currentContent;
+            
+            if (operation) {
+                // Send operation to server
+                socket.emit('edit', {
+                    operation: operation,
+                    version: currentVersion
+                });
+            }
+        });
+        
+        // Track cursor position
+        editor.addEventListener('selectionchange', () => {
+            const cursorPos = editor.selectionStart;
+            if (cursorPos !== lastCursorPosition) {
+                lastCursorPosition = cursorPos;
+                socket.emit('cursor', {
+                    position: cursorPos,
+                    selection: {
+                        start: editor.selectionStart,
+                        end: editor.selectionEnd
+                    }
+                });
+            }
+        });
+        
+        // Manual save button
+        saveBtn.addEventListener('click', () => {
+            const operation = {
+                type: 'replace',
+                position: 0,
+                text: editor.value
+            };
+            
+            socket.emit('edit', {
+                operation: operation,
+                version: currentVersion
+            });
+        });
+        
+        // Reload button
+        reloadBtn.addEventListener('click', () => {
+            fetch('/api/file')
+                .then(res => res.json())
+                .then(data => {
+                    editor.value = data.content;
+                    currentVersion = data.version;
+                    versionDisplay.textContent = currentVersion;
+                    lastContent = data.content;
+                    lastSaveDisplay.textContent = 'Reloaded from server';
+                });
+        });
+        
+        // Initialize lastContent
+        lastContent = editor.value;
+    </script>
+</body>
+</html>
