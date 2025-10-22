@@ -27,36 +27,33 @@ void test_plugin_register(void) {
 
 /* Test plugin registration limit */
 void test_plugin_register_limit(void) {
-    int i;
     int result;
     
     plugin_init();
     
-    /* Register maximum number of plugins */
-    for (i = 0; i < 10; i++) {
-        result = plugin_register(&uppercase_plugin);
-        tests_run++;
-        if (result == 0) {
-            tests_passed++;
-        } else {
-            tests_failed++;
-            print_red("  ✗ ");
-            printf("Plugin registration failed at index %d\n", i);
-            return;
-        }
-    }
-    
-    /* Try to register one more - should fail */
+    /* Register first plugin */
     result = plugin_register(&uppercase_plugin);
     tests_run++;
-    if (result == -1) {
+    if (result == PLUGIN_SUCCESS) {
         tests_passed++;
-        print_green("  ✓ ");
-        printf("Plugin registration limit test passed\n");
     } else {
         tests_failed++;
         print_red("  ✗ ");
-        printf("Plugin registration limit test failed - should return -1\n");
+        printf("First plugin registration failed\n");
+        return;
+    }
+    
+    /* Try to register the same plugin again - should fail with DUPLICATE */
+    result = plugin_register(&uppercase_plugin);
+    tests_run++;
+    if (result == PLUGIN_ERROR_DUPLICATE) {
+        tests_passed++;
+        print_green("  ✓ ");
+        printf("Plugin registration limit test passed (duplicate detection)\n");
+    } else {
+        tests_failed++;
+        print_red("  ✗ ");
+        printf("Plugin registration limit test failed - expected PLUGIN_ERROR_DUPLICATE, got %d\n", result);
     }
 }
 

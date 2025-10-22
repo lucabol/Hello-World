@@ -12,8 +12,15 @@
 static char reverse_buffer[PLUGIN_BUFFER_SIZE];
 
 const char* reverse_transform(const char* input) {
-    size_t len = strlen(input);
+    size_t len;
     size_t i;
+    
+    /* Validate input */
+    if (input == NULL) {
+        return NULL;
+    }
+    
+    len = strlen(input);
     
     /* Ensure we don't overflow the buffer */
     if (len >= PLUGIN_BUFFER_SIZE) {

@@ -13,9 +13,18 @@ static char prefix_buffer[PLUGIN_BUFFER_SIZE];
 
 const char* prefix_transform(const char* input) {
     const char* prefix = ">>> ";
-    size_t prefix_len = strlen(prefix);
-    size_t input_len = strlen(input);
-    size_t total_len = prefix_len + input_len;
+    size_t prefix_len;
+    size_t input_len;
+    size_t total_len;
+    
+    /* Validate input */
+    if (input == NULL) {
+        return NULL;
+    }
+    
+    prefix_len = strlen(prefix);
+    input_len = strlen(input);
+    total_len = prefix_len + input_len;
     
     /* Ensure we don't overflow the buffer */
     if (total_len >= PLUGIN_BUFFER_SIZE) {

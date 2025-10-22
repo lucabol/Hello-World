@@ -46,8 +46,30 @@ echo ""
 # Run the tests
 if ./test_plugin_runner; then
     print_success "Plugin unit tests completed successfully"
-    exit 0
 else
     print_error "Plugin unit tests failed"
+    exit 1
+fi
+
+print_info "Building plugin edge case tests..."
+
+if gcc ${STRICT_FLAGS} -I. -o test_plugin_edge_runner test/test_plugin_edge_cases.c plugin.c plugins/uppercase.c plugins/reverse.c plugins/prefix.c 2>&1; then
+    print_success "Plugin edge case tests compiled successfully"
+else
+    print_error "Failed to compile plugin edge case tests"
+    exit 1
+fi
+
+print_info "Running plugin edge case tests..."
+echo ""
+
+# Run the edge case tests
+if ./test_plugin_edge_runner; then
+    print_success "Plugin edge case tests completed successfully"
+    echo ""
+    print_success "All plugin tests passed!"
+    exit 0
+else
+    print_error "Plugin edge case tests failed"
     exit 1
 fi
