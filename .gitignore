@@ -20,6 +20,9 @@ test_hello_runner
 test/*.o
 test/*.exe
 test/*.out
+test_hello_runner
+test_simple_test_runner
+test_no_color_runner
 
 # Debug files
 *.dSYM/
