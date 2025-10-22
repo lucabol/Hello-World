@@ -11,6 +11,10 @@ voice_demo_test
 test_hello_runner
 test_plugin_runner
 test_plugin_edge_runner
+test_plugin_runner_asan
+test_plugin_edge_runner_asan
+*_asan
+*_ubsan
 plugin_demo
 *.exe
 *.out
