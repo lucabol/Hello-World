@@ -7,9 +7,10 @@ const char* get_greeting(void) {
 }
 
 #ifndef UNIT_TEST
-int main() {
+int main(void) {
+    int rc = 0;
     printf("%s\n", get_greeting());
-    printf("Exit code: 0\n");
-    return 0;
+    printf("Exit code: %d\n", rc);
+    return rc;
 }
 #endif
