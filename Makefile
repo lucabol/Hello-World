@@ -14,9 +14,10 @@ hello: hello.c hello.h
 	$(CC) $(CFLAGS) -o hello hello.c
 
 # Build with strict flags (for CI validation)
+# Note: Uses -Werror which may fail with warnings on some compiler versions
 .PHONY: strict
 strict:
-	$(CC) $(STRICT_FLAGS) -o hello hello.c
+	$(CC) $(STRICT_FLAGS) -o hello_strict hello.c
 
 # Build with Clang
 .PHONY: clang
@@ -29,6 +30,8 @@ debug:
 	$(CC) $(CFLAGS) -g -o hello_debug hello.c
 
 # Run unit tests
+# Note: Unit tests compile hello.c with -DUNIT_TEST, which excludes main()
+#       and allows tests to link against get_greeting() without symbol conflicts
 .PHONY: unit-test
 unit-test:
 	@./test/run_unit_tests.sh

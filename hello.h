@@ -7,6 +7,10 @@
 #ifndef HELLO_H
 #define HELLO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* get_greeting() - Returns the greeting message
  * 
  * Returns: A pointer to a static string constant "Hello world!"
@@ -15,5 +19,9 @@
  *          The returned string is read-only and should not be modified.
  */
 const char* get_greeting(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HELLO_H */
