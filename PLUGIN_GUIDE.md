@@ -4,6 +4,8 @@
 
 The plugin system allows external developers to extend the functionality of hello.c without modifying the core file directly. Plugins can transform the output message before it's printed.
 
+This system provides a clean, extensible architecture that maintains backward compatibility with the original hello.c program.
+
 ## Architecture
 
 ### Core Components
