@@ -1,40 +1,7 @@
 # Hello World
 Test repo for JediMaster
 
-## Collaborative Editing
-
-This repository now supports **real-time collaborative editing** for `hello.c`!
-
-### Features
-- 🚀 Real-time synchronization across multiple users
-- 🔄 Automatic conflict resolution using Operational Transform
-- 👥 Live user presence indicators
-- 💾 Automatic file persistence
-- 🌐 Web-based editor interface
-
-### Getting Started
-
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Start the collaborative editing server:**
-   ```bash
-   npm start
-   ```
-
-3. **Open the editor:**
-   Open your browser and navigate to `http://localhost:3000/editor.html`
-
-4. **Collaborate:**
-   - Multiple users can open the same URL and edit simultaneously
-   - Changes are synchronized in real-time
-   - File changes are automatically saved to `hello.c`
-
-### Building the C Program
-
-The original C program still works as expected:
+## Building the C Program
 
 ```bash
 gcc -o hello hello.c
@@ -42,3 +9,37 @@ gcc -o hello hello.c
 ```
 
 Output: `Hello world!`
+
+## Collaborative Editing (Optional)
+
+⚠️ **For development/demonstration only - see security warnings**
+
+This repository includes an **optional** real-time collaborative editing feature for `hello.c`.
+
+### Features
+- 🚀 Real-time synchronization across multiple users
+- 🔄 Automatic conflict resolution using Operational Transform
+- 👥 Live user presence indicators
+- 💾 Automatic file persistence with versioned backups
+- 🔒 Safe mode: Edits workspace file by default, not source file
+- 🌐 Web-based editor interface
+
+### Quick Start
+
+```bash
+cd collab
+npm install
+npm start
+```
+
+Then open `http://localhost:3000/editor.html` in your browser.
+
+**See [`collab/README.md`](collab/README.md) for detailed instructions, security information, and configuration options.**
+
+### Important Notes
+
+- The collaborative editor is **isolated in the `collab/` directory**
+- By default, it edits a **workspace file** (`hello.c.collab`), not the source file
+- Server binds to **localhost only** by default
+- **NOT production-ready** without authentication, HTTPS, and additional hardening
+- See documentation for unsafe modes and external binding options

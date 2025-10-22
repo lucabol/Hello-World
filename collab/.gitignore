@@ -1,0 +1,16 @@
+# Node modules
+node_modules/
+
+# Collaborative workspace file
+hello.c.collab
+
+# Backups directory
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+npm-debug.log*
