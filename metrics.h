@@ -6,14 +6,20 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Initial capacity for function names array */
+#define INITIAL_FUNCTION_CAPACITY 8
+/* Maximum function name length */
+#define MAX_FUNCTION_NAME_LENGTH 256
+
 /* Structure to hold code metrics */
 typedef struct {
-    int total_lines;
-    int code_lines;
-    int comment_lines;
-    int blank_lines;
-    int function_count;
-    int include_count;
+    size_t total_lines;
+    size_t code_lines;
+    size_t comment_lines;
+    size_t blank_lines;
+    size_t function_count;
+    size_t function_capacity;
+    size_t include_count;
     char **function_names;
 } CodeMetrics;
 

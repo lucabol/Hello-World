@@ -1,0 +1,55 @@
+name: Metrics Spreadsheet CI
+
+on:
+  push:
+    branches: [ main, copilot/implement-spreadsheet-interface ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build with GCC
+      run: |
+        gcc --version
+        gcc -std=c11 -Wall -Wextra -Wpedantic -Werror -o metrics_spreadsheet metrics_spreadsheet.c metrics.c
+    
+    - name: Run tests
+      run: |
+        chmod +x test/test_metrics.sh
+        ./test/test_metrics.sh
+    
+    - name: Test basic functionality
+      run: |
+        ./metrics_spreadsheet
+        ./metrics_spreadsheet --help
+    
+    - name: Test with different files
+      run: |
+        ./metrics_spreadsheet hello.c
+        ./metrics_spreadsheet test/inputs/multiline_comments.c
+        ./metrics_spreadsheet test/inputs/multiple_functions.c
+  
+  memory-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Valgrind
+      run: sudo apt-get update && sudo apt-get install -y valgrind
+    
+    - name: Build with debug symbols
+      run: |
+        gcc -std=c11 -g -Wall -Wextra -Wpedantic -o metrics_spreadsheet metrics_spreadsheet.c metrics.c
+    
+    - name: Run Valgrind memory check
+      run: |
+        valgrind --leak-check=full --error-exitcode=1 --show-leak-kinds=all \
+          ./metrics_spreadsheet hello.c
+        valgrind --leak-check=full --error-exitcode=1 --show-leak-kinds=all \
+          ./metrics_spreadsheet test/inputs/multiple_functions.c

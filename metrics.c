@@ -1,5 +1,62 @@
 #include "metrics.h"
 
+/* Helper function to check if a character is inside a string literal */
+static int is_in_string_literal(const char* line, const char* pos) {
+    int in_string = 0;
+    int in_char = 0;
+    const char* p = line;
+    
+    while (p < pos) {
+        if (*p == '\\' && (in_string || in_char)) {
+            p += 2; /* Skip escaped character */
+            continue;
+        }
+        if (*p == '"' && !in_char) {
+            in_string = !in_string;
+        } else if (*p == '\'' && !in_string) {
+            in_char = !in_char;
+        }
+        p++;
+    }
+    
+    return in_string || in_char;
+}
+
+/* Helper function to add a function name to the metrics */
+static int add_function_name(CodeMetrics* metrics, const char* name, size_t len) {
+    if (len == 0 || len >= MAX_FUNCTION_NAME_LENGTH) {
+        return 0;
+    }
+    
+    /* Check if we need to expand capacity */
+    if (metrics->function_count >= metrics->function_capacity) {
+        size_t new_capacity = metrics->function_capacity * 2;
+        char** new_names = realloc(metrics->function_names, new_capacity * sizeof(char*));
+        if (!new_names) {
+            return 0;
+        }
+        metrics->function_names = new_names;
+        metrics->function_capacity = new_capacity;
+        
+        /* Initialize new slots to NULL */
+        for (size_t i = metrics->function_count; i < new_capacity; i++) {
+            metrics->function_names[i] = NULL;
+        }
+    }
+    
+    /* Allocate and copy function name */
+    metrics->function_names[metrics->function_count] = malloc(len + 1);
+    if (!metrics->function_names[metrics->function_count]) {
+        return 0;
+    }
+    
+    strncpy(metrics->function_names[metrics->function_count], name, len);
+    metrics->function_names[metrics->function_count][len] = '\0';
+    metrics->function_count++;
+    
+    return 1;
+}
+
 /* Analyze a C source file and extract metrics */
 CodeMetrics* analyze_file(const char* filename) {
     FILE* file = fopen(filename, "r");
@@ -7,20 +64,15 @@ CodeMetrics* analyze_file(const char* filename) {
         return NULL;
     }
 
-    CodeMetrics* metrics = (CodeMetrics*)malloc(sizeof(CodeMetrics));
+    CodeMetrics* metrics = calloc(1, sizeof(CodeMetrics));
     if (!metrics) {
         fclose(file);
         return NULL;
     }
 
-    /* Initialize metrics */
-    metrics->total_lines = 0;
-    metrics->code_lines = 0;
-    metrics->comment_lines = 0;
-    metrics->blank_lines = 0;
-    metrics->function_count = 0;
-    metrics->include_count = 0;
-    metrics->function_names = (char**)malloc(10 * sizeof(char*));
+    /* Initialize metrics with dynamic array */
+    metrics->function_capacity = INITIAL_FUNCTION_CAPACITY;
+    metrics->function_names = calloc(metrics->function_capacity, sizeof(char*));
     
     if (!metrics->function_names) {
         free(metrics);
@@ -36,7 +88,7 @@ CodeMetrics* analyze_file(const char* filename) {
         
         /* Check for blank lines */
         int is_blank = 1;
-        for (int i = 0; line[i]; i++) {
+        for (size_t i = 0; line[i]; i++) {
             if (!isspace((unsigned char)line[i])) {
                 is_blank = 0;
                 break;
@@ -57,23 +109,46 @@ CodeMetrics* analyze_file(const char* filename) {
             line_ptr++;
         }
 
-        /* Check for multiline comment start */
-        if (!in_multiline_comment && strstr(line_ptr, "/*")) {
+        /* Check for multiline comment start (not in string) */
+        char* comment_start = strstr(line_ptr, "/*");
+        if (!in_multiline_comment && comment_start && !is_in_string_literal(line_ptr, comment_start)) {
             in_multiline_comment = 1;
             is_comment = 1;
         }
         
         /* Check for multiline comment end */
-        if (in_multiline_comment && strstr(line_ptr, "*/")) {
+        char* comment_end = strstr(line_ptr, "*/");
+        if (in_multiline_comment && comment_end) {
             in_multiline_comment = 0;
             is_comment = 1;
+            /* Check if there's code after the comment on the same line */
+            char* after_comment = comment_end + 2;
+            while (*after_comment && isspace((unsigned char)*after_comment)) {
+                after_comment++;
+            }
+            if (*after_comment && *after_comment != '\0') {
+                is_comment = 0; /* Line has both comment and code */
+            }
         } else if (in_multiline_comment) {
             is_comment = 1;
         }
 
-        /* Check for single-line comment */
-        if (!in_multiline_comment && strstr(line_ptr, "//")) {
-            is_comment = 1;
+        /* Check for single-line comment (not in string) */
+        char* single_comment = strstr(line_ptr, "//");
+        if (!in_multiline_comment && single_comment && !is_in_string_literal(line_ptr, single_comment)) {
+            /* Check if there's code before the comment */
+            char* before_comment = line_ptr;
+            int has_code_before = 0;
+            while (before_comment < single_comment) {
+                if (!isspace((unsigned char)*before_comment)) {
+                    has_code_before = 1;
+                    break;
+                }
+                before_comment++;
+            }
+            if (!has_code_before) {
+                is_comment = 1;
+            }
         }
 
         if (is_comment) {
@@ -89,7 +164,9 @@ CodeMetrics* analyze_file(const char* filename) {
             /* Simple function detection: look for "int ", "void ", "char " etc followed by identifier and ( */
             if ((strstr(line_ptr, "int ") || strstr(line_ptr, "void ") || 
                  strstr(line_ptr, "char ") || strstr(line_ptr, "float ") ||
-                 strstr(line_ptr, "double ")) && strstr(line_ptr, "(")) {
+                 strstr(line_ptr, "double ") || strstr(line_ptr, "long ") ||
+                 strstr(line_ptr, "short ") || strstr(line_ptr, "unsigned ")) && 
+                 strstr(line_ptr, "(") && strstr(line_ptr, ")")) {
                 
                 /* Extract function name */
                 char* func_start = line_ptr;
@@ -103,19 +180,22 @@ CodeMetrics* analyze_file(const char* filename) {
                     func_start++;
                 }
                 
+                /* Skip pointer symbols */
+                while (*func_start == '*') {
+                    func_start++;
+                    while (*func_start && isspace((unsigned char)*func_start)) {
+                        func_start++;
+                    }
+                }
+                
                 char* func_end = func_start;
                 while (*func_end && *func_end != '(' && !isspace((unsigned char)*func_end)) {
                     func_end++;
                 }
                 
-                int len = (int)(func_end - func_start);
-                if (len > 0 && len < 100 && metrics->function_count < 10) {
-                    metrics->function_names[metrics->function_count] = (char*)malloc((size_t)(len + 1));
-                    if (metrics->function_names[metrics->function_count]) {
-                        strncpy(metrics->function_names[metrics->function_count], func_start, (size_t)len);
-                        metrics->function_names[metrics->function_count][len] = '\0';
-                        metrics->function_count++;
-                    }
+                size_t len = (size_t)(func_end - func_start);
+                if (len > 0) {
+                    add_function_name(metrics, func_start, len);
                 }
             }
         }
@@ -141,7 +221,7 @@ void display_metrics_spreadsheet(CodeMetrics* metrics, const char* filename) {
     printf("+----------------------------------+------------------+---------------------+\n");
     
     /* Display metrics rows */
-    printf("| %-32s | %-16d | %-19s |\n", "Total Lines", metrics->total_lines, "100%");
+    printf("| %-32s | %-16zu | %-19s |\n", "Total Lines", metrics->total_lines, "100%");
     
     if (metrics->total_lines > 0) {
         double code_pct = ((double)metrics->code_lines / metrics->total_lines) * 100.0;
@@ -153,18 +233,18 @@ void display_metrics_spreadsheet(CodeMetrics* metrics, const char* filename) {
         snprintf(comment_pct_str, sizeof(comment_pct_str), "%.1f%%", comment_pct);
         snprintf(blank_pct_str, sizeof(blank_pct_str), "%.1f%%", blank_pct);
         
-        printf("| %-32s | %-16d | %-19s |\n", "Code Lines", metrics->code_lines, code_pct_str);
-        printf("| %-32s | %-16d | %-19s |\n", "Comment Lines", metrics->comment_lines, comment_pct_str);
-        printf("| %-32s | %-16d | %-19s |\n", "Blank Lines", metrics->blank_lines, blank_pct_str);
+        printf("| %-32s | %-16zu | %-19s |\n", "Code Lines", metrics->code_lines, code_pct_str);
+        printf("| %-32s | %-16zu | %-19s |\n", "Comment Lines", metrics->comment_lines, comment_pct_str);
+        printf("| %-32s | %-16zu | %-19s |\n", "Blank Lines", metrics->blank_lines, blank_pct_str);
     } else {
-        printf("| %-32s | %-16d | %-19s |\n", "Code Lines", metrics->code_lines, "N/A");
-        printf("| %-32s | %-16d | %-19s |\n", "Comment Lines", metrics->comment_lines, "N/A");
-        printf("| %-32s | %-16d | %-19s |\n", "Blank Lines", metrics->blank_lines, "N/A");
+        printf("| %-32s | %-16zu | %-19s |\n", "Code Lines", metrics->code_lines, "N/A");
+        printf("| %-32s | %-16zu | %-19s |\n", "Comment Lines", metrics->comment_lines, "N/A");
+        printf("| %-32s | %-16zu | %-19s |\n", "Blank Lines", metrics->blank_lines, "N/A");
     }
     
     printf("+----------------------------------+------------------+---------------------+\n");
-    printf("| %-32s | %-16d | %-19s |\n", "Function Count", metrics->function_count, "N/A");
-    printf("| %-32s | %-16d | %-19s |\n", "Include Statements", metrics->include_count, "N/A");
+    printf("| %-32s | %-16zu | %-19s |\n", "Function Count", metrics->function_count, "N/A");
+    printf("| %-32s | %-16zu | %-19s |\n", "Include Statements", metrics->include_count, "N/A");
     printf("+----------------------------------+------------------+---------------------+\n");
     
     /* Display function names if any */
@@ -172,7 +252,7 @@ void display_metrics_spreadsheet(CodeMetrics* metrics, const char* filename) {
         printf("\n");
         printf("Functions Detected:\n");
         printf("+----------------------------------+\n");
-        for (int i = 0; i < metrics->function_count; i++) {
+        for (size_t i = 0; i < metrics->function_count; i++) {
             printf("| %-32s |\n", metrics->function_names[i]);
         }
         printf("+----------------------------------+\n");
@@ -185,7 +265,7 @@ void display_metrics_spreadsheet(CodeMetrics* metrics, const char* filename) {
 void free_metrics(CodeMetrics* metrics) {
     if (metrics) {
         if (metrics->function_names) {
-            for (int i = 0; i < metrics->function_count; i++) {
+            for (size_t i = 0; i < metrics->function_capacity; i++) {
                 free(metrics->function_names[i]);
             }
             free(metrics->function_names);
@@ -235,10 +315,10 @@ void interactive_menu(CodeMetrics* metrics, const char* filename) {
                 printf("+----------------------------------+------------------+\n");
                 printf("| %-32s | %-16s |\n", "LINE METRIC", "VALUE");
                 printf("+----------------------------------+------------------+\n");
-                printf("| %-32s | %-16d |\n", "Total Lines", metrics->total_lines);
-                printf("| %-32s | %-16d |\n", "Code Lines", metrics->code_lines);
-                printf("| %-32s | %-16d |\n", "Comment Lines", metrics->comment_lines);
-                printf("| %-32s | %-16d |\n", "Blank Lines", metrics->blank_lines);
+                printf("| %-32s | %-16zu |\n", "Total Lines", metrics->total_lines);
+                printf("| %-32s | %-16zu |\n", "Code Lines", metrics->code_lines);
+                printf("| %-32s | %-16zu |\n", "Comment Lines", metrics->comment_lines);
+                printf("| %-32s | %-16zu |\n", "Blank Lines", metrics->blank_lines);
                 printf("+----------------------------------+------------------+\n");
                 printf("\nPress Enter to continue...");
                 getchar();
@@ -250,13 +330,13 @@ void interactive_menu(CodeMetrics* metrics, const char* filename) {
                 printf("+----------------------------------+------------------+\n");
                 printf("| %-32s | %-16s |\n", "FUNCTION METRIC", "VALUE");
                 printf("+----------------------------------+------------------+\n");
-                printf("| %-32s | %-16d |\n", "Function Count", metrics->function_count);
+                printf("| %-32s | %-16zu |\n", "Function Count", metrics->function_count);
                 printf("+----------------------------------+------------------+\n");
                 
                 if (metrics->function_count > 0) {
                     printf("\nFunction Names:\n");
-                    for (int i = 0; i < metrics->function_count; i++) {
-                        printf("  %d. %s\n", i + 1, metrics->function_names[i]);
+                    for (size_t i = 0; i < metrics->function_count; i++) {
+                        printf("  %zu. %s\n", i + 1, metrics->function_names[i]);
                     }
                 }
                 
