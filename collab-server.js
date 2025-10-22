@@ -13,6 +13,7 @@ const http = require('http');
 const socketIO = require('socket.io');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const server = http.createServer(app);
@@ -20,6 +21,16 @@ const io = socketIO(server);
 
 const PORT = process.env.PORT || 3000;
 const FILE_PATH = path.join(__dirname, 'hello.c');
+
+// Rate limiting to prevent abuse
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+
+// Apply rate limiting to API routes
+app.use('/api/', limiter);
 
 // Store current file content and version
 let fileContent = '';
@@ -101,8 +112,15 @@ function applyOperation(content, operation) {
     return content;
 }
 
-// Serve static files
-app.use(express.static(__dirname));
+// Serve only the editor.html file (not the entire directory to avoid exposing sensitive files)
+app.get('/editor.html', limiter, (req, res) => {
+    res.sendFile(path.join(__dirname, 'editor.html'));
+});
+
+// Redirect root to editor
+app.get('/', (req, res) => {
+    res.redirect('/editor.html');
+});
 
 // API endpoint to get current file content
 app.get('/api/file', (req, res) => {
