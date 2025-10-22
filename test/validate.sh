@@ -30,7 +30,7 @@ else
 fi
 
 # Expected output (greeting message with exit code and trailing newlines)
-EXPECTED_OUTPUT="Hello world!
+EXPECTED_OUTPUT="Ciao, Mondo!
 Exit code: 0
 "
 
