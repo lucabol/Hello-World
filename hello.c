@@ -8,8 +8,8 @@ const char* get_greeting(void) {
 
 #ifndef UNIT_TEST
 int main() {
-    printf("%s\n", get_greeting());
-    printf("Exit code: 0\n");
+    puts(get_greeting());
+    puts("Exit code: 0");
     return 0;
 }
 #endif
