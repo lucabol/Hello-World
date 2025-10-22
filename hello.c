@@ -10,7 +10,7 @@ const char* get_greeting(void) {
 
 #ifndef UNIT_TEST
 int main(void) {
-    printf("%s", get_greeting());
+    printf("%s\n", get_greeting());
     return 0;
 }
 #endif
