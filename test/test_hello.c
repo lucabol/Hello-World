@@ -70,6 +70,32 @@ void test_get_greeting_static_storage(void) {
     }
 }
 
+/* Test that print_custom_message handles NULL safely */
+void test_print_custom_message_null_safe(void) {
+    tests_run++;
+    /* This test should not crash when passed NULL */
+    print_custom_message(NULL);
+    tests_passed++;
+    print_green("  ✓ ");
+    printf("NULL safety test passed\n");
+}
+
+/* Test that print_custom_message prints typical strings
+ * Note: This is a basic test that verifies the function can be called
+ * with normal strings without crashing. Full output validation would
+ * require redirecting stdout, which is beyond this simple test framework.
+ */
+void test_print_custom_message_typical_strings(void) {
+    tests_run++;
+    /* These should not crash */
+    print_custom_message("Hello");
+    print_custom_message("World");
+    print_custom_message("");
+    tests_passed++;
+    print_green("  ✓ ");
+    printf("Typical strings test passed\n");
+}
+
 /* Main test runner */
 int main(void) {
     printf("\n");
@@ -83,6 +109,9 @@ int main(void) {
     RUN_TEST(test_get_greeting_length);
     RUN_TEST(test_get_greeting_no_newline);
     RUN_TEST(test_get_greeting_static_storage);
+    RUN_TEST(test_print_custom_message_null_safe);
+    RUN_TEST(test_print_custom_message_typical_strings);
     
     TEST_SUMMARY();
 }
+
