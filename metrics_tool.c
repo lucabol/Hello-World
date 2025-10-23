@@ -19,7 +19,27 @@
 /* Global flag for signal handling */
 static volatile sig_atomic_t interrupted = 0;
 
-/* Signal handler for graceful shutdown */
+/* 
+ * Signal handler for graceful shutdown
+ * 
+ * Handles SIGINT (Ctrl+C) and SIGTERM for clean termination.
+ * 
+ * Behavior:
+ * - Sets interrupted flag to exit main loop
+ * - No dynamic resources allocated by signal handler
+ * - Tool exits with code 0 on normal termination
+ * - On signal during interactive mode, prints cleanup message
+ * 
+ * Resources cleaned up on signal:
+ * - None (no temporary files, no open file handles beyond stdin/stdout)
+ * - getline() buffers freed by normal exit path
+ * 
+ * Exit codes:
+ * - 0: Normal exit (including graceful signal handling)
+ * - 1: Error (file not found, analysis failure)
+ * - 130: SIGINT (Ctrl+C) if shell propagates signal
+ * - 143: SIGTERM if shell propagates signal
+ */
 static void handle_signal(int sig) {
     (void)sig; /* Unused parameter */
     interrupted = 1;

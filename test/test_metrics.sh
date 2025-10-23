@@ -1,9 +1,28 @@
 #!/bin/bash
 # Comprehensive test suite for code metrics tool
 # Tests edge cases: blank files, comments in strings, CRLF endings, etc.
+#
+# Test Coverage:
+# - Tests 1-4: Empty/blank files and comment-only files
+# - Tests 5-6: Comments inside strings and escaped quotes
+# - Tests 7-8: Function prototypes vs definitions, control statements
+# - Test 9: Include directives with trailing comments
+# - Tests 10-11: Very long lines (100+ and 10K+ chars) and tab handling
+# - Test 12: CRLF line endings (Windows compatibility)
+# - Test 13: Code mixed with trailing comments
+# - Test 14: Multi-line comments spanning many lines
+# - Test 15: Include directives with various whitespace formats
+# - Test 16: Empty function definitions
+# - Test 17: UTF-8 BOM handling
+# - Test 18: Extreme line length stress test (getline validation)
+#
+# All tests use --csv flag for deterministic, non-interactive output
+# Tests assert exact exit codes (0 for success) and validate CSV format
 
-set -e
-set -u
+set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
+
+# Force C locale for consistent, locale-independent behavior
+export LC_ALL=C
 
 TOOL="./metrics_tool"
 TEST_DIR="/tmp/metrics_tests"
@@ -37,6 +56,11 @@ print_test "Blank file"
 cat > "${TEST_DIR}/blank.c" << 'EOF'
 EOF
 OUTPUT=$("${TOOL}" --csv "${TEST_DIR}/blank.c")
+EXIT_CODE=$?
+if [ ${EXIT_CODE} -ne 0 ]; then
+    fail "Tool exited with code ${EXIT_CODE}, expected 0"
+    exit 1
+fi
 if echo "${OUTPUT}" | grep -q "blank.c,0,0,0,0,0,0,0"; then
     pass "Blank file metrics correct"
 else

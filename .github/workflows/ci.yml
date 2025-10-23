@@ -11,6 +11,10 @@ jobs:
   build-and-test-gcc:
     runs-on: ubuntu-latest
     
+    env:
+      # Strict compilation flags for GCC (includes -Werror for CI quality assurance)
+      GCC_FLAGS: "-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -D_POSIX_C_SOURCE=200809L"
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -27,9 +31,7 @@ jobs:
       
     - name: Build code metrics tool with strict flags
       run: |
-        gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion \
-            -Werror -std=c99 -D_POSIX_C_SOURCE=200809L \
-            -o metrics_tool metrics_tool.c code_metrics.c
+        gcc ${{ env.GCC_FLAGS }} -o metrics_tool metrics_tool.c code_metrics.c
       
     - name: Test metrics tool
       run: |
@@ -48,6 +50,10 @@ jobs:
   build-and-test-clang:
     runs-on: ubuntu-latest
     
+    env:
+      # Portable compilation flags for Clang (no -Werror for cross-compiler compatibility)
+      CLANG_FLAGS: "-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -D_POSIX_C_SOURCE=200809L"
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -64,9 +70,7 @@ jobs:
       
     - name: Build code metrics tool with Clang (without -Werror for portability)
       run: |
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion \
-            -std=c99 -D_POSIX_C_SOURCE=200809L \
-            -o metrics_tool_clang metrics_tool.c code_metrics.c
+        clang ${{ env.CLANG_FLAGS }} -o metrics_tool_clang metrics_tool.c code_metrics.c
       
     - name: Test metrics tool with Clang
       run: |
@@ -80,15 +84,17 @@ jobs:
   build-and-test-asan:
     runs-on: ubuntu-latest
     
+    env:
+      # AddressSanitizer flags for memory leak and undefined behavior detection
+      ASAN_FLAGS: "-Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L -fsanitize=address,undefined -fno-omit-frame-pointer -g"
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
     - name: Build metrics tool with AddressSanitizer
       run: |
-        gcc -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L \
-            -fsanitize=address,undefined -fno-omit-frame-pointer -g \
-            -o metrics_tool_asan metrics_tool.c code_metrics.c
+        gcc ${{ env.ASAN_FLAGS }} -o metrics_tool_asan metrics_tool.c code_metrics.c
       
     - name: Run tests with AddressSanitizer
       run: |
@@ -99,6 +105,31 @@ jobs:
       
     - name: Test signal handling cleanup
       run: |
-        # Start metrics tool in background and send SIGINT
-        timeout 2s ./metrics_tool_asan hello.c < /dev/null || true
-        echo "Signal handling test completed"
+        export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+        # Test SIGINT handling: start tool in background, send SIGINT, verify clean exit
+        ./metrics_tool_asan -n hello.c &
+        PID=$!
+        sleep 0.3
+        kill -SIGINT $PID || true
+        wait $PID || EXIT_CODE=$?
+        # Exit code 130 (128+2) is expected for SIGINT
+        if [ "${EXIT_CODE:-0}" -eq 130 ] || [ "${EXIT_CODE:-0}" -eq 0 ]; then
+          echo "✓ SIGINT handling test passed (exit code: ${EXIT_CODE:-0})"
+        else
+          echo "✗ SIGINT handling test failed (unexpected exit code: ${EXIT_CODE:-0})"
+          exit 1
+        fi
+        
+        # Test SIGTERM handling
+        ./metrics_tool_asan -n hello.c &
+        PID=$!
+        sleep 0.3
+        kill -SIGTERM $PID || true
+        wait $PID || EXIT_CODE=$?
+        # Exit code 143 (128+15) is expected for SIGTERM
+        if [ "${EXIT_CODE:-0}" -eq 143 ] || [ "${EXIT_CODE:-0}" -eq 0 ]; then
+          echo "✓ SIGTERM handling test passed (exit code: ${EXIT_CODE:-0})"
+        else
+          echo "✗ SIGTERM handling test failed (unexpected exit code: ${EXIT_CODE:-0})"
+          exit 1
+        fi
