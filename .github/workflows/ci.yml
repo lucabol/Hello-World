@@ -33,15 +33,11 @@ jobs:
         echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
 
-    - name: Build with GCC (with warnings)
-      run: gcc -Wall -Wextra -o hello hello.c
+    - name: Build all targets with Makefile
+      run: make all
 
-    - name: Test GCC build
+    - name: Test hello build
       run: ./hello
-
-    - name: Build code metrics tool with strict flags
-      run: |
-        gcc ${{ env.GCC_FLAGS }} -o metrics_tool metrics_tool.c code_metrics.c
 
     - name: Test metrics tool
       run: |
@@ -83,15 +79,14 @@ jobs:
       run: |
         echo "Clang version: $(clang --version | head -1)"
 
-    - name: Build with Clang
-      run: clang -Wall -Wextra -o hello_clang hello.c
+    - name: Build with Clang using Makefile
+      run: make clang
 
     - name: Test Clang build
       run: ./hello_clang
 
-    - name: Build code metrics tool with Clang (without -Werror for portability)
-      run: |
-        clang ${{ env.CLANG_FLAGS }} -o metrics_tool_clang metrics_tool.c code_metrics.c
+    - name: Build code metrics tool with Clang using Makefile
+      run: make metrics_tool_clang
 
     - name: Test metrics tool with Clang
       run: |
@@ -102,11 +97,7 @@ jobs:
       run: bash test/test_metrics.sh
 
     - name: Run unit tests with Clang
-      run: |
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
-        ./test_hello_runner
-        rm -f hello_lib.o test_hello_runner
+      run: make unit-test CC=clang
 
   # Memory safety checks with AddressSanitizer
   build-and-test-asan:
@@ -122,9 +113,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Build metrics tool with AddressSanitizer
-      run: |
-        gcc ${{ env.ASAN_FLAGS }} -o metrics_tool_asan metrics_tool.c code_metrics.c
+    - name: Build metrics tool with AddressSanitizer using Makefile
+      run: make metrics_tool_asan
 
     - name: Run tests with AddressSanitizer
       run: |

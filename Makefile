@@ -1,9 +1,14 @@
 # Makefile for Hello World C program and Code Metrics Tool
 # Provides convenient build targets including unit testing and code metrics
+#
+# Note: -Werror is intentionally enabled for CI quality assurance to catch potential issues early.
+# Contributors should ensure code compiles cleanly with the same flags.
 
 CC = gcc
+# Standard flags for hello program (strict with -Werror for quality)
 CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
-CFLAGS_METRICS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -D_POSIX_C_SOURCE=200809L
+# Flags for metrics tool (requires POSIX for getline)
+CFLAGS_METRICS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -D_POSIX_C_SOURCE=200809L
 TARGET = hello
 TEST_RUNNER = test_hello_runner
 HELLO_LIB_OBJ = hello_lib.o
@@ -51,7 +56,17 @@ debug:
 test: strict
 	@bash test/validate.sh
 
-# Build with Clang
+# Build with Clang (portable without -Werror for cross-compiler compatibility)
 .PHONY: clang
 clang:
-	clang -Wall -Wextra -o hello_clang hello.c
+	clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -o hello_clang hello.c
+
+# Build code metrics tool with Clang (portable)
+.PHONY: metrics_tool_clang
+metrics_tool_clang: metrics_tool.c code_metrics.c code_metrics.h
+	clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -D_POSIX_C_SOURCE=200809L -o metrics_tool_clang metrics_tool.c code_metrics.c
+
+# Build code metrics tool with AddressSanitizer for memory leak detection
+.PHONY: metrics_tool_asan
+metrics_tool_asan: metrics_tool.c code_metrics.c code_metrics.h
+	$(CC) -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L -fsanitize=address,undefined -fno-omit-frame-pointer -g -o metrics_tool_asan metrics_tool.c code_metrics.c
