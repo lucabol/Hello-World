@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Visual C Code Editor</title>
     <meta name="description" content="Visual block-based editor for C code with drag-and-drop support">
+    <!--
+        Content Security Policy (CSP) Compatibility:
+        This editor uses inline styles and scripts for simplicity and zero dependencies.
+        
+        For strict CSP environments, use hash-based CSP:
+        Content-Security-Policy: default-src 'none'; style-src 'sha256-HASH1'; script-src 'sha256-HASH2'; img-src data:;
+        
+        Calculate hashes:
+        - Style: openssl dgst -sha256 -binary editor.html (style section) | openssl base64
+        - Script: openssl dgst -sha256 -binary editor.html (script section) | openssl base64
+        
+        Alternatively, externalize styles/scripts for nonce-based CSP.
+        See SECURITY_REVIEW.md for details.
+    -->
     <style>
         /**
          * Visual C Code Editor Styles
@@ -287,6 +301,7 @@
         <p>Drag and drop blocks to build your C program (keyboard accessible)</p>
     </header>
     
+    <main class="vce-main">
     <div class="vce-container">
         <div class="vce-panel vce-block-palette">
             <h2>📦 Block Palette</h2>
@@ -320,6 +335,7 @@
             <button class="vce-export-btn" id="vce-export-btn" aria-label="Export code to hello.c file">📥 Export to hello.c</button>
         </div>
     </div>
+    </main>
     
     <script>
 /**
