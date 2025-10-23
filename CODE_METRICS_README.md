@@ -1,5 +1,9 @@
 # Code Metrics Analyzer - Spreadsheet Interface
 
+<!--
+SPDX-License-Identifier: MIT
+-->
+
 A spreadsheet-like tool for analyzing C source code and displaying various code metrics in a tabular, interactive format.
 
 ## Overview
@@ -27,11 +31,30 @@ make code_metrics
 gcc -Wall -Wextra -std=c99 -o code_metrics code_metrics.c
 ```
 
+### Build with Strict Warnings (for contributors)
+The code is designed to compile cleanly with very strict compiler warnings:
+```bash
+gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -o code_metrics code_metrics.c
+```
+
+**Compiler Compatibility:**
+- Tested with GCC 9.0+ and Clang 10.0+
+- Uses C99 standard features
+- All strict warnings are treated as errors in CI
+- If you encounter build issues, please report them with your compiler version
+
+**Note for Contributors:** If you modify the code, ensure it compiles with the strict flags above. The CI system validates this on every PR.
+
 ## Usage
 
 ```bash
-./code_metrics <source_file>
+./code_metrics [OPTIONS] <source_file>
 ```
+
+### Command-Line Options
+
+- `-h, --help`: Display help message and exit
+- `-v, --version`: Display version information and exit
 
 ### Examples
 
@@ -43,6 +66,22 @@ Analyze hello.c:
 Analyze the code_metrics tool itself:
 ```bash
 ./code_metrics code_metrics.c
+```
+
+Get help:
+```bash
+./code_metrics --help
+```
+
+### Exit Codes
+
+The tool uses standard exit codes:
+- **0**: Success - file analyzed without errors
+- **1**: Error - file not found, parse error, invalid arguments, or exceeded limits
+
+Error messages are printed to stderr, while metrics output goes to stdout. This allows you to separate errors from data in scripts:
+```bash
+./code_metrics myfile.c 2>errors.log >metrics.txt
 ```
 
 ## Sample Output
@@ -121,6 +160,25 @@ File: hello.c
 
 ## Limitations
 
+### Configuration Limits
+
+The tool has the following hard-coded limits (defined in code_metrics.c):
+- **MAX_LINE_LENGTH**: 1024 characters per line
+- **MAX_FUNCTIONS**: 100 function definitions tracked
+- **MAX_INCLUDES**: 50 include directives tracked
+
+**Behavior when limits are exceeded:**
+- Long lines (>1024 chars): Warning printed to stderr, line truncated safely, analysis continues
+- Too many functions: Warning printed to stderr after 100th function, additional functions not tracked
+- Too many includes: Warning printed to stderr after 50th include, additional includes not tracked
+
+**To modify limits:** Edit the `#define` values at the top of `code_metrics.c` and recompile:
+```c
+#define MAX_LINE_LENGTH 2048  // Increase to handle longer lines
+#define MAX_FUNCTIONS 200     // Track more functions
+#define MAX_INCLUDES 100      // Track more includes
+```
+
 ### Parsing Heuristics and Known Limitations
 
 The code metrics analyzer uses heuristics to parse C source code without a full compiler frontend. While it handles many common cases correctly, there are some limitations:
@@ -159,9 +217,10 @@ The code metrics analyzer uses heuristics to parse C source code without a full 
 
 **General Limitations:**
 - Designed primarily for C source files; may not work correctly with C++ or other languages
+- **C++ is not supported**: C++-specific features (classes, templates, namespaces, etc.) will not be recognized correctly
 - Assumes UTF-8 or ASCII encoding for character/line length metrics
-- Maximum line length is 1024 characters (longer lines are truncated)
-- Maximum of 100 functions and 50 include files tracked per file
+- Maximum line length is 1024 characters (longer lines are truncated with warning)
+- Maximum of 100 functions and 50 include files tracked per file (warnings issued if exceeded)
 - Does not perform semantic analysis or type checking
 
 ### Testing

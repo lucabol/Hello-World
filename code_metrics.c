@@ -1,4 +1,6 @@
 /* Code Metrics Analyzer - Spreadsheet-like Interface
+ * SPDX-License-Identifier: MIT
+ * 
  * Analyzes C source files and displays various code metrics in a tabular format
  * 
  * Features:
@@ -17,9 +19,21 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Configuration limits - centralized for easy modification
+ * These values are chosen to handle typical C source files while maintaining
+ * reasonable memory usage and performance.
+ * 
+ * MAX_LINE_LENGTH: Maximum characters per line. Lines longer than this will
+ *                  trigger a warning and be handled safely without overflow.
+ * MAX_FUNCTIONS:   Maximum number of function definitions to track.
+ * MAX_INCLUDES:    Maximum number of include directives to track.
+ * 
+ * If you need to analyze larger files, increase these values and recompile.
+ */
 #define MAX_LINE_LENGTH 1024
 #define MAX_FUNCTIONS 100
 #define MAX_INCLUDES 50
+#define VERSION "1.0.0"
 
 /* Structure to hold code metrics */
 typedef struct {
@@ -310,9 +324,28 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
     char include_name[256];
     char func_name[256];
     int prev_might_be_func = 0;
+    int functions_limit_warned = 0;
+    int includes_limit_warned = 0;
+    int long_line_warned = 0;
     
     while (fgets(line, sizeof(line), file)) {
         int line_len = (int)strlen(line);
+        
+        /* Check if line was truncated (no newline at end and buffer is full) */
+        if (line_len == MAX_LINE_LENGTH - 1 && line[line_len - 1] != '\n') {
+            if (!long_line_warned) {
+                fprintf(stderr, "Warning: Line %d exceeds maximum length (%d chars). Line will be truncated.\n",
+                        metrics->total_lines + 1, MAX_LINE_LENGTH - 1);
+                fprintf(stderr, "         Consider increasing MAX_LINE_LENGTH and recompiling if needed.\n");
+                long_line_warned = 1;
+            }
+            /* Consume the rest of the line */
+            int c;
+            while ((c = fgetc(file)) != EOF && c != '\n') {
+                line_len++;
+            }
+        }
+        
         metrics->total_lines++;
         metrics->total_chars += line_len;
         metrics->total_words += count_words(line);
@@ -339,6 +372,10 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
                 strncpy(metrics->includes[metrics->include_count], include_name, 255);
                 metrics->includes[metrics->include_count][255] = '\0';
                 metrics->include_count++;
+            } else if (!includes_limit_warned) {
+                fprintf(stderr, "Warning: Maximum number of includes (%d) reached. Additional includes will not be tracked.\n",
+                        MAX_INCLUDES);
+                includes_limit_warned = 1;
             }
         }
         
@@ -350,6 +387,10 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
                     strncpy(metrics->functions[metrics->function_count], func_name, 255);
                     metrics->functions[metrics->function_count][255] = '\0';
                     metrics->function_count++;
+                } else if (!functions_limit_warned) {
+                    fprintf(stderr, "Warning: Maximum number of functions (%d) reached. Additional functions will not be tracked.\n",
+                            MAX_FUNCTIONS);
+                    functions_limit_warned = 1;
                 }
                 prev_might_be_func = 0;
             }
@@ -363,6 +404,10 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
                         strncpy(metrics->functions[metrics->function_count], func_name, 255);
                         metrics->functions[metrics->function_count][255] = '\0';
                         metrics->function_count++;
+                    } else if (!functions_limit_warned) {
+                        fprintf(stderr, "Warning: Maximum number of functions (%d) reached. Additional functions will not be tracked.\n",
+                                MAX_FUNCTIONS);
+                        functions_limit_warned = 1;
                     }
                 }
                 prev_might_be_func = 0;
@@ -545,16 +590,66 @@ void display_metrics(const char *filename, const CodeMetrics *metrics) {
     printf("\n");
 }
 
+/* Print usage information */
+void print_usage(const char *program_name) {
+    printf("Code Metrics Analyzer - Spreadsheet Interface v%s\n", VERSION);
+    printf("Analyzes C source files and displays code metrics in tabular format.\n\n");
+    printf("Usage: %s [OPTIONS] <source_file>\n\n", program_name);
+    printf("Options:\n");
+    printf("  -h, --help     Show this help message and exit\n");
+    printf("  -v, --version  Show version information and exit\n\n");
+    printf("Examples:\n");
+    printf("  %s hello.c              Analyze hello.c\n", program_name);
+    printf("  %s src/myfile.c         Analyze src/myfile.c\n", program_name);
+    printf("\nExit codes:\n");
+    printf("  0  Success\n");
+    printf("  1  Error (file not found, parse error, or invalid arguments)\n");
+}
+
+/* Print version information */
+void print_version(void) {
+    printf("Code Metrics Analyzer v%s\n", VERSION);
+    printf("SPDX-License-Identifier: MIT\n");
+}
+
 /* Main program */
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("Code Metrics Analyzer - Spreadsheet Interface\n");
-        printf("Usage: %s <source_file>\n", argv[0]);
-        printf("Example: %s hello.c\n", argv[0]);
+    /* Handle no arguments */
+    if (argc < 2) {
+        fprintf(stderr, "Error: No input file specified\n\n");
+        print_usage(argv[0]);
         return 1;
     }
     
-    const char *filename = argv[1];
+    /* Handle flags */
+    const char *filename = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            print_version();
+            return 0;
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Error: Unknown option '%s'\n\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
+        } else {
+            if (filename != NULL) {
+                fprintf(stderr, "Error: Multiple files not supported (got '%s' and '%s')\n", filename, argv[i]);
+                fprintf(stderr, "Only single-file analysis is currently supported.\n");
+                return 1;
+            }
+            filename = argv[i];
+        }
+    }
+    
+    if (filename == NULL) {
+        fprintf(stderr, "Error: No input file specified\n\n");
+        print_usage(argv[0]);
+        return 1;
+    }
+    
     CodeMetrics metrics;
     
     init_metrics(&metrics);
