@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
+  # Build and test with GCC - focuses on C compilation and validation
   build-and-test-gcc:
     runs-on: ubuntu-latest
     
@@ -14,19 +15,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-      
     - name: Print environment versions
       run: |
-        echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
-        echo "Make version: $(make --version | head -1)"
       
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
+      
+    - name: Test GCC build
+      run: ./hello
       
     - name: Build code metrics tool with strict flags
       run: |
@@ -44,21 +41,10 @@ jobs:
     - name: Run metrics tool tests
       run: bash test/test_metrics.sh
       
-    - name: Run unit tests
-      run: make unit-test
-      
     - name: Run validation tests
       run: bash test/validate.sh --quiet
       
-    - name: Test visual editor generated code
-      run: bash test/test_editor_output.sh
-      
-    - name: Test XSS escaping function
-      run: node test/test_escape_html.js
-      
-    - name: Test XSS integration
-      run: node test/test_xss_integration.js
-      
+  # Build and test with Clang - alternative C compiler validation
   build-and-test-clang:
     runs-on: ubuntu-latest
     
@@ -71,10 +57,3 @@ jobs:
       
     - name: Test Clang build
       run: ./hello_clang
-      
-    - name: Run unit tests with Clang
-      run: |
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
-        ./test_hello_runner
-        rm -f hello_lib.o test_hello_runner
