@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
+  # Build and test with GCC - focuses on C compilation and validation
   build-and-test-gcc:
     runs-on: ubuntu-latest
     
@@ -23,10 +24,12 @@ jobs:
       run: |
         echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
-        echo "Make version: $(make --version | head -1)"
       
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
+      
+    - name: Test GCC build
+      run: ./hello
       
     - name: Run unit tests
       run: make unit-test
@@ -52,6 +55,7 @@ jobs:
     - name: Test header validation and deduplication
       run: node test/test_header_validation.js
       
+  # Build and test with Clang - alternative C compiler validation
   build-and-test-clang:
     runs-on: ubuntu-latest
     
