@@ -52,9 +52,9 @@ strict: $(SRC) $(HEADER)
 
 # Build with clang compiler
 # Note: You can also use CC=clang for standard builds
-# This target builds directly to hello_clang using clang compiler
-clang: $(SRC) $(HEADER)
-	$(CLANG) $(CFLAGS) -o $(HELLO_CLANG) $(SRC) $(LDFLAGS)
+# This target delegates to make with CC=$(CLANG) to preserve make-level behavior
+clang:
+	$(MAKE) CC=$(CLANG) HELLO=$(HELLO_CLANG) all
 
 # Debug build with debugging symbols
 debug: $(SRC) $(HEADER)
