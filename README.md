@@ -31,6 +31,7 @@ The plugin system enables you to:
 Two example plugins are included:
 - **uppercase**: Converts the message to uppercase
 - **decorator**: Adds decorative borders and headers/footers
+- **logger**: Logs execution timestamps using only hooks
 
 ### Documentation
 
@@ -43,6 +44,7 @@ make              # Standard hello (no plugins)
 make with-plugins # All example plugins
 make uppercase    # Uppercase plugin only
 make decorator    # Decorator plugin only
+make logger       # Logger plugin only
 make clean        # Clean build artifacts
 ```
 

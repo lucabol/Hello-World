@@ -9,6 +9,7 @@ hello_test*
 hello_with_plugins
 hello_uppercase
 hello_decorator
+hello_logger
 hello_multi
 voice_demo
 voice_demo_test

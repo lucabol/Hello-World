@@ -23,6 +23,7 @@ CORE = hello.c
 PLUGIN_SRC = plugin.c
 PLUGIN_UPPERCASE = plugin_uppercase.c
 PLUGIN_DECORATOR = plugin_decorator.c
+PLUGIN_LOGGER = plugin_logger.c
 
 # Default target - build without plugins
 .PHONY: all
@@ -53,6 +54,13 @@ decorator:
 	@echo "Built hello_decorator with decorator plugin"
 	@echo "Run with: ./hello_decorator"
 
+# Build with logger plugin only
+.PHONY: logger
+logger:
+	$(CC) $(CFLAGS) -DUSE_PLUGINS -o hello_logger $(CORE) $(PLUGIN_SRC) $(PLUGIN_LOGGER)
+	@echo "Built hello_logger with logger plugin"
+	@echo "Run with: ./hello_logger"
+
 # Build with strict compilation flags (for CI)
 .PHONY: strict
 strict:
@@ -72,7 +80,7 @@ test-quiet: strict
 # Clean build artifacts
 .PHONY: clean
 clean:
-	rm -f hello hello_strict hello_with_plugins hello_uppercase hello_decorator
+	rm -f hello hello_strict hello_with_plugins hello_uppercase hello_decorator hello_logger
 	rm -f *.o *.out *.exe
 	@echo "Cleaned build artifacts"
 
@@ -84,6 +92,7 @@ help:
 	@echo "  make with-plugins - Build with all example plugins"
 	@echo "  make uppercase    - Build with uppercase plugin only"
 	@echo "  make decorator    - Build with decorator plugin only"
+	@echo "  make logger       - Build with logger plugin only"
 	@echo "  make strict       - Build with strict compilation flags"
 	@echo "  make test         - Run validation tests"
 	@echo "  make clean        - Remove all build artifacts"

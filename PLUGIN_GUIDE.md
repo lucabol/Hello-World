@@ -120,7 +120,20 @@ gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_decorator.c
 # === Plugin Output End ===
 ```
 
-### 3. Multiple Plugins
+### 3. Logger Plugin (`plugin_logger.c`)
+
+Logs execution timestamps without modifying the message. Demonstrates using only hooks.
+
+```bash
+gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_logger.c
+./hello
+# Output:
+# [Thu Oct 23 11:53:17 2025] Starting hello.c execution
+# Hello world!
+# [INFO] Execution completed successfully
+```
+
+### 4. Multiple Plugins
 
 Plugins execute in the order they are linked:
 
