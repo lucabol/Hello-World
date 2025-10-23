@@ -43,6 +43,12 @@ jobs:
     - name: Test XSS integration
       run: node test/test_xss_integration.js
       
+    - name: Test plugin system
+      run: |
+        echo "Testing plugin system with GCC..."
+        chmod +x test_plugins.sh
+        ./test_plugins.sh
+      
   build-and-test-clang:
     runs-on: ubuntu-latest
     
@@ -62,3 +68,48 @@ jobs:
         clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
         ./test_hello_runner
         rm -f hello_lib.o test_hello_runner
+      
+    - name: Test plugin system with Clang
+      run: |
+        echo "Testing plugin system with Clang..."
+        # Test basic compilation
+        clang -Wall -Wextra -Wpedantic -o hello_clang_basic hello.c
+        ./hello_clang_basic
+        
+        # Test with plugins
+        clang -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_clang_plugins hello.c plugin.c plugin_uppercase.c
+        OUTPUT=$(./hello_clang_plugins)
+        if [ "$OUTPUT" != "HELLO WORLD!" ]; then
+          echo "ERROR: Expected 'HELLO WORLD!', got '$OUTPUT'"
+          exit 1
+        fi
+        
+        # Test multiple plugins chaining
+        clang -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_clang_chain hello.c plugin.c plugin_decorator.c plugin_uppercase.c
+        ./hello_clang_chain | grep -q "HELLO WORLD!"
+        
+        # Test strict compilation
+        clang -Wall -Wextra -Wpedantic -Werror -std=c99 -DUSE_PLUGINS -o hello_clang_strict hello.c plugin.c plugin_uppercase.c plugin_decorator.c plugin_logger.c
+        ./hello_clang_strict | grep -q "HELLO WORLD!"
+        
+        echo "All Clang plugin tests passed!"
+        
+  test-plugin-strict:
+    runs-on: ubuntu-latest
+    name: Test plugins with strict compilation flags
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test strict compilation (GCC)
+      run: |
+        echo "Testing strict compilation with GCC..."
+        make strict-plugins
+        ./hello_strict_plugins | grep -q "HELLO WORLD!"
+        
+    - name: Test strict compilation (Clang)
+      run: |
+        echo "Testing strict compilation with Clang..."
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -DUSE_PLUGINS -o hello_clang_strict hello.c plugin.c plugin_uppercase.c plugin_decorator.c plugin_logger.c
+        ./hello_clang_strict | grep -q "HELLO WORLD!"

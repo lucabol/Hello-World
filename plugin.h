@@ -16,9 +16,9 @@
  *       // Transform the input message
  *       int result = snprintf(output, output_size, "*** %s ***", input);
  *       if (result < 0 || (size_t)result >= output_size) {
- *           return -1; // Error: output buffer too small
+ *           return PLUGIN_ERROR_BUFFER_TOO_SMALL;
  *       }
- *       return 0; // Success
+ *       return PLUGIN_SUCCESS;
  *   }
  *   
  *   void my_before(void) {
@@ -40,6 +40,16 @@
 #define PLUGIN_H
 
 #include <stddef.h>  /* For size_t */
+
+/* Plugin API version for compatibility checking */
+#define HELLO_PLUGIN_API_VERSION 1
+
+/* Plugin error codes */
+#define PLUGIN_SUCCESS 0
+#define PLUGIN_ERROR_BUFFER_TOO_SMALL -1
+#define PLUGIN_ERROR_INVALID_INPUT -2
+#define PLUGIN_ERROR_INTERNAL -3
+#define PLUGIN_ERROR_MAX_PLUGINS_EXCEEDED -4
 
 /* Maximum number of plugins that can be registered 
  * Can be overridden at compile time with -DMAX_PLUGINS=N
@@ -74,7 +84,7 @@
  *   not rely on static/global mutable state to ensure correct chaining behavior.
  */
 
-/* Plugin function types 
+/* Plugin function types with clear naming
  * 
  * Transform function signature:
  *   int transform(const char* input, char* output, size_t output_size)
@@ -85,44 +95,94 @@
  *   - output_size: Size of the output buffer in bytes
  * 
  * Returns:
- *   - 0 on success
- *   - Non-zero on error (e.g., output buffer too small)
+ *   - PLUGIN_SUCCESS (0) on success
+ *   - PLUGIN_ERROR_BUFFER_TOO_SMALL if output buffer is insufficient
+ *   - PLUGIN_ERROR_INVALID_INPUT if input is malformed
+ *   - PLUGIN_ERROR_INTERNAL for other plugin-specific errors
  * 
  * The transform function must write a null-terminated string to output
  * and ensure it does not exceed output_size bytes (including null terminator).
- * If the output would exceed the buffer, the function should return an error.
+ * If the output would exceed the buffer, the function should return PLUGIN_ERROR_BUFFER_TOO_SMALL.
  */
-typedef int (*plugin_transform_fn)(const char* input, char* output, size_t output_size);
-typedef void (*plugin_hook_fn)(void);
+typedef int (*hello_plugin_transform_fn)(const char* input, char* output, size_t output_size);
+typedef void (*hello_plugin_hook_fn)(void);
+
+/* Legacy type aliases for backward compatibility */
+typedef hello_plugin_transform_fn plugin_transform_fn;
+typedef hello_plugin_hook_fn plugin_hook_fn;
 
 /* Plugin structure */
 typedef struct {
     const char* name;
-    plugin_transform_fn transform;
-    plugin_hook_fn before;
-    plugin_hook_fn after;
-} plugin_t;
+    hello_plugin_transform_fn transform;
+    hello_plugin_hook_fn before;
+    hello_plugin_hook_fn after;
+} hello_plugin_t;
+
+/* Legacy type alias */
+typedef hello_plugin_t plugin_t;
 
 /* Plugin registry */
-extern plugin_t plugin_registry[MAX_PLUGINS];
+extern hello_plugin_t plugin_registry[MAX_PLUGINS];
 extern int plugin_count;
 
 /* Register a plugin 
  * This function can be called explicitly from plugin code for portability
  * to compilers that don't support constructor attributes.
+ * 
+ * Returns:
+ *   - PLUGIN_SUCCESS on successful registration
+ *   - PLUGIN_ERROR_MAX_PLUGINS_EXCEEDED if registry is full
  */
-void plugin_register(const char* name, 
-                    plugin_transform_fn transform,
-                    plugin_hook_fn before,
-                    plugin_hook_fn after);
+int hello_plugin_register(const char* name, 
+                          hello_plugin_transform_fn transform,
+                          hello_plugin_hook_fn before,
+                          hello_plugin_hook_fn after);
+
+/* Legacy function alias */
+static inline void plugin_register(const char* name,
+                                   hello_plugin_transform_fn transform,
+                                   hello_plugin_hook_fn before,
+                                   hello_plugin_hook_fn after) {
+    (void)hello_plugin_register(name, transform, before, after);
+}
 
 /* Get the current plugin count (useful for testing overflow) */
-int plugin_get_count(void);
+int hello_plugin_get_count(void);
 
-/* Execute all registered plugins */
-int plugin_execute_transforms(const char* input, char* output, size_t output_size);
-void plugin_execute_before_hooks(void);
-void plugin_execute_after_hooks(void);
+/* Legacy function alias */
+static inline int plugin_get_count(void) {
+    return hello_plugin_get_count();
+}
+
+/* Execute all registered plugins 
+ * 
+ * Behavior on error:
+ * - If a transform returns non-zero, the error is logged and the last successful
+ *   transform output is used. The error code is propagated to the caller.
+ * - Hooks (before/after) have no error handling - they should not fail.
+ * - If input is too long (>= PLUGIN_BUFFER_SIZE), returns PLUGIN_ERROR_INVALID_INPUT
+ * - If final output is truncated, a warning is printed but PLUGIN_SUCCESS is returned
+ * 
+ * Returns:
+ *   - PLUGIN_SUCCESS if all transforms succeeded
+ *   - PLUGIN_ERROR_INVALID_INPUT if input validation fails
+ *   - First non-zero error code from a failing transform
+ */
+int hello_plugin_execute_transforms(const char* input, char* output, size_t output_size);
+void hello_plugin_execute_before_hooks(void);
+void hello_plugin_execute_after_hooks(void);
+
+/* Legacy function aliases */
+static inline int plugin_execute_transforms(const char* input, char* output, size_t output_size) {
+    return hello_plugin_execute_transforms(input, output, output_size);
+}
+static inline void plugin_execute_before_hooks(void) {
+    hello_plugin_execute_before_hooks();
+}
+static inline void plugin_execute_after_hooks(void) {
+    hello_plugin_execute_after_hooks();
+}
 
 /* Convenience macro for plugin registration 
  * Note: Uses GCC/Clang constructor attribute. Not portable to MSVC.
