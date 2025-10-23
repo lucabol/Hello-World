@@ -1,12 +1,18 @@
 /* hello.h - Header file for hello.c
- * Provides the greeting function for the Hello World program
+ * Provides greeting functionality for the Hello World program
  */
 #ifndef HELLO_H
 #define HELLO_H
 
 /* Get the greeting message
- * Returns: A pointer to a static string constant containing the greeting
- * Note: The returned pointer should not be freed by the caller
+ * Returns: Pointer to static string constant "Ciao, Mondo!"
+ * 
+ * Contract:
+ * - Returns a pointer to a static string constant
+ * - The returned pointer remains valid for the lifetime of the program
+ * - Caller must NOT free() the returned pointer
+ * - The returned string is read-only and should not be modified
+ * - Multiple calls return the same static pointer
  */
 const char* get_greeting(void);
 

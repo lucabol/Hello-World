@@ -4,11 +4,60 @@ Test repo for JediMaster
 
 ## Building and Testing
 
-### Normal Build
+This repository includes a comprehensive Makefile for building and testing the Hello World C program.
+
+### Quick Start
+
 ```bash
-make
-./hello
+make              # Build the release binary
+./hello           # Run the program
+make test         # Run all tests
 ```
+
+### Available Make Targets
+
+- **`make`** or **`make build`** - Build the release binary with optimizations (`-O2`)
+- **`make strict`** - Build with strict flags and `-Werror` (used by CI for validation)
+- **`make debug`** - Build with debug symbols (`-g`)
+- **`make clang`** - Build using the Clang compiler
+- **`make unit-test`** - Compile and run unit tests
+- **`make test`** - Run all tests (unit tests + validation script)
+- **`make test-quiet`** - Run tests with minimal output (for CI/automated environments)
+- **`make clean`** - Remove all build artifacts
+- **`make help`** - Display help message with available targets
+
+### CI and Automated Testing
+
+For CI environments, use `make test-quiet` which:
+- Minimizes verbose output from build and test processes
+- Highlights only test results and errors
+- Uses the `--quiet` flag for validation scripts
+- Suitable for automated build pipelines
+
+### Customizing the Build
+
+You can override the compiler and other variables:
+
+```bash
+make CC=clang build           # Build with Clang
+make CC=gcc-12 strict         # Build with a specific GCC version
+```
+
+### Requirements
+
+- GCC or Clang compiler
+- Bash (for test scripts)
+- Standard C library
+
+### Output Format
+
+The program outputs exactly two lines:
+```
+Ciao, Mondo!
+Exit code: 0
+```
+
+**Important:** This exact format (including the "Exit code: 0" line and trailing newlines) is validated by the test suite to ensure consistency. Do not modify the output format without also updating the validation tests in `test/validate.sh`.
 
 ### Unit Testing
 
