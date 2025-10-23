@@ -8,9 +8,9 @@
 # Note: This Makefile requires /bin/bash for the trap functionality in unit-test
 SHELL := /bin/bash
 
-# Compiler settings
-CC = gcc
-CLANG = clang
+# Compiler settings - overridable from environment or command line
+CC ?= gcc
+CLANG ?= clang
 
 # Compiler flags
 # Use ?= to allow environment/command-line overrides while providing sensible defaults
@@ -57,6 +57,7 @@ strict: $(SRC) $(HEADER)
 # Build with clang compiler
 # Note: You can also use CC=clang for standard builds
 # This target delegates to make with CC=$(CLANG) to preserve make-level behavior
+# The HELLO variable is overridden to build to hello_clang instead of hello
 clang:
 	$(MAKE) CC=$(CLANG) HELLO=$(HELLO_CLANG) all
 
@@ -108,9 +109,10 @@ help:
 	@echo "  help          - Show this help message"
 	@echo ""
 	@echo "Variables (can be overridden on command line):"
-	@echo "  CC            - C compiler (default: gcc)"
+	@echo "  CC            - C compiler (default: gcc, uses ?= for overriding)"
 	@echo "                  Example: make CC=clang"
-	@echo "  CLANG         - Clang compiler (default: clang)"
+	@echo "                  Example: CC=gcc-12 make"
+	@echo "  CLANG         - Clang compiler (default: clang, uses ?= for overriding)"
 	@echo "                  Note: Use 'make clang' or 'make CC=clang' to build with clang"
 	@echo "  CFLAGS        - Standard compiler flags (default: -Wall -Wextra)"
 	@echo "                  Uses ?= assignment, so environment/CLI overrides are respected"
