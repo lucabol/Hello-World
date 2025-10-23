@@ -14,6 +14,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+      
+    - name: Print environment versions
+      run: |
+        echo "Node.js version: $(node --version)"
+        echo "GCC version: $(gcc --version | head -1)"
+        echo "Make version: $(make --version | head -1)"
+      
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
       
@@ -22,6 +33,15 @@ jobs:
       
     - name: Run validation tests
       run: bash test/validate.sh --quiet
+      
+    - name: Test visual editor generated code
+      run: bash test/test_editor_output.sh
+      
+    - name: Test XSS escaping function
+      run: node test/test_escape_html.js
+      
+    - name: Test XSS integration
+      run: node test/test_xss_integration.js
       
   build-and-test-clang:
     runs-on: ubuntu-latest
