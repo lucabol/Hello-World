@@ -391,6 +391,7 @@ void test_long_input(void) {
 /* Test NULL plugin in middle of chain */
 void test_null_plugin_in_chain(void) {
     const char* result;
+    int error;
     
     plugin_init();
     plugin_register(&uppercase_plugin);
@@ -398,16 +399,132 @@ void test_null_plugin_in_chain(void) {
     plugin_register(&reverse_plugin);
     
     result = plugin_apply_all("test");
+    error = plugin_get_last_error();
     
     tests_run++;
-    if (result == NULL) {
+    if (result == NULL && error == PLUGIN_ERROR_PLUGIN_FAILED) {
         tests_passed++;
         print_green("  ✓ ");
         printf("NULL plugin in chain test passed\n");
     } else {
         tests_failed++;
         print_red("  ✗ ");
-        printf("NULL plugin in chain test failed - should return NULL\n");
+        printf("NULL plugin in chain test failed - should return NULL with PLUGIN_ERROR_PLUGIN_FAILED\n");
+    }
+}
+
+/* Test error code for NULL input */
+void test_error_code_null_input(void) {
+    const char* result;
+    int error;
+    
+    plugin_init();
+    plugin_register(&uppercase_plugin);
+    
+    result = plugin_apply_all(NULL);
+    error = plugin_get_last_error();
+    
+    tests_run++;
+    if (result == NULL && error == PLUGIN_ERROR_INPUT_NULL) {
+        tests_passed++;
+        print_green("  ✓ ");
+        printf("Error code for NULL input test passed\n");
+    } else {
+        tests_failed++;
+        print_red("  ✗ ");
+        printf("Error code for NULL input test failed\n");
+    }
+}
+
+/* Test error code for plugin returning NULL */
+void test_error_code_plugin_failed(void) {
+    const char* result;
+    int error;
+    
+    plugin_init();
+    plugin_register(&null_return_plugin);
+    
+    result = plugin_apply_all("test");
+    error = plugin_get_last_error();
+    
+    tests_run++;
+    if (result == NULL && error == PLUGIN_ERROR_PLUGIN_FAILED) {
+        tests_passed++;
+        print_green("  ✓ ");
+        printf("Error code for plugin failure test passed\n");
+    } else {
+        tests_failed++;
+        print_red("  ✗ ");
+        printf("Error code for plugin failure test failed\n");
+    }
+}
+
+/* Test error code for successful operation */
+void test_error_code_success(void) {
+    const char* result;
+    int error;
+    
+    plugin_init();
+    plugin_register(&uppercase_plugin);
+    
+    result = plugin_apply_all("test");
+    error = plugin_get_last_error();
+    
+    tests_run++;
+    if (result != NULL && error == PLUGIN_SUCCESS) {
+        tests_passed++;
+        print_green("  ✓ ");
+        printf("Error code for success test passed\n");
+    } else {
+        tests_failed++;
+        print_red("  ✗ ");
+        printf("Error code for success test failed\n");
+    }
+}
+
+/* Helper transforms for duplicate name test */
+static const char* dup_name_transform1(const char* input) {
+    (void)input;
+    static char buf[PLUGIN_BUFFER_SIZE];
+    strcpy(buf, "plugin1");
+    return buf;
+}
+
+static const char* dup_name_transform2(const char* input) {
+    (void)input;
+    static char buf[PLUGIN_BUFFER_SIZE];
+    strcpy(buf, "plugin2");
+    return buf;
+}
+
+static const plugin_t dup_name_plugin1 = {
+    .name = "duplicate_name",
+    .transform = dup_name_transform1
+};
+
+static const plugin_t dup_name_plugin2 = {
+    .name = "duplicate_name",
+    .transform = dup_name_transform2
+};
+
+/* Test duplicate name detection (different pointers, same name) */
+void test_duplicate_name_allowed(void) {
+    int result1, result2;
+    
+    plugin_init();
+    result1 = plugin_register(&dup_name_plugin1);
+    result2 = plugin_register(&dup_name_plugin2);
+    
+    tests_run++;
+    /* Different pointers with same name should be allowed (pointer-based check) */
+    if (result1 == PLUGIN_SUCCESS && result2 == PLUGIN_SUCCESS) {
+        tests_passed++;
+        print_green("  ✓ ");
+        printf("Duplicate name allowed test passed (pointer-based detection)\n");
+    } else {
+        tests_failed++;
+        print_red("  ✗ ");
+        printf("Duplicate name allowed test failed\n");
     }
 }
 
@@ -430,6 +547,12 @@ int main(void) {
     RUN_TEST(test_plugin_returns_null);
     RUN_TEST(test_apply_null_input);
     RUN_TEST(test_null_plugin_in_chain);
+    
+    /* Error reporting tests */
+    RUN_TEST(test_error_code_null_input);
+    RUN_TEST(test_error_code_plugin_failed);
+    RUN_TEST(test_error_code_success);
+    RUN_TEST(test_duplicate_name_allowed);
     
     /* Boundary condition tests */
     RUN_TEST(test_boundary_size);

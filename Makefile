@@ -43,6 +43,15 @@ test-sanitizer:
 # Run all tests (unit + edge + sanitizer)
 test-all: test test-sanitizer
 
+# Test with custom configuration (non-default buffer sizes)
+test-custom-config:
+	@echo "Testing with custom configuration (PLUGIN_MAX_PLUGINS=5, PLUGIN_BUFFER_SIZE=128)..."
+	$(CC) $(CFLAGS) -DPLUGIN_MAX_PLUGINS=5 -DPLUGIN_BUFFER_SIZE=128 -I. -o test_custom_config \
+		test/test_plugin.c plugin.c $(PLUGIN_SOURCES)
+	./test_custom_config
+	rm -f test_custom_config
+	@echo "✓ Custom configuration test passed!"
+
 # Clean build artifacts
 clean:
 	rm -f hello plugin_demo test_plugin_runner test_plugin_edge_runner
@@ -63,5 +72,6 @@ help:
 	@echo "  make test         - Run plugin unit tests"
 	@echo "  make test-sanitizer - Run tests with ASAN and UBSAN"
 	@echo "  make test-all     - Run all tests (unit + edge + sanitizer)"
+	@echo "  make test-custom-config - Test with custom PLUGIN_MAX_PLUGINS and PLUGIN_BUFFER_SIZE"
 	@echo "  make clean        - Remove build artifacts"
 	@echo "  make help         - Show this help message"

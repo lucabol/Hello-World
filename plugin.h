@@ -58,6 +58,10 @@
 
 #include <stddef.h>  /* for size_t */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Maximum number of plugins that can be registered
  * Override at compile time with -DPLUGIN_MAX_PLUGINS=N if needed */
 #ifndef PLUGIN_MAX_PLUGINS
@@ -111,6 +115,12 @@ typedef struct {
 #define PLUGIN_ERROR_NULL      -2   /* NULL plugin or invalid plugin descriptor */
 #define PLUGIN_ERROR_DUPLICATE -3   /* Plugin already registered */
 
+/* Plugin execution error codes (for plugin_apply_all failures) */
+#define PLUGIN_ERROR_INPUT_NULL     -4   /* Input to plugin_apply_all was NULL */
+#define PLUGIN_ERROR_PLUGIN_FAILED  -5   /* A plugin returned NULL during transformation */
+#define PLUGIN_ERROR_OUTPUT_TOO_LARGE -6 /* Plugin output exceeded buffer size */
+#define PLUGIN_ERROR_INVALID_PLUGIN -7   /* Plugin in registry has NULL transform function */
+
 /* Initialize the plugin system
  * Must be called before using any other plugin functions
  * Can be called multiple times to reset the system
@@ -131,7 +141,16 @@ void plugin_init(void);
  * 
  * Notes:
  *   - Duplicate detection is based on pointer equality (same plugin_t* address)
+ *   - Different plugin_t instances with the same name are allowed
+ *   - The same plugin_t pointer cannot be registered twice
  *   - Registration order determines execution order in plugin_apply_all()
+ * 
+ * Example:
+ *   plugin_t p1 = {.name = "foo", .transform = fn1};
+ *   plugin_t p2 = {.name = "foo", .transform = fn2};
+ *   plugin_register(&p1);  // OK
+ *   plugin_register(&p2);  // OK (different pointer, even though same name)
+ *   plugin_register(&p1);  // PLUGIN_ERROR_DUPLICATE (same pointer)
  */
 int plugin_register(const plugin_t* plugin);
 
@@ -171,5 +190,43 @@ const char* plugin_apply_all(const char* input);
  *   Number of currently registered plugins (0 to PLUGIN_MAX_PLUGINS)
  */
 int plugin_count(void);
+
+/* Get the last error code from plugin operations
+ * 
+ * This function returns the error code from the most recent plugin operation
+ * that failed. It's particularly useful after plugin_apply_all() returns NULL
+ * to determine the specific cause of failure.
+ * 
+ * Returns:
+ *   PLUGIN_SUCCESS if the last operation succeeded
+ *   PLUGIN_ERROR_INPUT_NULL if input was NULL
+ *   PLUGIN_ERROR_PLUGIN_FAILED if a plugin returned NULL
+ *   PLUGIN_ERROR_OUTPUT_TOO_LARGE if output exceeded buffer size
+ *   PLUGIN_ERROR_INVALID_PLUGIN if a plugin has NULL transform function
+ *   Or any registration error code from plugin_register()
+ * 
+ * Thread Safety:
+ *   Not thread-safe. Uses static storage for error code.
+ * 
+ * Example:
+ *   const char* result = plugin_apply_all("input");
+ *   if (result == NULL) {
+ *       int error = plugin_get_last_error();
+ *       switch (error) {
+ *           case PLUGIN_ERROR_INPUT_NULL:
+ *               fprintf(stderr, "Input was NULL\n");
+ *               break;
+ *           case PLUGIN_ERROR_PLUGIN_FAILED:
+ *               fprintf(stderr, "A plugin failed\n");
+ *               break;
+ *           // ... handle other errors
+ *       }
+ *   }
+ */
+int plugin_get_last_error(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PLUGIN_H */
