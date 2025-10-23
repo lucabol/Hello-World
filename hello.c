@@ -7,9 +7,9 @@ const char* get_greeting(void) {
 }
 
 #ifndef UNIT_TEST
-int main(void) {
-    printf("%s\n", get_greeting());
-    printf("Exit code: 0\n");
+int main() {
+    puts(get_greeting());
+    puts("Exit code: 0");
     return 0;
 }
 #endif
