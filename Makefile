@@ -1,12 +1,16 @@
 # Makefile for Hello World C Program
 # Provides standardized build targets for local development and CI
 
+# Shell configuration - use bash for trap support in unit-test target
+SHELL := /bin/bash
+
 # Compiler settings
 CC = gcc
 CLANG = clang
 
 # Compiler flags
-CFLAGS = -Wall -Wextra
+# Use ?= to allow environment/command-line overrides while providing sensible defaults
+CFLAGS ?= -Wall -Wextra
 STRICT_FLAGS = $(CFLAGS) -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
 DEBUG_FLAGS = -g $(CFLAGS)
 # UNIT_TEST_FLAGS: Define this macro to exclude main() from hello.c during unit testing
@@ -14,7 +18,10 @@ DEBUG_FLAGS = -g $(CFLAGS)
 UNIT_TEST_FLAGS = -DUNIT_TEST
 
 # Linker flags (currently none needed)
-LDFLAGS =
+LDFLAGS ?=
+
+# Portable rm command
+RM = rm -f
 
 # Source files
 SRC = hello.c
@@ -37,7 +44,7 @@ TEST_RUNNER = test_hello_runner
 all: $(HELLO)
 
 $(HELLO): $(SRC) $(HEADER)
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS)
 
 # Strict build with all warnings as errors (for CI)
 strict: $(SRC) $(HEADER)
@@ -45,10 +52,9 @@ strict: $(SRC) $(HEADER)
 
 # Build with clang compiler
 # Note: You can also use CC=clang for standard builds
-# This target is a convenience that uses the CLANG variable
-clang:
-	$(MAKE) CC=$(CLANG) all
-	@mv $(HELLO) $(HELLO_CLANG)
+# This target builds directly to hello_clang using clang compiler
+clang: $(SRC) $(HEADER)
+	$(CLANG) $(CFLAGS) -o $(HELLO_CLANG) $(SRC) $(LDFLAGS)
 
 # Debug build with debugging symbols
 debug: $(SRC) $(HEADER)
@@ -79,10 +85,10 @@ test-quiet:
 
 # Clean all build artifacts
 clean:
-	rm -f $(HELLO) $(HELLO_STRICT) $(HELLO_CLANG) $(HELLO_DEBUG)
-	rm -f $(HELLO_LIB) $(TEST_RUNNER)
-	rm -f *.o *.exe *.out
-	rm -f test/*.o test/*.exe test/*.out
+	$(RM) $(HELLO) $(HELLO_STRICT) $(HELLO_CLANG) $(HELLO_DEBUG)
+	$(RM) $(HELLO_LIB) $(TEST_RUNNER)
+	$(RM) *.o *.exe *.out
+	$(RM) test/*.o test/*.exe test/*.out
 
 # Help target
 help:
@@ -103,10 +109,16 @@ help:
 	@echo "  CLANG         - Clang compiler (default: clang)"
 	@echo "                  Note: Use 'make clang' or 'make CC=clang' to build with clang"
 	@echo "  CFLAGS        - Standard compiler flags (default: -Wall -Wextra)"
+	@echo "                  Uses ?= assignment, so environment/CLI overrides are respected"
 	@echo "                  Example: make CFLAGS='-O2 -Wall'"
-	@echo "  STRICT_FLAGS  - Strict compiler flags for quality assurance"
+	@echo "                  Example: CFLAGS='-O3' make"
+	@echo "  STRICT_FLAGS  - Strict compiler flags for quality assurance (includes -Werror -std=c99)"
 	@echo "  DEBUG_FLAGS   - Compiler flags for debugging builds"
 	@echo "  LDFLAGS       - Linker flags"
 	@echo "                  Example: make LDFLAGS='-lm'"
-	@echo "  KEEP_TEST_ARTIFACTS - Set to 1 to preserve test binaries after unit-test"
+	@echo "  KEEP_TEST_ARTIFACTS - Set to 1 to preserve test binaries for debugging after unit-test"
 	@echo "                  Example: make unit-test KEEP_TEST_ARTIFACTS=1"
+	@echo ""
+	@echo "Notes:"
+	@echo "  - Unit-test target requires bash for trap support (SHELL := /bin/bash)"
+	@echo "  - Use 'make help' to see this message"
