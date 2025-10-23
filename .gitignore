@@ -39,3 +39,7 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Metrics tool generated files
+metrics.json
+metrics-report.html
