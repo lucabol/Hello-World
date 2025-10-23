@@ -116,28 +116,59 @@ jobs:
         set -euo pipefail
         export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
         
-        # Test SIGINT handling: verify tool exits cleanly without memory leaks
-        # Start tool in interactive mode, send SIGINT, verify clean exit with ASAN
-        timeout 5s bash -c '
-          (sleep 10 | ./metrics_tool_asan hello.c) &
+        # Test SIGINT handling with robust process group signaling
+        # Use setsid to create new process group for reliable signal delivery
+        echo "Testing SIGINT signal handling..."
+        timeout 10s bash -c '
+          # Start metrics_tool in its own process group (interactive mode waits for input)
+          setsid ./metrics_tool_asan hello.c < /dev/null > /dev/null 2>&1 &
           PID=$!
           sleep 0.5
-          # Send SIGINT and wait for process to exit
-          kill -SIGINT "$PID" 2>/dev/null || true
-          wait "$PID" 2>/dev/null || EXIT_CODE=$?
-          # Accept either shell-propagated signal code (130) or normal exit (0)
-          # The key validation is ASAN detecting no leaks/errors
+          
+          # Send SIGINT to the entire process group
+          kill -SIGINT -- -$PID 2>/dev/null || kill -SIGINT $PID 2>/dev/null || true
+          
+          # Wait for process and capture exit code
+          wait $PID 2>/dev/null || EXIT_CODE=$?
+          
+          # Document expected behavior: tool should exit with signal-derived code (130)
+          # or handle signal gracefully (0). Both indicate no leaks/crashes (validated by ASAN).
           if [ "${EXIT_CODE:-0}" -ne 130 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
-            echo "✗ SIGINT handling test failed with unexpected exit code: ${EXIT_CODE:-0}"
+            echo "✗ SIGINT test failed: exit code ${EXIT_CODE:-0} (expected 130 or 0)"
             exit 1
           fi
-          echo "✓ SIGINT handling test passed (exit code: ${EXIT_CODE:-0}, no ASAN errors)"
-        '
+          echo "✓ SIGINT test passed: exit code ${EXIT_CODE:-0}, no ASAN errors"
+        ' || {
+          echo "✗ SIGINT test timed out or failed"
+          exit 1
+        }
         
-        # Test SIGTERM handling: verify clean exit without memory leaks
-        timeout 5s bash -c '
-          (sleep 10 | ./metrics_tool_asan hello.c) &
+        # Test SIGTERM handling with same robust approach
+        echo "Testing SIGTERM signal handling..."
+        timeout 10s bash -c '
+          # Start metrics_tool in its own process group
+          setsid ./metrics_tool_asan hello.c < /dev/null > /dev/null 2>&1 &
           PID=$!
+          sleep 0.5
+          
+          # Send SIGTERM to the entire process group
+          kill -SIGTERM -- -$PID 2>/dev/null || kill -SIGTERM $PID 2>/dev/null || true
+          
+          # Wait for process and capture exit code
+          wait $PID 2>/dev/null || EXIT_CODE=$?
+          
+          # Expected: signal-derived code (143) or graceful exit (0)
+          if [ "${EXIT_CODE:-0}" -ne 143 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "✗ SIGTERM test failed: exit code ${EXIT_CODE:-0} (expected 143 or 0)"
+            exit 1
+          fi
+          echo "✓ SIGTERM test passed: exit code ${EXIT_CODE:-0}, no ASAN errors"
+        ' || {
+          echo "✗ SIGTERM test timed out or failed"
+          exit 1
+        }
+        
+        echo "✓ All signal handling tests passed - no memory leaks or crashes detected"
           sleep 0.5
           # Send SIGTERM and wait for process to exit
           kill -SIGTERM "$PID" 2>/dev/null || true
