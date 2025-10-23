@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual C Code Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .block-palette {
+            flex: 0 0 250px;
+            overflow-y: auto;
+            max-height: calc(100vh - 180px);
+        }
+        
+        .block-palette h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+        }
+        
+        .workspace {
+            flex: 1;
+            min-height: 500px;
+            position: relative;
+            background: linear-gradient(#f8f9fa 1px, transparent 1px),
+                        linear-gradient(90deg, #f8f9fa 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .workspace h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+        }
+        
+        .code-output {
+            flex: 0 0 350px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .code-output h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+        }
+        
+        .code-display {
+            flex: 1;
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.6;
+        }
+        
+        .block {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: move;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+        }
+        
+        .block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+        }
+        
+        .block-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+        
+        .block-description {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        
+        .workspace-block {
+            background: white;
+            border: 2px solid #667eea;
+            color: #333;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .workspace-block .block-header {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .workspace-block input,
+        .workspace-block textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+        
+        .workspace-block textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .remove-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        
+        .remove-btn:hover {
+            background: #c0392b;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            color: #999;
+            margin: 10px 0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            color: #667eea;
+        }
+        
+        .export-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .export-btn:active {
+            transform: translateY(0);
+        }
+        
+        .keyword {
+            color: #c678dd;
+        }
+        
+        .string {
+            color: #98c379;
+        }
+        
+        .function {
+            color: #61afef;
+        }
+        
+        .comment {
+            color: #5c6370;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🧱 Visual C Code Editor</h1>
+        <p>Drag and drop blocks to build your C program</p>
+    </header>
+    
+    <div class="container">
+        <div class="panel block-palette">
+            <h2>📦 Block Palette</h2>
+            <div class="block" draggable="true" data-type="include">
+                <div class="block-title">#include</div>
+                <div class="block-description">Include header file</div>
+            </div>
+            <div class="block" draggable="true" data-type="printf">
+                <div class="block-title">printf()</div>
+                <div class="block-description">Print text output</div>
+            </div>
+            <div class="block" draggable="true" data-type="return">
+                <div class="block-title">return</div>
+                <div class="block-description">Return value</div>
+            </div>
+        </div>
+        
+        <div class="panel workspace">
+            <h2>🔨 Workspace</h2>
+            <div id="workspace-area">
+                <!-- Blocks will be dropped here -->
+            </div>
+        </div>
+        
+        <div class="panel code-output">
+            <h2>💻 Generated Code</h2>
+            <div class="code-display" id="code-display"></div>
+            <button class="export-btn" onclick="exportCode()">📥 Export to hello.c</button>
+        </div>
+    </div>
+    
+    <script>
+        // Block data structure
+        let blocks = [];
+        let blockIdCounter = 0;
+        
+        // Security: Escape HTML to prevent XSS attacks
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize with default program
+        function initializeDefaultProgram() {
+            blocks = [
+                { id: blockIdCounter++, type: 'include', value: 'stdio.h' },
+                { id: blockIdCounter++, type: 'printf', value: 'Ciao, Mondo!\\n' },
+                { id: blockIdCounter++, type: 'return', value: '0' }
+            ];
+            renderWorkspace();
+            generateCode();
+        }
+        
+        // Drag and drop handlers for palette blocks
+        document.querySelectorAll('.block-palette .block').forEach(block => {
+            block.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('blockType', block.dataset.type);
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+        
+        // Setup workspace drop zone
+        const workspaceArea = document.getElementById('workspace-area');
+        
+        workspaceArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            workspaceArea.classList.add('drag-over');
+        });
+        
+        workspaceArea.addEventListener('dragleave', () => {
+            workspaceArea.classList.remove('drag-over');
+        });
+        
+        workspaceArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            workspaceArea.classList.remove('drag-over');
+            
+            const blockType = e.dataTransfer.getData('blockType');
+            if (blockType) {
+                addBlock(blockType);
+            }
+        });
+        
+        function addBlock(type) {
+            let defaultValue = '';
+            
+            switch(type) {
+                case 'include':
+                    defaultValue = 'stdio.h';
+                    break;
+                case 'printf':
+                    defaultValue = 'Hello world!';
+                    break;
+                case 'return':
+                    defaultValue = '0';
+                    break;
+            }
+            
+            const newBlock = {
+                id: blockIdCounter++,
+                type: type,
+                value: defaultValue
+            };
+            
+            blocks.push(newBlock);
+            
+            renderWorkspace();
+            generateCode();
+        }
+        
+        function removeBlock(id) {
+            blocks = blocks.filter(block => block.id !== id);
+            renderWorkspace();
+            generateCode();
+        }
+        
+        function updateBlockValue(id, newValue) {
+            const block = blocks.find(b => b.id === id);
+            if (block) {
+                block.value = newValue;
+                generateCode();
+            }
+        }
+        
+        function renderWorkspace() {
+            if (blocks.length === 0) {
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone';
+                dropZone.textContent = 'Drop blocks here to start building your program';
+                workspaceArea.innerHTML = '';
+                workspaceArea.appendChild(dropZone);
+                return;
+            }
+            
+            workspaceArea.innerHTML = '';
+            
+            blocks.forEach(block => {
+                const blockEl = document.createElement('div');
+                blockEl.className = 'workspace-block';
+                
+                let content = '';
+                const escapedValue = escapeHtml(block.value);
+                
+                switch(block.type) {
+                    case 'include':
+                        content = `
+                            <div class="block-header">
+                                <span>#include</span>
+                                <button class="remove-btn" onclick="removeBlock(${block.id})">✕ Remove</button>
+                            </div>
+                            <input type="text" value="${escapedValue}" 
+                                   placeholder="Enter header file (e.g., stdio.h)"
+                                   oninput="updateBlockValue(${block.id}, this.value)">
+                        `;
+                        break;
+                    case 'printf':
+                        content = `
+                            <div class="block-header">
+                                <span>printf()</span>
+                                <button class="remove-btn" onclick="removeBlock(${block.id})">✕ Remove</button>
+                            </div>
+                            <textarea placeholder="Enter text to print (use \\n for newline)"
+                                      oninput="updateBlockValue(${block.id}, this.value)">${escapedValue}</textarea>
+                        `;
+                        break;
+                    case 'return':
+                        content = `
+                            <div class="block-header">
+                                <span>return</span>
+                                <button class="remove-btn" onclick="removeBlock(${block.id})">✕ Remove</button>
+                            </div>
+                            <input type="text" value="${escapedValue}" 
+                                   placeholder="Enter return value (e.g., 0)"
+                                   oninput="updateBlockValue(${block.id}, this.value)">
+                        `;
+                        break;
+                }
+                
+                blockEl.innerHTML = content;
+                workspaceArea.appendChild(blockEl);
+            });
+        }
+        
+        function generateCode() {
+            let code = '';
+            
+            // Group blocks by type for proper ordering
+            const includes = blocks.filter(b => b.type === 'include');
+            const statements = blocks.filter(b => b.type === 'printf' || b.type === 'return');
+            
+            // Add includes with escaping
+            includes.forEach(block => {
+                const escapedInclude = escapeHtml(block.value);
+                code += `# include <${block.value}>\n`;
+            });
+            
+            if (includes.length > 0) {
+                code += '\n';
+            }
+            
+            // Add main function
+            code += 'int main(){\n';
+            
+            // Add statements with escaping
+            statements.forEach(block => {
+                if (block.type === 'printf') {
+                    const escapedPrintf = escapeHtml(block.value);
+                    code += `    printf("${block.value}");\n`;
+                } else if (block.type === 'return') {
+                    const escapedReturn = escapeHtml(block.value);
+                    code += `    return ${block.value};\n`;
+                }
+            });
+            
+            code += '}';
+            
+            // Display with syntax highlighting
+            displayCode(code);
+        }
+        
+        function displayCode(code) {
+            const codeDisplay = document.getElementById('code-display');
+            // Use textContent for security - prevents XSS
+            codeDisplay.textContent = code;
+        }
+        
+        function exportCode() {
+            const codeDisplay = document.getElementById('code-display');
+            const code = codeDisplay.textContent;
+            
+            // Create blob and download
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hello.c';
+            a.textContent = 'Download';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Cleanup
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            const alertMsg = document.createElement('div');
+            alertMsg.textContent = 'Code exported successfully as hello.c!';
+            alert(alertMsg.textContent);
+        }
+        
+        // Initialize the editor with a default program
+        initializeDefaultProgram();
+    </script>
+</body>
+</html>
