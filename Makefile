@@ -9,6 +9,8 @@ CLANG = clang
 CFLAGS = -Wall -Wextra
 STRICT_FLAGS = $(CFLAGS) -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
 DEBUG_FLAGS = -g $(CFLAGS)
+# UNIT_TEST_FLAGS: Define this macro to exclude main() from hello.c during unit testing
+# This allows hello.c to be compiled as a library and linked with test code
 UNIT_TEST_FLAGS = -DUNIT_TEST
 
 # Linker flags (currently none needed)
@@ -43,21 +45,29 @@ strict: $(SRC) $(HEADER)
 
 # Build with clang compiler
 # Note: You can also use CC=clang for standard builds
-clang: $(SRC) $(HEADER)
-	$(CLANG) $(CFLAGS) -o $(HELLO_CLANG) $(SRC) $(LDFLAGS)
+# This target is a convenience that uses the CLANG variable
+clang:
+	$(MAKE) CC=$(CLANG) all
+	@mv $(HELLO) $(HELLO_CLANG)
 
 # Debug build with debugging symbols
 debug: $(SRC) $(HEADER)
 	$(CC) $(DEBUG_FLAGS) -o $(HELLO_DEBUG) $(SRC) $(LDFLAGS)
 
 # Unit tests target - compile hello.c as library and link with test
-# Uses trap to ensure cleanup happens even on test failure
+# Note: Artifacts are cleaned up on exit. Set KEEP_TEST_ARTIFACTS=1 to preserve for debugging
 unit-test: $(SRC) $(HEADER) $(TEST_SRC) $(TEST_HEADER)
 	@echo "Building unit tests..."
-	@trap 'rm -f $(HELLO_LIB) $(TEST_RUNNER)' EXIT; \
-	$(CC) $(STRICT_FLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS) && \
-	$(CC) $(STRICT_FLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS) && \
-	(echo "Running unit tests..." && ./$(TEST_RUNNER))
+	@if [ "$(KEEP_TEST_ARTIFACTS)" = "1" ]; then \
+		$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS) && \
+		$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS) && \
+		(echo "Running unit tests..." && ./$(TEST_RUNNER)); \
+	else \
+		trap 'rm -f $(HELLO_LIB) $(TEST_RUNNER)' EXIT; \
+		$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS) && \
+		$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS) && \
+		(echo "Running unit tests..." && ./$(TEST_RUNNER)); \
+	fi
 
 # Test target - run validation script
 test:
@@ -91,9 +101,12 @@ help:
 	@echo "  CC            - C compiler (default: gcc)"
 	@echo "                  Example: make CC=clang"
 	@echo "  CLANG         - Clang compiler (default: clang)"
+	@echo "                  Note: Use 'make clang' or 'make CC=clang' to build with clang"
 	@echo "  CFLAGS        - Standard compiler flags (default: -Wall -Wextra)"
 	@echo "                  Example: make CFLAGS='-O2 -Wall'"
 	@echo "  STRICT_FLAGS  - Strict compiler flags for quality assurance"
 	@echo "  DEBUG_FLAGS   - Compiler flags for debugging builds"
 	@echo "  LDFLAGS       - Linker flags"
 	@echo "                  Example: make LDFLAGS='-lm'"
+	@echo "  KEEP_TEST_ARTIFACTS - Set to 1 to preserve test binaries after unit-test"
+	@echo "                  Example: make unit-test KEEP_TEST_ARTIFACTS=1"
