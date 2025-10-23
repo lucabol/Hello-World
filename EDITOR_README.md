@@ -82,6 +82,14 @@ int main(){
 
 **Security Note:** The exported filename is fixed as `hello.c` for security reasons. The editor does not accept custom filenames from user input, preventing potential path traversal attacks.
 
+**Export Implementation:**
+- Uses the HTML5 Blob API to create a text file from generated code
+- Creates a temporary anchor element with `download` attribute set to `hello.c`
+- Uses `URL.createObjectURL()` to generate a download link
+- Blob MIME type is `text/plain` for compatibility
+- Temporary URL is revoked after download to free memory
+- No server communication required - all processing happens in the browser
+
 ## Tips
 
 - The code auto-generates as you add and modify blocks

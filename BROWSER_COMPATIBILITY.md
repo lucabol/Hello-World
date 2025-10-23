@@ -59,7 +59,10 @@ Manual testing was performed using:
 Automated testing includes:
 - Node.js unit tests for XSS escaping (`test/test_escape_html.js`)
 - CI smoke tests for generated code compilation (`test/test_editor_output.sh`)
+- Integration tests for XSS protection (`test/test_xss_integration.js`)
+
+**Test Results:** All manual tests passed successfully on the above browsers.
+
+**Test Details:** See [BROWSER_TESTING_LOG.md](BROWSER_TESTING_LOG.md) for complete test checklist, browser versions, and testing dates.
 
 Note: Playwright or other browser automation tools are not currently used for UI testing. Tests are performed manually and via headless code validation.
-
-All manual tests passed successfully on the above browsers.

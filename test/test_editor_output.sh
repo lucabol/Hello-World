@@ -1,12 +1,24 @@
 #!/bin/bash
 # Smoke test for the visual editor generated code
 # This test verifies that the default generated C code compiles successfully
+# 
+# Requirements: GCC compiler must be available in PATH
+# This script is designed to run in CI environments with a C compiler installed
 
 set -e  # Exit on error
 set -u  # Exit on undefined variable
 set -o pipefail  # Exit on pipeline failure
 
 echo "🧪 Testing visual editor code generation..."
+
+# Check for GCC compiler
+if ! command -v gcc &> /dev/null; then
+    echo "✗ ERROR: GCC compiler not found in PATH"
+    echo "This test requires GCC to compile generated C code"
+    echo "Install GCC: sudo apt-get update && sudo apt-get install -y gcc"
+    exit 1
+fi
+echo "✓ GCC compiler found: $(gcc --version | head -1)"
 
 # Create a test directory
 TEST_DIR=$(mktemp -d)
