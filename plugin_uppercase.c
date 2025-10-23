@@ -8,24 +8,23 @@
 #include <string.h>
 #include <ctype.h>
 
-/* Static buffer for transformed message */
-static char uppercase_buffer[256];
-
 /* Transform function - converts message to uppercase */
-static const char* uppercase_transform(const char* input) {
+static int uppercase_transform(const char* input, char* output, size_t output_size) {
     size_t i;
     size_t len = strlen(input);
     
-    if (len >= sizeof(uppercase_buffer)) {
-        len = sizeof(uppercase_buffer) - 1;
+    /* Check if output buffer is large enough */
+    if (len >= output_size) {
+        return -1; /* Error: buffer too small */
     }
     
+    /* Transform to uppercase */
     for (i = 0; i < len; i++) {
-        uppercase_buffer[i] = (char)toupper((unsigned char)input[i]);
+        output[i] = (char)toupper((unsigned char)input[i]);
     }
-    uppercase_buffer[len] = '\0';
+    output[len] = '\0';
     
-    return uppercase_buffer;
+    return 0; /* Success */
 }
 
 /* Before hook - executes before the main message */

@@ -10,35 +10,38 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Static buffer for the repeated message */
-static char repeat_buffer[1024];
-
 /* Configuration: Number of times to repeat (could be from environment variable) */
 #define REPEAT_COUNT 3
 
 /* Transform function - repeats the message */
-static const char* repeat_transform(const char* input) {
+static int repeat_transform(const char* input, char* output, size_t output_size) {
     int i;
     size_t offset = 0;
     size_t input_len = strlen(input);
+    int result;
     
-    /* Clear buffer */
-    repeat_buffer[0] = '\0';
+    /* Clear output buffer */
+    output[0] = '\0';
     
     /* Repeat the message */
-    for (i = 0; i < REPEAT_COUNT && offset < sizeof(repeat_buffer) - input_len - 10; i++) {
+    for (i = 0; i < REPEAT_COUNT; i++) {
         if (i > 0) {
             /* Add separator between repetitions */
-            offset += (size_t)snprintf(repeat_buffer + offset, 
-                                       sizeof(repeat_buffer) - offset, 
-                                       " | ");
+            result = snprintf(output + offset, output_size - offset, " | ");
+            if (result < 0 || offset + (size_t)result >= output_size) {
+                return -1; /* Error: buffer too small */
+            }
+            offset += (size_t)result;
         }
-        offset += (size_t)snprintf(repeat_buffer + offset, 
-                                   sizeof(repeat_buffer) - offset, 
-                                   "%s", input);
+        
+        result = snprintf(output + offset, output_size - offset, "%s", input);
+        if (result < 0 || offset + (size_t)result >= output_size) {
+            return -1; /* Error: buffer too small */
+        }
+        offset += (size_t)result;
     }
     
-    return repeat_buffer;
+    return 0; /* Success */
 }
 
 /* Before hook - announces the repetition count */

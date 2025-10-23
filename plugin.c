@@ -16,8 +16,9 @@ void plugin_register(const char* name,
                     plugin_hook_fn before,
                     plugin_hook_fn after) {
     if (plugin_count >= MAX_PLUGINS) {
-        fprintf(stderr, "Warning: Maximum number of plugins (%d) reached. Cannot register '%s'\n", 
+        fprintf(stderr, "ERROR: Maximum number of plugins (%d) reached. Cannot register '%s'\n", 
                 MAX_PLUGINS, name);
+        fprintf(stderr, "Increase MAX_PLUGINS at compile time with -DMAX_PLUGINS=N\n");
         return;
     }
     
@@ -28,18 +29,74 @@ void plugin_register(const char* name,
     plugin_count++;
 }
 
-/* Execute all transform functions in registered order */
-const char* plugin_execute_transforms(const char* input) {
-    const char* result = input;
+/* Get the current plugin count */
+int plugin_get_count(void) {
+    return plugin_count;
+}
+
+/* Execute all transform functions in registered order 
+ * Uses double-buffering to safely chain transforms
+ */
+int plugin_execute_transforms(const char* input, char* output, size_t output_size) {
+    char buffer1[PLUGIN_BUFFER_SIZE];
+    char buffer2[PLUGIN_BUFFER_SIZE];
+    char* current_input;
+    char* current_output;
+    size_t input_len;
     int i;
+    int result;
     
+    /* Validate input */
+    if (input == NULL || output == NULL || output_size == 0) {
+        return -1;
+    }
+    
+    input_len = strlen(input);
+    if (input_len >= PLUGIN_BUFFER_SIZE) {
+        fprintf(stderr, "ERROR: Input message too long (%zu bytes, max %d)\n", 
+                input_len, PLUGIN_BUFFER_SIZE - 1);
+        return -1;
+    }
+    
+    /* Copy input to first buffer */
+    strncpy(buffer1, input, PLUGIN_BUFFER_SIZE - 1);
+    buffer1[PLUGIN_BUFFER_SIZE - 1] = '\0';
+    
+    current_input = buffer1;
+    current_output = buffer2;
+    
+    /* Execute transforms, ping-ponging between buffers */
     for (i = 0; i < plugin_count; i++) {
         if (plugin_registry[i].transform != NULL) {
-            result = plugin_registry[i].transform(result);
+            result = plugin_registry[i].transform(current_input, current_output, PLUGIN_BUFFER_SIZE);
+            if (result != 0) {
+                fprintf(stderr, "ERROR: Plugin '%s' transform failed (code %d)\n", 
+                        plugin_registry[i].name, result);
+                return result;
+            }
+            
+            /* Swap buffers for next iteration */
+            if (current_input == buffer1) {
+                current_input = buffer2;
+                current_output = buffer1;
+            } else {
+                current_input = buffer1;
+                current_output = buffer2;
+            }
         }
     }
     
-    return result;
+    /* Copy final result to output */
+    strncpy(output, current_input, output_size - 1);
+    output[output_size - 1] = '\0';
+    
+    /* Check if output was truncated */
+    if (strlen(current_input) >= output_size) {
+        fprintf(stderr, "WARNING: Output truncated (%zu bytes, buffer %zu bytes)\n",
+                strlen(current_input), output_size);
+    }
+    
+    return 0;
 }
 
 /* Execute all before hooks */

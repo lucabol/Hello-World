@@ -3,9 +3,13 @@ hello
 hello_debug
 hello_optimized
 hello_strict
+hello_strict_plugins
 hello_clang
 hello_warnings
 hello_test*
+hello_chain*
+hello_combined
+hello_triple
 hello_with_plugins
 hello_uppercase
 hello_decorator

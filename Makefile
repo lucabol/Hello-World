@@ -36,8 +36,8 @@ hello: $(CORE)
 # Build with all plugins
 .PHONY: with-plugins
 with-plugins:
-	$(CC) $(CFLAGS) -DUSE_PLUGINS -o hello_with_plugins $(CORE) $(PLUGIN_SRC) $(PLUGIN_UPPERCASE) $(PLUGIN_DECORATOR)
-	@echo "Built hello_with_plugins with all plugins enabled"
+	$(CC) $(CFLAGS) -DUSE_PLUGINS -o hello_with_plugins $(CORE) $(PLUGIN_SRC) $(PLUGIN_UPPERCASE) $(PLUGIN_DECORATOR) $(PLUGIN_LOGGER)
+	@echo "Built hello_with_plugins with all example plugins enabled"
 	@echo "Run with: ./hello_with_plugins"
 
 # Build with uppercase plugin only
@@ -66,6 +66,12 @@ logger:
 strict:
 	$(CC) $(STRICT_FLAGS) -o hello_strict $(CORE)
 
+# Build plugins with strict compilation flags (for testing)
+.PHONY: strict-plugins
+strict-plugins:
+	$(CC) $(STRICT_FLAGS) -DUSE_PLUGINS -o hello_strict_plugins $(CORE) $(PLUGIN_SRC) $(PLUGIN_UPPERCASE) $(PLUGIN_DECORATOR) $(PLUGIN_LOGGER)
+	@echo "Built with strict flags and all plugins"
+
 # Run validation tests
 .PHONY: test
 test: strict
@@ -80,7 +86,7 @@ test-quiet: strict
 # Clean build artifacts
 .PHONY: clean
 clean:
-	rm -f hello hello_strict hello_with_plugins hello_uppercase hello_decorator hello_logger
+	rm -f hello hello_strict hello_strict_plugins hello_with_plugins hello_uppercase hello_decorator hello_logger
 	rm -f *.o *.out *.exe
 	@echo "Cleaned build artifacts"
 

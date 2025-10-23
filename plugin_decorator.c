@@ -7,13 +7,16 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Static buffer for decorated message */
-static char decorated_buffer[256];
-
 /* Transform function - adds asterisks around the message */
-static const char* decorator_transform(const char* input) {
-    snprintf(decorated_buffer, sizeof(decorated_buffer), "*** %s ***", input);
-    return decorated_buffer;
+static int decorator_transform(const char* input, char* output, size_t output_size) {
+    int result = snprintf(output, output_size, "*** %s ***", input);
+    
+    /* Check for errors or truncation */
+    if (result < 0 || (size_t)result >= output_size) {
+        return -1; /* Error: buffer too small */
+    }
+    
+    return 0; /* Success */
 }
 
 /* Before hook - prints a header */

@@ -12,11 +12,13 @@
  *   // In your plugin file (e.g., my_plugin.c)
  *   #include "plugin.h"
  *   
- *   const char* my_transform(const char* input) {
+ *   int my_transform(const char* input, char* output, size_t output_size) {
  *       // Transform the input message
- *       static char buffer[256];
- *       snprintf(buffer, sizeof(buffer), "*** %s ***", input);
- *       return buffer;
+ *       int result = snprintf(output, output_size, "*** %s ***", input);
+ *       if (result < 0 || (size_t)result >= output_size) {
+ *           return -1; // Error: output buffer too small
+ *       }
+ *       return 0; // Success
  *   }
  *   
  *   void my_before(void) {
@@ -37,11 +39,60 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H
 
-/* Maximum number of plugins that can be registered */
-#define MAX_PLUGINS 10
+#include <stddef.h>  /* For size_t */
 
-/* Plugin function types */
-typedef const char* (*plugin_transform_fn)(const char* input);
+/* Maximum number of plugins that can be registered 
+ * Can be overridden at compile time with -DMAX_PLUGINS=N
+ */
+#ifndef MAX_PLUGINS
+#define MAX_PLUGINS 10
+#endif
+
+/* Plugin buffer size for transform chaining 
+ * Can be overridden at compile time with -DPLUGIN_BUFFER_SIZE=N
+ */
+#ifndef PLUGIN_BUFFER_SIZE
+#define PLUGIN_BUFFER_SIZE 1024
+#endif
+
+/* 
+ * PORTABILITY AND LIMITATIONS:
+ * 
+ * - This plugin system uses GCC/Clang __attribute__((constructor)) for automatic
+ *   registration. This is not portable to MSVC or other non-GCC-compatible compilers.
+ *   If using unsupported compilers, plugins must use explicit registration (see below).
+ * 
+ * - Constructor execution order across translation units is not guaranteed by the C
+ *   standard. Plugin registration order may vary depending on link order. Do not
+ *   rely on specific plugin execution order for correctness.
+ * 
+ * - THREAD SAFETY: The plugin system is NOT thread-safe. All plugin registration
+ *   must complete before any plugin execution. Transform functions should be reentrant
+ *   and avoid mutable global state unless synchronized externally.
+ * 
+ * - REENTRANCY: Transform functions receive independent output buffers and should
+ *   not rely on static/global mutable state to ensure correct chaining behavior.
+ */
+
+/* Plugin function types 
+ * 
+ * Transform function signature:
+ *   int transform(const char* input, char* output, size_t output_size)
+ * 
+ * Parameters:
+ *   - input: The input message to transform (null-terminated, read-only)
+ *   - output: Buffer to write the transformed message (null-terminated)
+ *   - output_size: Size of the output buffer in bytes
+ * 
+ * Returns:
+ *   - 0 on success
+ *   - Non-zero on error (e.g., output buffer too small)
+ * 
+ * The transform function must write a null-terminated string to output
+ * and ensure it does not exceed output_size bytes (including null terminator).
+ * If the output would exceed the buffer, the function should return an error.
+ */
+typedef int (*plugin_transform_fn)(const char* input, char* output, size_t output_size);
 typedef void (*plugin_hook_fn)(void);
 
 /* Plugin structure */
@@ -56,25 +107,36 @@ typedef struct {
 extern plugin_t plugin_registry[MAX_PLUGINS];
 extern int plugin_count;
 
-/* Register a plugin */
+/* Register a plugin 
+ * This function can be called explicitly from plugin code for portability
+ * to compilers that don't support constructor attributes.
+ */
 void plugin_register(const char* name, 
                     plugin_transform_fn transform,
                     plugin_hook_fn before,
                     plugin_hook_fn after);
 
+/* Get the current plugin count (useful for testing overflow) */
+int plugin_get_count(void);
+
 /* Execute all registered plugins */
-const char* plugin_execute_transforms(const char* input);
+int plugin_execute_transforms(const char* input, char* output, size_t output_size);
 void plugin_execute_before_hooks(void);
 void plugin_execute_after_hooks(void);
 
 /* Convenience macro for plugin registration 
- * Note: Use without trailing semicolon for ISO C compliance, or wrap in extern "C" block
+ * Note: Uses GCC/Clang constructor attribute. Not portable to MSVC.
+ * For non-GCC compilers, call plugin_register() explicitly.
  */
+#if defined(__GNUC__) || defined(__clang__)
 #define PLUGIN_REGISTER(name, transform, before, after) \
     static void __plugin_init_##name(void) __attribute__((constructor)); \
     static void __plugin_init_##name(void) { \
         plugin_register(#name, transform, before, after); \
     } \
     typedef void __plugin_dummy_##name
+#else
+#error "Plugin auto-registration requires GCC or Clang. Use explicit plugin_register() calls or define PLUGIN_MANUAL_REGISTRATION."
+#endif
 
 #endif /* PLUGIN_H */
