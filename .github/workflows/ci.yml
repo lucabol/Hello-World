@@ -49,6 +49,9 @@ jobs:
     - name: Run metrics tool tests
       run: bash test/test_metrics.sh
 
+    - name: Run spreadsheet interface tests
+      run: bash test/test_spreadsheet_interface.sh
+
     - name: Run unit tests
       run: make unit-test
 
@@ -96,6 +99,9 @@ jobs:
     - name: Run metrics tool tests with Clang build
       run: bash test/test_metrics.sh
 
+    - name: Run spreadsheet interface tests with Clang build
+      run: bash test/test_spreadsheet_interface.sh
+
     - name: Run unit tests with Clang
       run: make unit-test CC=clang
 
@@ -124,60 +130,32 @@ jobs:
         bash test/test_metrics.sh
 
     - name: Test signal handling cleanup
+      run: bash test/test_signal_handling.sh ./metrics_tool_asan
+
+  # CodeQL security analysis
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: 'c-cpp'
+        queries: +security-and-quality
+
+    - name: Build for CodeQL analysis
       run: |
-        set -euo pipefail
-        export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+        make all
+        make metrics_tool
 
-        # Test SIGINT handling with robust process group signaling
-        # Use setsid to create new process group for reliable signal delivery
-        echo "Testing SIGINT signal handling..."
-        timeout 10s bash -c '
-          # Start metrics_tool in its own process group (interactive mode waits for input)
-          setsid ./metrics_tool_asan hello.c < /dev/null > /dev/null 2>&1 &
-          PID=$!
-          sleep 0.5
-
-          # Send SIGINT to the entire process group
-          kill -SIGINT -- -$PID 2>/dev/null || kill -SIGINT $PID 2>/dev/null || true
-
-          # Wait for process and capture exit code
-          wait $PID 2>/dev/null || EXIT_CODE=$?
-
-          # Document expected behavior: tool should exit with signal-derived code (130)
-          # or handle signal gracefully (0). Both indicate no leaks/crashes (validated by ASAN).
-          if [ "${EXIT_CODE:-0}" -ne 130 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
-            echo "✗ SIGINT test failed: exit code ${EXIT_CODE:-0} (expected 130 or 0)"
-            exit 1
-          fi
-          echo "✓ SIGINT test passed: exit code ${EXIT_CODE:-0}, no ASAN errors"
-        ' || {
-          echo "✗ SIGINT test timed out or failed"
-          exit 1
-        }
-
-        # Test SIGTERM handling with same robust approach
-        echo "Testing SIGTERM signal handling..."
-        timeout 10s bash -c '
-          # Start metrics_tool in its own process group
-          setsid ./metrics_tool_asan hello.c < /dev/null > /dev/null 2>&1 &
-          PID=$!
-          sleep 0.5
-
-          # Send SIGTERM to the entire process group
-          kill -SIGTERM -- -$PID 2>/dev/null || kill -SIGTERM $PID 2>/dev/null || true
-
-          # Wait for process and capture exit code
-          wait $PID 2>/dev/null || EXIT_CODE=$?
-
-          # Expected: signal-derived code (143) or graceful exit (0)
-          if [ "${EXIT_CODE:-0}" -ne 143 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
-            echo "✗ SIGTERM test failed: exit code ${EXIT_CODE:-0} (expected 143 or 0)"
-            exit 1
-          fi
-          echo "✓ SIGTERM test passed: exit code ${EXIT_CODE:-0}, no ASAN errors"
-        ' || {
-          echo "✗ SIGTERM test timed out or failed"
-          exit 1
-        }
-
-        echo "✓ All signal handling tests passed - no memory leaks or crashes detected"
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:c-cpp"
