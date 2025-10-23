@@ -22,9 +22,17 @@ make test         # Run all tests
 - **`make clang`** - Build using the Clang compiler
 - **`make unit-test`** - Compile and run unit tests
 - **`make test`** - Run all tests (unit tests + validation script)
-- **`make test-quiet`** - Run tests with minimal output (CI-friendly)
+- **`make test-quiet`** - Run tests with minimal output (for CI/automated environments)
 - **`make clean`** - Remove all build artifacts
 - **`make help`** - Display help message with available targets
+
+### CI and Automated Testing
+
+For CI environments, use `make test-quiet` which:
+- Minimizes verbose output from build and test processes
+- Highlights only test results and errors
+- Uses the `--quiet` flag for validation scripts
+- Suitable for automated build pipelines
 
 ### Customizing the Build
 
@@ -43,13 +51,13 @@ make CC=gcc-12 strict         # Build with a specific GCC version
 
 ### Output Format
 
-The program outputs:
+The program outputs exactly two lines:
 ```
 Ciao, Mondo!
 Exit code: 0
 ```
 
-This format is validated by the test suite to ensure consistency.
+**Important:** This exact format (including the "Exit code: 0" line and trailing newlines) is validated by the test suite to ensure consistency. Do not modify the output format without also updating the validation tests in `test/validate.sh`.
 
 ### Unit Testing
 

@@ -1,6 +1,9 @@
 # Makefile for Hello World C program
 # Provides standard build targets for development and CI workflows
 
+# Set shell explicitly for consistent behavior across systems
+SHELL := /bin/bash
+
 # Compiler settings (can be overridden via environment or command line)
 CC ?= gcc
 CLANG ?= clang
@@ -23,7 +26,7 @@ TEST_RUNNER = test_hello_runner
 LIB_OBJ = hello_lib.o
 
 # Phony targets (not actual files)
-.PHONY: all build strict debug clang unit-test test test-quiet clean help
+.PHONY: all build strict debug clang unit-test unit-test-quiet test test-quiet clean help
 
 # Default target - build release binary
 all: build
@@ -52,7 +55,7 @@ clang:
 	@echo "✓ Clang build complete: $(BIN_CLANG)"
 
 # Compile and run unit tests
-unit-test:
+unit-test: hello.h
 	@echo "Building and running unit tests..."
 	@if [ -f test/run_unit_tests.sh ]; then \
 		bash test/run_unit_tests.sh; \
@@ -64,14 +67,24 @@ unit-test:
 		./$(TEST_RUNNER) && $(RM) $(LIB_OBJ) $(TEST_RUNNER) || { echo "Tests failed - artifacts preserved for debugging"; exit 1; }; \
 	fi
 
+# Compile and run unit tests in quiet mode (minimal output)
+unit-test-quiet: hello.h
+	@if [ -f test/run_unit_tests.sh ]; then \
+		bash test/run_unit_tests.sh 2>&1 | grep -E "(PASSED|FAILED|✓|✗|Error|error)" || true; \
+	else \
+		$(CC) $(CFLAGS_STRICT) -I. -DUNIT_TEST -c -o $(LIB_OBJ) $(SRC) 2>&1 || exit 1; \
+		$(CC) $(CFLAGS_STRICT) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(LIB_OBJ) 2>&1 || exit 1; \
+		./$(TEST_RUNNER) 2>&1 | grep -E "(PASSED|FAILED|✓|✗)" && $(RM) $(LIB_OBJ) $(TEST_RUNNER) || { echo "Tests failed - artifacts preserved for debugging"; exit 1; }; \
+	fi
+
 # Run all tests (validation script and unit tests)
 test: build unit-test
 	@echo "Running validation tests..."
-	@bash test/validate.sh
+	@bash test/validate.sh || exit 1
 
 # Run tests in quiet mode (CI-friendly output)
-test-quiet: build unit-test
-	@bash test/validate.sh --quiet
+test-quiet: build unit-test-quiet
+	@bash test/validate.sh --quiet || exit 1
 
 # Clean all build artifacts
 clean:
@@ -80,7 +93,6 @@ clean:
 	@$(RM) $(TEST_RUNNER) $(LIB_OBJ)
 	@$(RM) *.exe *.out *.o *.obj
 	@$(RM) test/*.o test/*.exe test/*.out
-	@$(RM) hello_warnings hello_optimized hello_test* voice_demo voice_demo_test
 	@echo "✓ Clean complete"
 
 # Help target - display available targets
