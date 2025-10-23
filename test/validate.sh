@@ -29,8 +29,9 @@ else
     NC=''
 fi
 
-# Expected output (greeting message with trailing newline)
+# Expected output (greeting message with exit code and trailing newline)
 EXPECTED_OUTPUT="Ciao, Mondo!
+Exit code: 0
 "
 
 
