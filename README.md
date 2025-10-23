@@ -19,11 +19,24 @@ make
 ./hello
 ```
 
-Expected output:
+Expected output (exactly 2 lines with trailing newlines):
 ```
 Ciao, Mondo!
 Exit code: 0
 ```
+
+The program outputs:
+- Line 1: "Ciao, Mondo!" followed by newline (0x0a)
+- Line 2: "Exit code: 0" followed by newline (0x0a)
+- Exit code: 0 (success)
+
+Byte-level representation (hexdump):
+```
+00000000  43 69 61 6f 2c 20 4d 6f  6e 64 6f 21 0a 45 78 69  |Ciao, Mondo!.Exi|
+00000010  74 20 63 6f 64 65 3a 20  30 0a                    |t code: 0.|
+```
+
+Total output: 26 bytes including both newlines.
 
 ### Unit Testing
 
@@ -72,19 +85,25 @@ make test-quiet
 The validation checks:
 - Strict compilation with all warnings as errors
 - Program exits with code 0
-- Exact output format (including trailing newlines)
-- Byte-level output verification using hexdump
+- Exact output format: "Ciao, Mondo!\nExit code: 0\n" (26 bytes total)
+- Both lines end with newline characters
+- Byte-level output verification using hexdump (or od as fallback)
 
 ### Available Make Targets
 
+**Developer Targets (no -Werror):**
 - `make` or `make all` - Build with developer-friendly flags (no -Werror)
 - `make dev` - Same as above (explicit developer build)
-- `make strict` - Build with strict flags (-Werror) for CI
 - `make debug` - Build with debug symbols (-g)
 - `make clang` - Build using Clang compiler
-- `make unit-test` - Build and run unit tests
-- `make test` - Run validation tests (verbose)
-- `make test-quiet` - Run validation tests (quiet mode for CI)
+
+**CI/Testing Targets (strict, with -Werror):**
+- `make strict` - Build with strict flags (-Werror) for CI
+- `make unit-test` - Build and run unit tests (uses strict flags)
+- `make test` - Run validation tests (verbose, uses strict flags)
+- `make test-quiet` - Run validation tests (quiet mode for CI, uses strict flags)
+
+**Utility Targets:**
 - `make clean` - Remove all build artifacts
 
 ### For CI/CD

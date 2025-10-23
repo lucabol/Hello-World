@@ -5,10 +5,27 @@
 #
 # Usage: ./test/validate.sh [--quiet]
 #        --quiet: Reduce output verbosity for CI environments
+#
+# Dependencies: bash, gcc, hexdump or od
 
 set -e  # Exit on any error
 set -u  # Exit on unset variables  
 set -o pipefail  # Exit on pipeline failures
+
+# Detect repository root (works when invoked from any directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}"
+
+# Detect hexdump utility (prefer hexdump, fallback to od)
+if command -v hexdump >/dev/null 2>&1; then
+    HEXDUMP_CMD="hexdump -C"
+elif command -v od >/dev/null 2>&1; then
+    HEXDUMP_CMD="od -An -tx1 -v"
+else
+    echo "Error: Neither hexdump nor od found. Please install one of them."
+    exit 1
+fi
 
 # Parse command line arguments
 QUIET_MODE=false
@@ -113,9 +130,9 @@ if [[ "${OUTPUT}" != "${EXPECTED_OUTPUT}" ]]; then
     printf "Actual length:   %d\n" "${#OUTPUT}"
     # Show hex dump for detailed analysis
     printf "Expected (hex):\n"
-    printf '%s' "${EXPECTED_OUTPUT}" | hexdump -C | head -1
+    printf '%s' "${EXPECTED_OUTPUT}" | ${HEXDUMP_CMD} | head -1
     printf "Actual (hex):\n"
-    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    printf '%s' "${OUTPUT}" | ${HEXDUMP_CMD} | head -1
     exit 1
 fi
 print_success "Output format is correct"
@@ -128,7 +145,7 @@ else
     print_error "Output missing expected trailing newline"
     printf "Output should end with newline character\n"
     printf "Raw output (hex):\n"
-    printf '%s' "${OUTPUT}" | hexdump -C | head -1
+    printf '%s' "${OUTPUT}" | ${HEXDUMP_CMD} | head -1
     exit 1
 fi
 

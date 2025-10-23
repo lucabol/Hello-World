@@ -38,9 +38,18 @@
  *   units. Each translation unit gets its own copy of the test infrastructure.
  *   This is a header-only library pattern suitable for single-file test runners.
  *   
+ *   The 'static' keyword ensures internal linkage, meaning each .c file that
+ *   includes this header gets its own private copy of the functions and variables.
+ *   This is intentional and avoids linker errors when multiple test files exist.
+ *   
  *   If you need to share test state across multiple test files, consider:
  *   - Using a single test runner file that includes all test functions, OR
  *   - Moving the test framework to a separate .c file and linking it as a library
+ * 
+ * C++ Compatibility:
+ *   This is a C-only header. For C++ test files, the tested functions should use
+ *   extern "C" linkage (see hello.h for example). The test framework itself should
+ *   be used from C test files only.
  */
 #ifndef SIMPLE_TEST_H
 #define SIMPLE_TEST_H

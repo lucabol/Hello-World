@@ -1,10 +1,20 @@
 # Makefile for Hello World C program
 # Provides standardized build targets for development and CI
+#
+# Target Categories:
+# - Developer targets (all, dev, debug, clang): Use CFLAGS_DEV (no -Werror)
+# - CI/Testing targets (strict, unit-test, test*): Use CFLAGS with -Werror
+#
+# Variables:
+# - CC: Compiler (gcc by default, can override with CC=clang make ...)
+# - CFLAGS_DEV: Developer-friendly flags without -Werror
+# - CFLAGS: Strict flags with -Werror for CI
+# - STRICT_FLAGS: Additional strict warnings for CI builds
 
 CC = gcc
 # Developer-friendly flags (warnings without -Werror for local development)
 CFLAGS_DEV = -Wall -Wextra -Wpedantic -std=c99
-# Strict flags for CI and strict target
+# Strict flags for CI and strict target (includes -Werror)
 CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c99
 STRICT_FLAGS = -Wformat=2 -Wconversion -Wsign-conversion
 BINARY = hello
@@ -33,17 +43,19 @@ strict: hello.c hello.h
 debug: hello.c hello.h
 	$(CC) -g $(CFLAGS_DEV) -o $(DEBUG_BINARY) hello.c
 
-# Build with Clang
+# Build with Clang (uses developer-friendly flags)
 clang: hello.c hello.h
 	clang $(CFLAGS_DEV) -o $(CLANG_BINARY) hello.c
 
 # Build unit test library and runner, then run tests
-# This target is self-contained and doesn't rely on external scripts to compile
+# This target uses strict flags (with -Werror) for CI quality
+# The test runner is self-contained and doesn't rely on external scripts
 unit-test: $(TEST_RUNNER)
 	@./$(TEST_RUNNER)
 
 # Build the test runner by compiling hello.c as a library with -DUNIT_TEST
 # and linking it with the test file
+# Note: Uses strict flags to catch any warnings during test builds
 $(TEST_RUNNER): hello.c hello.h test/test_hello.c test/simple_test.h
 	$(CC) $(CFLAGS) $(STRICT_FLAGS) -I. -c -o $(TEST_LIB) hello.c -DUNIT_TEST
 	$(CC) $(CFLAGS) $(STRICT_FLAGS) -I. -o $(TEST_RUNNER) test/test_hello.c $(TEST_LIB)
