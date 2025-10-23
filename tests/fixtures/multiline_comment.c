@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /* This is a multi-line
  * block comment that spans
  * several lines

@@ -1,5 +1,11 @@
 # Makefile for Hello World and Code Metrics
 # Simple build system for C programs
+#
+# Usage examples:
+#   make                    # Build all targets
+#   make CC=clang          # Build with Clang
+#   make CFLAGS="-O2"      # Override compiler flags
+#   make code_metrics_strict  # Build with strict warnings
 
 CC ?= gcc
 CFLAGS ?= -Wall -Wextra -std=c99
@@ -36,12 +42,16 @@ debug: hello.c
 test: strict
 	./test/validate.sh
 
+# Run unit tests
+unit-test:
+	./test/run_unit_tests.sh
+
 # Run code_metrics tests
 test-metrics: code_metrics
 	./tests/run_tests.sh
 
 # Run all tests
-test-all: test test-metrics
+test-all: test unit-test test-metrics
 
 # Run tests quietly (for CI)
 test-quiet: strict
@@ -55,4 +65,4 @@ clean:
 	rm -f test_hello_runner
 
 # Phony targets
-.PHONY: all strict clang debug test test-metrics test-all test-quiet clean code_metrics_strict
+.PHONY: all strict clang debug test unit-test test-metrics test-all test-quiet clean code_metrics_strict

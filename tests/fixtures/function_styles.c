@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /* Test different function definition styles */
 #include <stdio.h>
 

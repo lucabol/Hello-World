@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /* Simple test file */
 #include <stdio.h>
 

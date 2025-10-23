@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
 # Test script for code_metrics analyzer
 # Runs code_metrics on test fixtures and validates output
 
