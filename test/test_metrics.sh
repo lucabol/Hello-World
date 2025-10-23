@@ -24,7 +24,8 @@ set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 # Force C locale for consistent, locale-independent behavior
 export LC_ALL=C
 
-TOOL="./metrics_tool"
+# Allow overriding the tool binary via environment variable (default: ./metrics_tool)
+TOOL="${METRICS_TOOL_BINARY:-./metrics_tool}"
 TEST_DIR="/tmp/metrics_tests"
 FAILED=0
 PASSED=0

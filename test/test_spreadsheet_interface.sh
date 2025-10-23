@@ -14,6 +14,9 @@ NC='\033[0m' # No Color
 PASSED=0
 FAILED=0
 
+# Allow overriding the tool binary via environment variable (default: ./metrics_tool)
+TOOL="${METRICS_TOOL_BINARY:-./metrics_tool}"
+
 test_pass() {
     echo -e "${GREEN}✓${NC} $1"
     PASSED=$((PASSED + 1))
@@ -25,7 +28,7 @@ test_fail() {
 }
 
 # Ensure metrics_tool exists
-if [ ! -f ./metrics_tool ]; then
+if [ ! -f "$TOOL" ]; then
     echo "Error: metrics_tool not found. Run 'make metrics_tool' first."
     exit 1
 fi
@@ -36,7 +39,7 @@ echo ""
 
 # Test 1: CSV output format validation
 echo "Test 1: CSV output format with correct headers"
-CSV_OUTPUT=$(./metrics_tool --csv hello.c)
+CSV_OUTPUT=$($TOOL --csv hello.c)
 if echo "$CSV_OUTPUT" | head -1 | grep -q "Filename,Total Lines,Code Lines,Blank Lines,Comment Lines,Functions,Includes,Max Line Length"; then
     test_pass "CSV headers are correct"
 else
@@ -63,8 +66,8 @@ fi
 
 # Test 4: Non-interactive mode produces deterministic output
 echo "Test 4: Non-interactive mode output is deterministic"
-OUTPUT1=$(./metrics_tool -n hello.c)
-OUTPUT2=$(./metrics_tool -n hello.c)
+OUTPUT1=$($TOOL -n hello.c)
+OUTPUT2=$($TOOL -n hello.c)
 if [ "$OUTPUT1" = "$OUTPUT2" ]; then
     test_pass "Non-interactive output is deterministic"
 else
@@ -73,7 +76,7 @@ fi
 
 # Test 5: Spreadsheet table rendering (non-interactive)
 echo "Test 5: Spreadsheet table contains box-drawing characters"
-TABLE_OUTPUT=$(./metrics_tool -n hello.c)
+TABLE_OUTPUT=$($TOOL -n hello.c)
 if echo "$TABLE_OUTPUT" | grep -q "═\|║\|╔\|╗\|╚\|╝\|╠\|╣\|╬"; then
     test_pass "Table uses spreadsheet-like box-drawing characters"
 else
@@ -115,7 +118,7 @@ fi
 
 # Test 9: Help output mentions spreadsheet
 echo "Test 9: Help output describes spreadsheet functionality"
-HELP_OUTPUT=$(./metrics_tool --help)
+HELP_OUTPUT=$($TOOL --help)
 if echo "$HELP_OUTPUT" | grep -qi "spreadsheet\|table\|tabular"; then
     test_pass "Help mentions spreadsheet/table functionality"
 else
@@ -124,7 +127,7 @@ fi
 
 # Test 10: Version output is present
 echo "Test 10: Version flag produces output"
-VERSION_OUTPUT=$(./metrics_tool --version)
+VERSION_OUTPUT=$($TOOL --version)
 if [ -n "$VERSION_OUTPUT" ]; then
     test_pass "Version output is present"
 else
@@ -133,7 +136,7 @@ fi
 
 # Test 11: Exit code validation
 echo "Test 11: Successful analysis returns exit code 0"
-if ./metrics_tool --csv hello.c > /dev/null 2>&1; then
+if $TOOL --csv hello.c > /dev/null 2>&1; then
     test_pass "Exit code 0 on successful analysis"
 else
     test_fail "Non-zero exit code on successful analysis"

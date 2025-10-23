@@ -33,8 +33,8 @@ jobs:
         echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
 
-    - name: Build all targets with Makefile
-      run: make all
+    - name: Build all targets with Makefile (using strict GCC flags)
+      run: make all CFLAGS="$GCC_FLAGS" CFLAGS_METRICS="$GCC_FLAGS"
 
     - name: Test hello build
       run: ./hello
@@ -47,10 +47,10 @@ jobs:
         ./metrics_tool -n hello.c
 
     - name: Run metrics tool tests
-      run: bash test/test_metrics.sh
+      run: METRICS_TOOL_BINARY=./metrics_tool bash test/test_metrics.sh
 
     - name: Run spreadsheet interface tests
-      run: bash test/test_spreadsheet_interface.sh
+      run: METRICS_TOOL_BINARY=./metrics_tool bash test/test_spreadsheet_interface.sh
 
     - name: Run unit tests
       run: make unit-test
@@ -82,14 +82,14 @@ jobs:
       run: |
         echo "Clang version: $(clang --version | head -1)"
 
-    - name: Build with Clang using Makefile
-      run: make clang
+    - name: Build with Clang using Makefile (using portable flags)
+      run: make clang CC=clang
 
     - name: Test Clang build
       run: ./hello_clang
 
-    - name: Build code metrics tool with Clang using Makefile
-      run: make metrics_tool_clang
+    - name: Build code metrics tool with Clang using Makefile (using portable flags)
+      run: make metrics_tool_clang CC=clang
 
     - name: Test metrics tool with Clang
       run: |
@@ -97,10 +97,10 @@ jobs:
         ./metrics_tool_clang --csv hello.c
 
     - name: Run metrics tool tests with Clang build
-      run: bash test/test_metrics.sh
+      run: METRICS_TOOL_BINARY=./metrics_tool_clang bash test/test_metrics.sh
 
     - name: Run spreadsheet interface tests with Clang build
-      run: bash test/test_spreadsheet_interface.sh
+      run: METRICS_TOOL_BINARY=./metrics_tool_clang bash test/test_spreadsheet_interface.sh
 
     - name: Run unit tests with Clang
       run: make unit-test CC=clang
@@ -127,7 +127,7 @@ jobs:
         export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
         ./metrics_tool_asan --version
         ./metrics_tool_asan --csv hello.c
-        bash test/test_metrics.sh
+        METRICS_TOOL_BINARY=./metrics_tool_asan bash test/test_metrics.sh
 
     - name: Test signal handling cleanup
       run: bash test/test_signal_handling.sh ./metrics_tool_asan

@@ -3,12 +3,15 @@
 #
 # Note: -Werror is intentionally enabled for CI quality assurance to catch potential issues early.
 # Contributors should ensure code compiles cleanly with the same flags.
+# CI can override flags by passing CFLAGS="..." and CFLAGS_METRICS="..." to make.
 
-CC = gcc
+CC ?= gcc
 # Standard flags for hello program (strict with -Werror for quality)
-CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
+# Can be overridden: make CFLAGS="..."
+CFLAGS ?= -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
 # Flags for metrics tool (requires POSIX for getline)
-CFLAGS_METRICS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -D_POSIX_C_SOURCE=200809L
+# Can be overridden: make CFLAGS_METRICS="..."
+CFLAGS_METRICS ?= -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -D_POSIX_C_SOURCE=200809L
 TARGET = hello
 TEST_RUNNER = test_hello_runner
 HELLO_LIB_OBJ = hello_lib.o
