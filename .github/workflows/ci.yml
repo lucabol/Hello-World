@@ -10,7 +10,7 @@ jobs:
   # Build and test with GCC - focuses on C compilation and validation
   build-and-test-gcc:
     runs-on: ubuntu-latest
-    
+
     env:
       # Strict compilation flags for GCC (includes -Werror for CI quality assurance)
       # -Werror ensures warnings are treated as errors to catch potential issues early
@@ -18,104 +18,126 @@ jobs:
       GCC_FLAGS: "-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -D_POSIX_C_SOURCE=200809L"
       # Force C locale for deterministic, locale-independent output
       LC_ALL: C
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+
     - name: Print environment versions
       run: |
+        echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
-      
+
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
-      
+
     - name: Test GCC build
       run: ./hello
-      
+
     - name: Build code metrics tool with strict flags
       run: |
         gcc ${{ env.GCC_FLAGS }} -o metrics_tool metrics_tool.c code_metrics.c
-      
+
     - name: Test metrics tool
       run: |
         ./metrics_tool --version
         ./metrics_tool --help
         ./metrics_tool --csv hello.c
         ./metrics_tool -n hello.c
-      
+
     - name: Run metrics tool tests
       run: bash test/test_metrics.sh
-      
+
+    - name: Run unit tests
+      run: make unit-test
+
     - name: Run validation tests
       run: bash test/validate.sh --quiet
-      
+
+    - name: Test visual editor generated code
+      run: bash test/test_editor_output.sh
+
+    - name: Test XSS escaping function
+      run: node test/test_escape_html.js
+
   # Build and test with Clang - alternative C compiler validation
   build-and-test-clang:
     runs-on: ubuntu-latest
-    
+
     env:
       # Portable compilation flags for Clang (no -Werror for cross-compiler compatibility)
       CLANG_FLAGS: "-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -D_POSIX_C_SOURCE=200809L"
       # Force C locale for deterministic output
       LC_ALL: C
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Print environment versions
       run: |
         echo "Clang version: $(clang --version | head -1)"
-      
+
     - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
-      
+
     - name: Test Clang build
       run: ./hello_clang
-      
+
     - name: Build code metrics tool with Clang (without -Werror for portability)
       run: |
         clang ${{ env.CLANG_FLAGS }} -o metrics_tool_clang metrics_tool.c code_metrics.c
-      
+
     - name: Test metrics tool with Clang
       run: |
         ./metrics_tool_clang --version
         ./metrics_tool_clang --csv hello.c
-      
+
     - name: Run metrics tool tests with Clang build
       run: bash test/test_metrics.sh
-  
+
+    - name: Run unit tests with Clang
+      run: |
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
+        ./test_hello_runner
+        rm -f hello_lib.o test_hello_runner
+
   # Memory safety checks with AddressSanitizer
   build-and-test-asan:
     runs-on: ubuntu-latest
-    
+
     env:
       # AddressSanitizer flags for memory leak and undefined behavior detection
       ASAN_FLAGS: "-Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L -fsanitize=address,undefined -fno-omit-frame-pointer -g"
       # Force C locale for deterministic output
       LC_ALL: C
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Build metrics tool with AddressSanitizer
       run: |
         gcc ${{ env.ASAN_FLAGS }} -o metrics_tool_asan metrics_tool.c code_metrics.c
-      
+
     - name: Run tests with AddressSanitizer
       run: |
         export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
         ./metrics_tool_asan --version
         ./metrics_tool_asan --csv hello.c
         bash test/test_metrics.sh
-      
+
     - name: Test signal handling cleanup
       run: |
         set -euo pipefail
         export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
-        
+
         # Test SIGINT handling with robust process group signaling
         # Use setsid to create new process group for reliable signal delivery
         echo "Testing SIGINT signal handling..."
@@ -124,13 +146,13 @@ jobs:
           setsid ./metrics_tool_asan hello.c < /dev/null > /dev/null 2>&1 &
           PID=$!
           sleep 0.5
-          
+
           # Send SIGINT to the entire process group
           kill -SIGINT -- -$PID 2>/dev/null || kill -SIGINT $PID 2>/dev/null || true
-          
+
           # Wait for process and capture exit code
           wait $PID 2>/dev/null || EXIT_CODE=$?
-          
+
           # Document expected behavior: tool should exit with signal-derived code (130)
           # or handle signal gracefully (0). Both indicate no leaks/crashes (validated by ASAN).
           if [ "${EXIT_CODE:-0}" -ne 130 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
@@ -142,7 +164,7 @@ jobs:
           echo "✗ SIGINT test timed out or failed"
           exit 1
         }
-        
+
         # Test SIGTERM handling with same robust approach
         echo "Testing SIGTERM signal handling..."
         timeout 10s bash -c '
@@ -150,13 +172,13 @@ jobs:
           setsid ./metrics_tool_asan hello.c < /dev/null > /dev/null 2>&1 &
           PID=$!
           sleep 0.5
-          
+
           # Send SIGTERM to the entire process group
           kill -SIGTERM -- -$PID 2>/dev/null || kill -SIGTERM $PID 2>/dev/null || true
-          
+
           # Wait for process and capture exit code
           wait $PID 2>/dev/null || EXIT_CODE=$?
-          
+
           # Expected: signal-derived code (143) or graceful exit (0)
           if [ "${EXIT_CODE:-0}" -ne 143 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
             echo "✗ SIGTERM test failed: exit code ${EXIT_CODE:-0} (expected 143 or 0)"
@@ -167,28 +189,5 @@ jobs:
           echo "✗ SIGTERM test timed out or failed"
           exit 1
         }
-        
+
         echo "✓ All signal handling tests passed - no memory leaks or crashes detected"
-          sleep 0.5
-          # Send SIGTERM and wait for process to exit
-          kill -SIGTERM "$PID" 2>/dev/null || true
-          wait "$PID" 2>/dev/null || EXIT_CODE=$?
-          # Accept either shell-propagated signal code (143) or normal exit (0)
-          if [ "${EXIT_CODE:-0}" -ne 143 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
-            echo "✗ SIGTERM handling test failed with unexpected exit code: ${EXIT_CODE:-0}"
-            exit 1
-          fi
-          echo "✓ SIGTERM handling test passed (exit code: ${EXIT_CODE:-0}, no ASAN errors)"
-        '
-        
-        echo "✓ All signal handling tests passed - no memory leaks or crashes detected"
-        sleep 0.3
-        kill -SIGTERM $PID || true
-        wait $PID || EXIT_CODE=$?
-        # Exit code 143 (128+15) is expected for SIGTERM
-        if [ "${EXIT_CODE:-0}" -eq 143 ] || [ "${EXIT_CODE:-0}" -eq 0 ]; then
-          echo "✓ SIGTERM handling test passed (exit code: ${EXIT_CODE:-0})"
-        else
-          echo "✗ SIGTERM handling test failed (unexpected exit code: ${EXIT_CODE:-0})"
-          exit 1
-        fi
