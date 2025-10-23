@@ -1,8 +1,8 @@
 # Makefile for Hello World and Code Metrics
 # Simple build system for C programs
 
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
+CC ?= gcc
+CFLAGS ?= -Wall -Wextra -std=c99
 STRICT_FLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
 
 # Targets
@@ -15,6 +15,10 @@ hello: hello.c
 # Build code metrics analyzer
 code_metrics: code_metrics.c
 	$(CC) $(CFLAGS) -o code_metrics code_metrics.c
+
+# Build code metrics with strict flags
+code_metrics_strict: code_metrics.c
+	$(CC) $(STRICT_FLAGS) -o code_metrics code_metrics.c
 
 # Build with strict flags for CI
 strict: hello.c
@@ -32,6 +36,13 @@ debug: hello.c
 test: strict
 	./test/validate.sh
 
+# Run code_metrics tests
+test-metrics: code_metrics
+	./tests/run_tests.sh
+
+# Run all tests
+test-all: test test-metrics
+
 # Run tests quietly (for CI)
 test-quiet: strict
 	./test/validate.sh --quiet
@@ -44,4 +55,4 @@ clean:
 	rm -f test_hello_runner
 
 # Phony targets
-.PHONY: all strict clang debug test test-quiet clean
+.PHONY: all strict clang debug test test-metrics test-all test-quiet clean code_metrics_strict

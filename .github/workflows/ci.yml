@@ -17,11 +17,17 @@ jobs:
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
       
+    - name: Build code_metrics with strict flags
+      run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -o code_metrics code_metrics.c
+      
     - name: Run unit tests
       run: make unit-test
       
     - name: Run validation tests
       run: bash test/validate.sh --quiet
+      
+    - name: Run code_metrics tests
+      run: ./tests/run_tests.sh
       
   build-and-test-clang:
     runs-on: ubuntu-latest
@@ -33,8 +39,14 @@ jobs:
     - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
       
+    - name: Build code_metrics with Clang
+      run: clang -Wall -Wextra -Wpedantic -Werror -std=c99 -o code_metrics code_metrics.c
+      
     - name: Test Clang build
       run: ./hello_clang
+      
+    - name: Run code_metrics tests with Clang
+      run: ./tests/run_tests.sh
       
     - name: Run unit tests with Clang
       run: |

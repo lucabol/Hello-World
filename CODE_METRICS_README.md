@@ -121,10 +121,81 @@ File: hello.c
 
 ## Limitations
 
-- Function detection uses heuristics and may not catch all edge cases
-- Multi-line function declarations spanning multiple lines may not be detected
-- Comment analysis is basic and doesn't handle multi-line comments spanning multiple lines
+### Parsing Heuristics and Known Limitations
+
+The code metrics analyzer uses heuristics to parse C source code without a full compiler frontend. While it handles many common cases correctly, there are some limitations:
+
+**Comment Detection:**
+- Multi-line block comments (`/* ... */`) are tracked across lines
+- Inline comments (code followed by `//` or `/*`) are correctly identified
+- Lines with both code and comments are counted as code lines
+- Comment markers inside string literals (`"// not a comment"`) are correctly ignored
+- Comment markers inside character literals (`'/'`) are correctly ignored
+- Nested comments (non-standard C) may not be handled correctly in all cases
+
+**Function Detection:**
+- Detects function definitions with opening brace `{` on the same line as the closing parenthesis
+- Also detects K&R/Allman style where `{` appears on the next line after the function signature
+- Function prototypes (declarations ending with `;`) are correctly excluded
+- May not correctly identify functions defined via macros or with unusual formatting
+- Function pointers and function-like macros may occasionally be misidentified
+- Requires function names to be valid C identifiers (start with letter or underscore)
+
+**Include Detection:**
+- Handles both angle bracket (`#include <...>`) and quote (`#include "..."`) forms
+- Handles whitespace variations (`#  include`, `#include  <...>`)
+- Commented-out includes (e.g., `// #include <...>`) are correctly ignored
+- May not correctly handle macro-generated includes or conditional includes
+
+**String and Character Handling:**
+- Correctly handles escape sequences in strings and character literals (`\"`, `\'`, `\\`)
+- Ignores comment markers inside string and character literals
+- Assumes standard C string/character literal syntax
+
+**Preprocessor Directives:**
+- Basic handling of `#include` directives
+- Multi-line preprocessor directives (with backslash continuation) are treated as separate lines
+- Conditional compilation (`#ifdef`, `#ifndef`, etc.) directives are counted as code lines
+
+**General Limitations:**
 - Designed primarily for C source files; may not work correctly with C++ or other languages
+- Assumes UTF-8 or ASCII encoding for character/line length metrics
+- Maximum line length is 1024 characters (longer lines are truncated)
+- Maximum of 100 functions and 50 include files tracked per file
+- Does not perform semantic analysis or type checking
+
+### Testing
+
+The tool includes a test suite in the `tests/` directory with fixtures covering various edge cases including:
+- Simple C programs
+- Multi-line block comments
+- Inline comments
+- Strings containing comment-like sequences
+- Various function definition styles (same-line brace, next-line brace, K&R style)
+- Commented-out includes
+
+Run the test suite with:
+```bash
+make test-metrics
+```
+
+Or directly:
+```bash
+./tests/run_tests.sh
+```
+
+## Limitations
+
+## Limitations
+
+The tool uses parsing heuristics and has some limitations. See the "Parsing Heuristics and Known Limitations" section above for detailed information.
+
+Brief summary:
+- Function detection uses heuristics and may not catch all edge cases (macros, unusual formatting)
+- Multi-line preprocessor directives (backslash continuation) are treated as separate lines
+- Designed primarily for C source files; may not work correctly with C++ or other languages
+- Maximum line length is 1024 characters
+- Maximum of 100 functions and 50 include files tracked per file
 
 ## Implementation Details
 

@@ -12,3 +12,19 @@ Quick start:
 make code_metrics
 ./code_metrics hello.c
 ```
+
+### Running Tests
+
+Run all tests (including code_metrics tests):
+```bash
+make test-all
+```
+
+Run only code_metrics tests:
+```bash
+make test-metrics
+```
+
+### CI/CD
+
+The project includes GitHub Actions workflows that build and test the code with both GCC and Clang, using strict compiler warnings (`-Wall -Wextra -Wpedantic -Werror`).

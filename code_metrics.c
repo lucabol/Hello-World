@@ -33,6 +33,7 @@ typedef struct {
     int total_words;
     int max_line_length;
     int brace_depth;
+    int in_block_comment;  /* Track if we're inside a block comment */
     char functions[MAX_FUNCTIONS][256];
     char includes[MAX_INCLUDES][256];
 } CodeMetrics;
@@ -49,26 +50,111 @@ void init_metrics(CodeMetrics *metrics) {
     metrics->total_words = 0;
     metrics->max_line_length = 0;
     metrics->brace_depth = 0;
+    metrics->in_block_comment = 0;
 }
 
-/* Check if a line is blank (only whitespace) */
-int is_blank_line(const char *line) {
-    while (*line) {
-        if (!isspace((unsigned char)*line)) {
-            return 0;
-        }
-        line++;
-    }
-    return 1;
-}
-
-/* Check if a line contains a comment */
-int is_comment_line(const char *line) {
+/* Analyze line content to determine if it contains code, comments, or both
+ * Returns: 0 = blank, 1 = code only, 2 = comment only, 3 = code with comment
+ * Also updates in_block_comment state for multi-line block comments
+ */
+int analyze_line_content(const char *line, int *in_block_comment) {
     const char *p = line;
-    while (*p && isspace((unsigned char)*p)) {
+    int has_code = 0;
+    int has_comment = 0;
+    int in_string = 0;
+    int in_char = 0;
+    
+    /* Skip leading whitespace to check if line is blank */
+    const char *non_ws = p;
+    while (*non_ws && isspace((unsigned char)*non_ws)) {
+        non_ws++;
+    }
+    if (*non_ws == '\0') {
+        return 0; /* Blank line */
+    }
+    
+    /* If we're starting in a block comment, this line is a comment */
+    if (*in_block_comment) {
+        has_comment = 1;
+    }
+    
+    /* Parse the line character by character */
+    while (*p) {
+        /* Handle escape sequences in strings/chars */
+        if ((in_string || in_char) && *p == '\\' && *(p+1)) {
+            p += 2;
+            continue;
+        }
+        
+        /* Handle string literals */
+        if (*p == '"' && !in_char && !*in_block_comment) {
+            if (in_string) {
+                in_string = 0;
+            } else {
+                in_string = 1;
+                has_code = 1;
+            }
+            p++;
+            continue;
+        }
+        
+        /* Handle character literals */
+        if (*p == '\'' && !in_string && !*in_block_comment) {
+            if (in_char) {
+                in_char = 0;
+            } else {
+                in_char = 1;
+                has_code = 1;
+            }
+            p++;
+            continue;
+        }
+        
+        /* Don't process comment markers inside strings or chars */
+        if (in_string || in_char) {
+            p++;
+            continue;
+        }
+        
+        /* Handle block comment start */
+        if (!*in_block_comment && *p == '/' && *(p+1) == '*') {
+            *in_block_comment = 1;
+            has_comment = 1;
+            p += 2;
+            continue;
+        }
+        
+        /* Handle block comment end */
+        if (*in_block_comment && *p == '*' && *(p+1) == '/') {
+            *in_block_comment = 0;
+            p += 2;
+            continue;
+        }
+        
+        /* Handle line comment */
+        if (!*in_block_comment && *p == '/' && *(p+1) == '/') {
+            has_comment = 1;
+            break; /* Rest of line is comment */
+        }
+        
+        /* If we're not in a comment and found non-whitespace, it's code */
+        if (!*in_block_comment && !isspace((unsigned char)*p)) {
+            has_code = 1;
+        }
+        
         p++;
     }
-    return (p[0] == '/' && (p[1] == '/' || p[1] == '*'));
+    
+    /* Determine the return value */
+    if (has_comment && !has_code) {
+        return 2; /* Comment only */
+    } else if (has_code) {
+        return 1; /* Code (possibly with inline comment) */
+    } else if (*in_block_comment) {
+        return 2; /* Empty line inside block comment */
+    }
+    
+    return 0; /* Shouldn't reach here */
 }
 
 /* Check if line contains an include directive */
@@ -220,8 +306,10 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
     }
     
     char line[MAX_LINE_LENGTH];
+    char prev_line[MAX_LINE_LENGTH] = "";
     char include_name[256];
     char func_name[256];
+    int prev_might_be_func = 0;
     
     while (fgets(line, sizeof(line), file)) {
         int line_len = (int)strlen(line);
@@ -233,16 +321,20 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
             metrics->max_line_length = line_len;
         }
         
-        if (is_blank_line(line)) {
+        /* Analyze line content */
+        int content_type = analyze_line_content(line, &metrics->in_block_comment);
+        
+        if (content_type == 0) {
             metrics->blank_lines++;
-        } else if (is_comment_line(line)) {
+        } else if (content_type == 2) {
             metrics->comment_lines++;
         } else {
+            /* content_type == 1 or 3: contains code */
             metrics->code_lines++;
         }
         
-        /* Check for includes */
-        if (extract_include(line, include_name)) {
+        /* Check for includes (only on code lines or lines not in block comments) */
+        if (content_type == 1 && extract_include(line, include_name)) {
             if (metrics->include_count < MAX_INCLUDES) {
                 strncpy(metrics->includes[metrics->include_count], include_name, 255);
                 metrics->includes[metrics->include_count][255] = '\0';
@@ -250,14 +342,73 @@ int analyze_file(const char *filename, CodeMetrics *metrics) {
             }
         }
         
-        /* Check for function definitions */
-        if (is_function_definition(line, func_name)) {
-            if (metrics->function_count < MAX_FUNCTIONS) {
-                strncpy(metrics->functions[metrics->function_count], func_name, 255);
-                metrics->functions[metrics->function_count][255] = '\0';
-                metrics->function_count++;
+        /* Check for function definitions (only on code lines) */
+        if (content_type == 1) {
+            /* Check if current line has a function with opening brace */
+            if (is_function_definition(line, func_name)) {
+                if (metrics->function_count < MAX_FUNCTIONS) {
+                    strncpy(metrics->functions[metrics->function_count], func_name, 255);
+                    metrics->functions[metrics->function_count][255] = '\0';
+                    metrics->function_count++;
+                }
+                prev_might_be_func = 0;
             }
+            /* Check if this line is just an opening brace and prev line had a function signature */
+            else if (prev_might_be_func) {
+                const char *p = line;
+                while (*p && isspace((unsigned char)*p)) p++;
+                if (*p == '{') {
+                    /* Previous line was a function definition, brace is on this line */
+                    if (metrics->function_count < MAX_FUNCTIONS) {
+                        strncpy(metrics->functions[metrics->function_count], func_name, 255);
+                        metrics->functions[metrics->function_count][255] = '\0';
+                        metrics->function_count++;
+                    }
+                }
+                prev_might_be_func = 0;
+            }
+            /* Check if this line might be a function declaration waiting for brace on next line */
+            else {
+                /* Look for pattern: name(...) without { or ; */
+                const char *p = line;
+                while (*p && isspace((unsigned char)*p)) p++;
+                if (*p != '/' && *p != '#') {
+                    const char *paren = strchr(p, '(');
+                    const char *close_paren = paren ? strchr(paren, ')') : NULL;
+                    if (close_paren) {
+                        const char *after = close_paren + 1;
+                        while (*after && isspace((unsigned char)*after)) after++;
+                        if (*after != '{' && *after != ';' && *after != '\0' && *after != '\n') {
+                            prev_might_be_func = 0;
+                        } else if (*after == '\0' || *after == '\n') {
+                            /* Might be function def with brace on next line */
+                            /* Extract the name */
+                            const char *name_end = paren - 1;
+                            while (name_end > p && isspace((unsigned char)*name_end)) name_end--;
+                            const char *name_start = name_end;
+                            while (name_start > p && (isalnum((unsigned char)*name_start) || *name_start == '_')) {
+                                name_start--;
+                            }
+                            name_start++;
+                            int len = (int)(name_end - name_start + 1);
+                            if (len > 0 && len < 256) {
+                                strncpy(func_name, name_start, (size_t)len);
+                                func_name[len] = '\0';
+                                if (!is_c_keyword(func_name) && 
+                                    (isalpha((unsigned char)func_name[0]) || func_name[0] == '_')) {
+                                    prev_might_be_func = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            prev_might_be_func = 0;
         }
+        
+        strncpy(prev_line, line, MAX_LINE_LENGTH - 1);
+        prev_line[MAX_LINE_LENGTH - 1] = '\0';
     }
     
     fclose(file);
