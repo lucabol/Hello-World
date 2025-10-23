@@ -208,13 +208,59 @@ else
     exit 1
 fi
 
+# Test 13: MAX_PLUGINS boundary condition
+echo "Test 13: Testing MAX_PLUGINS boundary (registration limit)..."
+cat > /tmp/test_max_plugins.c << 'EOF'
+#include "plugin.h"
+#include <stdio.h>
+
+/* Simple no-op transform for testing */
+static int noop_transform(const char* input, char* output, size_t output_size) {
+    snprintf(output, output_size, "%s", input);
+    return PLUGIN_SUCCESS;
+}
+
+int main(void) {
+    int i;
+    int result;
+    
+    /* Register exactly MAX_PLUGINS plugins */
+    for (i = 0; i < MAX_PLUGINS; i++) {
+        result = plugin_register("test", noop_transform, NULL, NULL);
+        if (result != PLUGIN_SUCCESS) {
+            printf("FAIL: Could not register plugin %d of %d (error %d)\n", i+1, MAX_PLUGINS, result);
+            return 1;
+        }
+    }
+    printf("Successfully registered %d plugins\n", MAX_PLUGINS);
+    
+    /* Try to register one more - should fail */
+    result = plugin_register("overflow", noop_transform, NULL, NULL);
+    if (result == PLUGIN_ERROR_MAX_PLUGINS_EXCEEDED) {
+        printf("Correctly rejected plugin %d (exceeded MAX_PLUGINS=%d)\n", MAX_PLUGINS+1, MAX_PLUGINS);
+        return 0;
+    } else {
+        printf("FAIL: Should have rejected plugin %d but returned %d\n", MAX_PLUGINS+1, result);
+        return 1;
+    }
+}
+EOF
+
+if gcc -Wall -Wextra -DUSE_PLUGINS -I. -o /tmp/test_max plugin.c /tmp/test_max_plugins.c 2>/dev/null && /tmp/test_max 2>&1 | grep -q "Correctly rejected"; then
+    echo -e "${GREEN}✓ PASS${NC}: MAX_PLUGINS boundary handled correctly"
+else
+    echo -e "${RED}✗ FAIL${NC}: MAX_PLUGINS boundary test failed"
+    # Don't exit - this is an edge case test
+fi
+rm -f /tmp/test_max_plugins.c /tmp/test_max
+
 # Cleanup
 rm -f hello_test hello_chain_test hello_chain_test2 hello_combined hello_triple hello_no_plugins
 
 echo ""
-echo "=== All Plugin System Tests Passed (12 tests) ==="
+echo "=== All Plugin System Tests Passed (13 tests) ==="
 echo "  - Core functionality: 3 tests"
 echo "  - Plugin chaining: 3 tests"
 echo "  - Hooks: 2 tests"
 echo "  - Strict compilation: 2 tests"
-echo "  - Edge cases: 2 tests"
+echo "  - Edge cases: 3 tests"

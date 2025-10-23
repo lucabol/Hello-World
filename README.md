@@ -37,6 +37,28 @@ Two example plugins are included:
 
 For complete plugin development documentation, see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md)
 
+### Implementation Files
+
+**Core Plugin System:**
+- [`plugin.h`](plugin.h) - Plugin API, error codes, macros, and comprehensive inline documentation
+- [`plugin.c`](plugin.c) - Plugin registry with double-buffering implementation for safe chaining
+- [`hello.c`](hello.c) - Modified to support plugins (12 lines added within `#ifdef USE_PLUGINS`)
+
+**Example Plugins:**
+- [`plugin_uppercase.c`](plugin_uppercase.c) - Transforms message to uppercase
+- [`plugin_decorator.c`](plugin_decorator.c) - Adds decorative borders with before/after hooks
+- [`plugin_logger.c`](plugin_logger.c) - Logs execution timestamps using only hooks
+- [`plugin_repeat_example.c`](plugin_repeat_example.c) - Template/example for creating custom plugins
+
+**Build & Test:**
+- [`Makefile`](Makefile) - Build targets for various plugin combinations
+- [`test_plugins.sh`](test_plugins.sh) - Comprehensive test suite (13 tests)
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) - CI pipeline with GCC and Clang
+
+**Additional Documentation:**
+- [`PLUGIN_SUMMARY.md`](PLUGIN_SUMMARY.md) - Complete implementation summary
+- [`CHANGELOG.md`](CHANGELOG.md) - Version history and maintainer guidelines
+
 ### Building
 
 ```bash

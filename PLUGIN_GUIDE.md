@@ -251,6 +251,96 @@ static const char* bad3(const char* input) {
 | MSVC | ⚠️ Manual | Use explicit `plugin_register()` |
 | Others | ❓ Maybe | If `__attribute__((constructor))` supported |
 
+### MSVC and Manual Registration
+
+For compilers that don't support `__attribute__((constructor))` (like MSVC), you must use explicit registration:
+
+```c
+// my_plugin.c - MSVC-compatible plugin
+#include "plugin.h"
+#include <stdio.h>
+
+static int my_transform(const char* input, char* output, size_t output_size) {
+    int result = snprintf(output, output_size, "MSVC: %s", input);
+    if (result < 0 || (size_t)result >= output_size) {
+        return PLUGIN_ERROR_BUFFER_TOO_SMALL;
+    }
+    return PLUGIN_SUCCESS;
+}
+
+// Explicit registration function - call from main() or init function
+void my_plugin_init(void) {
+    plugin_register("MyPlugin", my_transform, NULL, NULL);
+}
+```
+
+Then in your main application:
+
+```c
+// main.c or hello.c with MSVC
+#include "plugin.h"
+
+// Declare plugin init functions
+extern void my_plugin_init(void);
+
+int main(void) {
+    #ifdef USE_PLUGINS
+    // Manually register plugins
+    my_plugin_init();
+    
+    // Now execute plugins as normal
+    char output_buffer[1024];
+    plugin_execute_before_hooks();
+    plugin_execute_transforms("Hello world!", output_buffer, sizeof(output_buffer));
+    printf("%s", output_buffer);
+    plugin_execute_after_hooks();
+    #else
+    printf("Hello world!");
+    #endif
+    return 0;
+}
+```
+
+**Note**: When using manual registration, define `PLUGIN_MANUAL_REGISTRATION` to suppress the compiler error:
+```bash
+cl /DUSE_PLUGINS /DPLUGIN_MANUAL_REGISTRATION hello.c plugin.c my_plugin.c
+```
+
+### Error Handling Behavior
+
+**What happens when a transform returns an error?**
+
+The plugin execution engine handles errors as follows:
+
+1. **Transform returns `PLUGIN_SUCCESS` (0)**: 
+   - Output is passed to the next plugin in the chain
+   - Execution continues normally
+
+2. **Transform returns error code (non-zero)**:
+   - Error is logged to stderr with plugin name and error code
+   - **The last successful transform output is used** (NOT the original input)
+   - Error code is returned from `plugin_execute_transforms()`
+   - Subsequent transforms are **skipped** (chain stops)
+   - `after` hooks still execute
+
+3. **hello.c error handling**:
+   - If `plugin_execute_transforms()` returns non-zero, hello.c falls back to printing the original message
+   - After hooks still execute even on error
+
+**Example error scenario:**
+```
+Plugin chain: uppercase -> decorator -> failing_plugin
+
+1. uppercase: "Hello" -> "HELLO" (success)
+2. decorator: "HELLO" -> "***HELLO***" (success)  
+3. failing_plugin: returns PLUGIN_ERROR_BUFFER_TOO_SMALL
+
+Result: hello.c prints original "Hello world!" (fallback)
+stderr: "ERROR: Plugin 'failing_plugin' transform failed (code -1)"
+```
+
+**Testing error behavior**: See test_plugins.sh for examples of error handling tests.
+
 ### Registration Order
 
 ⚠️ **Important Limitation**: Constructor execution order across translation units is **NOT guaranteed** by C standard.
