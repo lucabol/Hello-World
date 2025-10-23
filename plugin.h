@@ -91,8 +91,8 @@
  * 
  * Parameters:
  *   - input: The input message to transform (null-terminated, read-only)
- *   - output: Buffer to write the transformed message (null-terminated)
- *   - output_size: Size of the output buffer in bytes
+ *   - output: Buffer to write the transformed message
+ *   - output_size: Size of the output buffer in bytes (including space for null terminator)
  * 
  * Returns:
  *   - PLUGIN_SUCCESS (0) on success
@@ -100,9 +100,30 @@
  *   - PLUGIN_ERROR_INVALID_INPUT if input is malformed
  *   - PLUGIN_ERROR_INTERNAL for other plugin-specific errors
  * 
- * The transform function must write a null-terminated string to output
- * and ensure it does not exceed output_size bytes (including null terminator).
- * If the output would exceed the buffer, the function should return PLUGIN_ERROR_BUFFER_TOO_SMALL.
+ * GUARANTEES AND SEMANTICS:
+ * 
+ * 1. Null-termination: On PLUGIN_SUCCESS, the output MUST be a valid null-terminated
+ *    string that fits within output_size bytes (including the null terminator).
+ *    Plugins MUST ensure output[output_size-1] is never written past.
+ * 
+ * 2. Buffer overflow: If the transformed output would require more than output_size
+ *    bytes (including null terminator), the plugin MUST return PLUGIN_ERROR_BUFFER_TOO_SMALL
+ *    and leave the output buffer in an undefined state. The caller will not use the output.
+ * 
+ * 3. No retry semantics: PLUGIN_ERROR_BUFFER_TOO_SMALL is treated as a fatal error.
+ *    The transform chain stops immediately and hello.c falls back to the original message.
+ *    Callers should not retry with a larger buffer - configure PLUGIN_BUFFER_SIZE at
+ *    compile time if needed.
+ * 
+ * 4. Error propagation: If a transform returns any non-PLUGIN_SUCCESS code:
+ *    - The transform chain stops immediately
+ *    - The error code is returned to hello.c
+ *    - hello.c will print the original untransformed message
+ *    - After hooks will still execute (before hooks already executed)
+ * 
+ * 5. Buffer contents on error: If a transform returns an error, the contents of the
+ *    output buffer are undefined and will not be used. Plugins need not clear or
+ *    initialize the buffer on error paths.
  */
 typedef int (*plugin_transform_fn)(const char* input, char* output, size_t output_size);
 typedef void (*plugin_hook_fn)(void);
@@ -154,8 +175,27 @@ void plugin_execute_before_hooks(void);
 void plugin_execute_after_hooks(void);
 
 /* Convenience macro for plugin registration 
- * Note: Uses GCC/Clang constructor attribute. Not portable to MSVC.
- * For non-GCC compilers, call plugin_register() explicitly.
+ * 
+ * PORTABILITY NOTES:
+ * 
+ * This macro uses __attribute__((constructor)) which is supported by GCC and Clang
+ * but NOT by MSVC or other C compilers. The constructor attribute causes the
+ * registration function to run automatically before main() is called.
+ * 
+ * REGISTRATION ORDERING:
+ * Constructor execution order across different translation units (source files) is
+ * not guaranteed by the C standard and depends on link order. Do not rely on specific
+ * plugin execution order for correctness. If deterministic ordering is required,
+ * use explicit registration (see MSVC example in PLUGIN_GUIDE.md).
+ * 
+ * FOR MSVC/OTHER COMPILERS:
+ * Do not use this macro. Instead, call plugin_register() explicitly from a plugin_init()
+ * function and call plugin_init() from main() before using plugins. See PLUGIN_GUIDE.md
+ * for a complete example.
+ * 
+ * The compile-time error below ensures you don't accidentally try to use auto-registration
+ * on unsupported compilers. To suppress this error and use manual registration, compile
+ * with -DPLUGIN_MANUAL_REGISTRATION.
  */
 #if defined(__GNUC__) || defined(__clang__)
 #define PLUGIN_REGISTER(name, transform, before, after) \
@@ -164,8 +204,12 @@ void plugin_execute_after_hooks(void);
         plugin_register(#name, transform, before, after); \
     } \
     typedef void __plugin_dummy_##name
+#elif defined(PLUGIN_MANUAL_REGISTRATION)
+/* Manual registration mode - PLUGIN_REGISTER is a no-op */
+#define PLUGIN_REGISTER(name, transform, before, after) \
+    typedef void __plugin_dummy_##name
 #else
-#error "Plugin auto-registration requires GCC or Clang. Use explicit plugin_register() calls or define PLUGIN_MANUAL_REGISTRATION."
+#error "Plugin auto-registration (PLUGIN_REGISTER macro) requires GCC or Clang. For MSVC or other compilers, use explicit plugin_register() calls and compile with -DPLUGIN_MANUAL_REGISTRATION. See PLUGIN_GUIDE.md for examples."
 #endif
 
 #endif /* PLUGIN_H */

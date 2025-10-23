@@ -38,6 +38,23 @@ int plugin_get_count(void) {
 
 /* Execute all transform functions in registered order 
  * Uses double-buffering to safely chain transforms
+ * 
+ * MEMORY ALLOCATION:
+ * This function uses STACK-ALLOCATED buffers for the double-buffering mechanism.
+ * Two buffers of PLUGIN_BUFFER_SIZE (default 1024 bytes) are allocated on the stack.
+ * 
+ * Stack safety: With default PLUGIN_BUFFER_SIZE=1024, this allocates 2KB on the stack
+ * which is safe for typical applications. If you increase PLUGIN_BUFFER_SIZE significantly
+ * (e.g., >8KB), be aware of stack size limits. Most systems have at least 1MB stack by default.
+ * 
+ * Why stack allocation:
+ * - No heap allocation overhead (no malloc/free needed)
+ * - Automatic cleanup (buffers freed when function returns)
+ * - Thread-local (each call has independent buffers, though plugin system is not thread-safe)
+ * - Deterministic performance
+ * 
+ * Buffer lifetime: Buffers exist only during this function call. No memory is retained
+ * between calls, ensuring no state leaks between plugin executions.
  */
 int plugin_execute_transforms(const char* input, char* output, size_t output_size) {
     char buffer1[PLUGIN_BUFFER_SIZE];

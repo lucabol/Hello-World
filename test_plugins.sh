@@ -257,10 +257,51 @@ rm -f /tmp/test_max_plugins.c /tmp/test_max
 # Cleanup
 rm -f hello_test hello_chain_test hello_chain_test2 hello_combined hello_triple hello_no_plugins
 
+# Test 14: Error handling - plugin returns error
+echo "Test 14: Testing error handling when plugin returns error..."
+if ! gcc -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_error_test hello.c plugin.c plugin_error_test.c 2>/dev/null; then
+    echo -e "${RED}✗ FAIL${NC}: Build with error test plugin failed"
+    exit 1
+fi
+OUTPUT=$(./hello_error_test 2>&1)
+# Should see error message and fallback to original
+if echo "$OUTPUT" | grep -q "ERROR_TEST_PLUGIN" && \
+   echo "$OUTPUT" | grep -q "Before hook executed" && \
+   echo "$OUTPUT" | grep -q "After hook executed" && \
+   echo "$OUTPUT" | grep -q "Hello world!"; then
+    echo -e "${GREEN}✓ PASS${NC}: Error handling works (before/after hooks run, fallback to original)"
+else
+    echo -e "${RED}✗ FAIL${NC}: Error handling test failed"
+    echo "Output: $OUTPUT"
+    exit 1
+fi
+rm -f hello_error_test
+
+# Test 15: Valgrind memory check (if available)
+if command -v valgrind &> /dev/null; then
+    echo "Test 15: Running memory safety check with Valgrind..."
+    if ! make with-plugins > /dev/null 2>&1; then
+        echo -e "${RED}✗ FAIL${NC}: Build for Valgrind test failed"
+        exit 1
+    fi
+    VALGRIND_OUTPUT=$(valgrind --leak-check=full --error-exitcode=1 ./hello_with_plugins 2>&1)
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ PASS${NC}: No memory leaks or errors detected by Valgrind"
+    else
+        echo -e "${RED}✗ FAIL${NC}: Valgrind detected memory issues"
+        echo "$VALGRIND_OUTPUT"
+        exit 1
+    fi
+else
+    echo "Test 15: Valgrind not available, skipping memory check"
+fi
+
 echo ""
-echo "=== All Plugin System Tests Passed (13 tests) ==="
+echo "=== All Plugin System Tests Passed (15 tests) ==="
 echo "  - Core functionality: 3 tests"
 echo "  - Plugin chaining: 3 tests"
 echo "  - Hooks: 2 tests"
 echo "  - Strict compilation: 2 tests"
 echo "  - Edge cases: 3 tests"
+echo "  - Error handling: 1 test"
+echo "  - Memory safety: 1 test (if Valgrind available)"
