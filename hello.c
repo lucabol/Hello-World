@@ -5,7 +5,7 @@
 #define TRANSFORM_BUFFER_SIZE 1024
 #endif
 
-int main(){
+int main(void){
 #ifdef USE_PLUGINS
     char output_buffer[TRANSFORM_BUFFER_SIZE];
     
