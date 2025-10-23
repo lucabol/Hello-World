@@ -4,6 +4,10 @@
 #ifndef HELLO_H
 #define HELLO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Get the greeting message
  * Returns: A pointer to a static string constant containing the greeting
  * Note: The returned pointer remains valid for the program lifetime
@@ -18,5 +22,9 @@ const char* get_greeting(void);
  * Note: If message is NULL, prints a default message instead
  */
 void print_custom_message(const char* message);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HELLO_H */

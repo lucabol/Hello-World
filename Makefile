@@ -13,7 +13,7 @@ all: $(TARGET)
 
 # Build the main hello program
 $(TARGET): hello.c hello.h
-	$(CC) -o $(TARGET) hello.c
+	$(CC) $(CFLAGS) -o $(TARGET) hello.c
 
 # Unit test target (required by CI)
 .PHONY: unit-test
