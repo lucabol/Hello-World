@@ -48,7 +48,8 @@ To view failure logs in CI, check the "Test visual editor generated code" step i
 **Purpose:** Validates that the editor implementation correctly uses XSS protection mechanisms throughout the codebase.
 
 **Requirements:**
-- Node.js v14 or higher
+- Node.js v14 or higher (pinned to v18 LTS in CI)
+- **No npm dependencies** - uses only built-in Node.js APIs (fs, path)
 - Access to editor.html source file
 
 **What it tests:**
@@ -73,7 +74,8 @@ node test/test_xss_integration.js
 **Purpose:** Validates that the `escapeHtml()` function properly escapes user input to prevent XSS attacks.
 
 **Requirements:**
-- Node.js v14 or higher (pinned in CI via setup-node action)
+- Node.js v14 or higher (pinned to v18 LTS in CI via setup-node action)
+- **No npm dependencies** - uses only built-in Node.js APIs
 - The test is designed to run in Node.js only (not browser-based)
 
 **What it tests:**
@@ -111,31 +113,6 @@ node test/test_escape_html.js
 - `"` → `&quot;`
 - `'` → `&#039;`
 
-### 3. XSS Integration Tests (`test/test_xss_integration.js`)
-
-**Purpose:** Validates that the editor implementation correctly uses XSS protection mechanisms throughout the codebase.
-
-**Requirements:**
-- Node.js v14 or higher
-- Access to editor.html source file
-
-**What it tests:**
-- No unsafe innerHTML usage with user data
-- escapeHtml function exists and is used
-- textContent is used for DOM manipulation
-- Safe Blob/download implementation
-- No eval or Function constructor usage
-- Export filename is hardcoded (not user-controlled)
-
-**How to run:**
-```bash
-node test/test_xss_integration.js
-```
-
-**Integration vs Unit:**
-- Unit tests (`test_escape_html.js`) verify the escaping function in isolation
-- Integration tests verify the function is used correctly throughout the editor
-
 ### 4. Integration with CI/CD
 
 All tests are integrated into the GitHub Actions CI workflow (`.github/workflows/ci.yml`):
@@ -144,7 +121,13 @@ All tests are integrated into the GitHub Actions CI workflow (`.github/workflows
 - name: Setup Node.js
   uses: actions/setup-node@v4
   with:
-    node-version: '14'
+    node-version: '18.x'
+
+- name: Print environment versions
+  run: |
+    echo "Node.js version: $(node --version)"
+    echo "GCC version: $(gcc --version | head -1)"
+    echo "Make version: $(make --version | head -1)"
 
 - name: Test visual editor generated code
   run: bash test/test_editor_output.sh
@@ -162,7 +145,14 @@ These tests run on every push and pull request to ensure:
 - Escaping is properly integrated throughout the codebase
 - No regressions are introduced
 
-**Node.js Version:** CI uses setup-node action to pin Node.js v14, ensuring consistent test environment across runs.
+**Node.js Version:** CI uses setup-node action to pin Node.js v18 LTS (recommended current LTS version), ensuring consistent test environment across runs. All Node.js tests use only built-in APIs and require no npm dependencies.
+
+**Why Node.js 18 LTS:**
+- Node.js 14 reached End-of-Life on April 30, 2023 and no longer receives security updates
+- Node.js 18 is the current Active LTS (Long Term Support) version with support until April 2025
+- Provides modern JavaScript features and security patches
+- CI runners have Node.js 18 readily available
+- Upgrade path: Will update to Node.js 20 LTS (next LTS) when it becomes Active LTS
 
 ### 5. CodeQL Security Scanning
 

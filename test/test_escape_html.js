@@ -2,7 +2,9 @@
 /**
  * Unit tests for the escapeHtml function used in editor.html
  * This test can be run with Node.js: node test/test_escape_html.js
- * Or opened in a browser as an HTML file
+ * 
+ * Dependencies: None - uses only built-in Node.js APIs (no npm install required)
+ * Minimum Node.js version: 14.x (ES6+ features)
  */
 
 // Check if running in Node.js or browser

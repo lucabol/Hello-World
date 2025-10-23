@@ -3,6 +3,9 @@
  * Integration test for XSS protection in the visual editor
  * This test verifies that user input with malicious content is properly escaped
  * and does not execute as code in the generated output.
+ * 
+ * Dependencies: None - uses only built-in Node.js APIs (fs, path)
+ * No npm install required
  */
 
 const fs = require('fs');
