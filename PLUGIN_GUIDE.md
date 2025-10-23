@@ -27,6 +27,37 @@ This system provides a clean, extensible architecture that maintains backward co
 - Do not call plugin functions reentrantly (e.g., from signal handlers)
 - For thread-safe usage, you must implement external synchronization (e.g., mutexes)
 
+## C++ Compatibility
+
+The plugin system is C++ compatible. The header file includes `extern "C"` guards:
+
+```cpp
+#include <iostream>
+#include "plugin.h"
+
+extern const plugin_t uppercase_plugin;
+
+int main() {
+    plugin_init();
+    
+    if (plugin_register(&uppercase_plugin) != PLUGIN_SUCCESS) {
+        std::cerr << "Failed to register plugin" << std::endl;
+        return 1;
+    }
+    
+    const char* result = plugin_apply_all("Hello from C++!");
+    if (result == NULL) {
+        std::cerr << "Error: " << plugin_get_last_error() << std::endl;
+        return 1;
+    }
+    
+    std::cout << result << std::endl;
+    return 0;
+}
+```
+
+Build with: `g++ -o app app.cpp plugin.c plugins/*.c`
+
 ## Architecture
 
 ### Core Components
@@ -69,6 +100,7 @@ This system provides a clean, extensible architecture that maintains backward co
 
 The plugin system defines these error codes:
 
+**Registration Error Codes:**
 ```c
 #define PLUGIN_SUCCESS          0   /* Operation succeeded */
 #define PLUGIN_ERROR_FULL      -1   /* Plugin registry is full */
@@ -76,19 +108,57 @@ The plugin system defines these error codes:
 #define PLUGIN_ERROR_DUPLICATE -3   /* Plugin already registered */
 ```
 
-### When Functions Return NULL
+**Execution Error Codes:**
+```c
+#define PLUGIN_ERROR_INPUT_NULL     -4   /* Input to plugin_apply_all was NULL */
+#define PLUGIN_ERROR_PLUGIN_FAILED  -5   /* A plugin returned NULL during transformation */
+#define PLUGIN_ERROR_OUTPUT_TOO_LARGE -6 /* Plugin output exceeded buffer size */
+#define PLUGIN_ERROR_INVALID_PLUGIN -7   /* Plugin in registry has NULL transform function */
+```
 
-**`plugin_apply_all()` returns NULL when:**
-- Input is NULL
-- Any plugin returns NULL (error in transformation)
-- Result would exceed PLUGIN_BUFFER_SIZE - 1 bytes
-- A plugin in the registry has a NULL transform function
+### Querying Last Error
 
-**Always check the return value:**
+After any plugin operation fails, you can query the specific error:
+
 ```c
 const char* result = plugin_apply_all("Hello world!");
 if (result == NULL) {
-    fprintf(stderr, "Error: plugin transformation failed\n");
+    int error = plugin_get_last_error();
+    switch (error) {
+        case PLUGIN_ERROR_INPUT_NULL:
+            fprintf(stderr, "Error: Input was NULL\n");
+            break;
+        case PLUGIN_ERROR_PLUGIN_FAILED:
+            fprintf(stderr, "Error: A plugin failed during transformation\n");
+            break;
+        case PLUGIN_ERROR_OUTPUT_TOO_LARGE:
+            fprintf(stderr, "Error: Output exceeded buffer size\n");
+            break;
+        case PLUGIN_ERROR_INVALID_PLUGIN:
+            fprintf(stderr, "Error: Invalid plugin in registry\n");
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown error %d\n", error);
+            break;
+    }
+    return 1;
+}
+```
+
+### When Functions Return NULL
+
+**`plugin_apply_all()` returns NULL when:**
+- Input is NULL (sets PLUGIN_ERROR_INPUT_NULL)
+- Any plugin returns NULL (sets PLUGIN_ERROR_PLUGIN_FAILED)
+- Result would exceed PLUGIN_BUFFER_SIZE - 1 bytes (sets PLUGIN_ERROR_OUTPUT_TOO_LARGE)
+- A plugin in the registry has a NULL transform function (sets PLUGIN_ERROR_INVALID_PLUGIN)
+
+**Always check the return value and query error if needed:**
+```c
+const char* result = plugin_apply_all("Hello world!");
+if (result == NULL) {
+    int error = plugin_get_last_error();
+    fprintf(stderr, "Error: plugin transformation failed (code %d)\n", error);
     return 1;
 }
 ```
@@ -485,6 +555,55 @@ The demo shows various combinations of plugins and their effects.
    char my_copy[256];
    if (result) strncpy(my_copy, result, 255);
    ```
+
+## Plugin Lifecycle Management
+
+### Resetting the Plugin System
+
+You can reset the plugin system by calling `plugin_init()` again:
+
+```c
+/* Initial setup */
+plugin_init();
+plugin_register(&plugin1);
+plugin_register(&plugin2);
+
+/* Use plugins... */
+const char* result = plugin_apply_all("test");
+
+/* Reset and re-register different plugins */
+plugin_init();  /* Clears all registered plugins */
+plugin_register(&plugin3);
+plugin_register(&plugin4);
+
+/* Use new plugin configuration... */
+result = plugin_apply_all("test");
+```
+
+**Note:** There is no `plugin_unregister()` function. To remove plugins, call `plugin_init()` to reset the entire system, then re-register the desired plugins.
+
+### Duplicate Registration
+
+**Pointer-based detection:** The same `plugin_t` pointer cannot be registered twice:
+
+```c
+plugin_t my_plugin = {.name = "foo", .transform = my_fn};
+
+plugin_register(&my_plugin);  // OK
+plugin_register(&my_plugin);  // Returns PLUGIN_ERROR_DUPLICATE
+```
+
+**Name-based allowance:** Different pointers with the same name are allowed:
+
+```c
+plugin_t plugin1 = {.name = "foo", .transform = fn1};
+plugin_t plugin2 = {.name = "foo", .transform = fn2};
+
+plugin_register(&plugin1);  // OK
+plugin_register(&plugin2);  // OK (different pointer, even though same name)
+```
+
+This allows multiple instances of similarly-named plugins as long as they are different objects.
 
 ## Limitations
 

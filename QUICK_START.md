@@ -89,10 +89,24 @@ int main(void) {
         return 1;
     }
     
-    /* Apply with error checking */
+    /* Apply with error checking and detailed error reporting */
     output = plugin_apply_all("Hello world!");
     if (output == NULL) {
-        fprintf(stderr, "Plugin transformation failed\n");
+        int error = plugin_get_last_error();
+        switch (error) {
+            case PLUGIN_ERROR_INPUT_NULL:
+                fprintf(stderr, "Error: Input was NULL\n");
+                break;
+            case PLUGIN_ERROR_PLUGIN_FAILED:
+                fprintf(stderr, "Error: Plugin transformation failed\n");
+                break;
+            case PLUGIN_ERROR_OUTPUT_TOO_LARGE:
+                fprintf(stderr, "Error: Output too large for buffer\n");
+                break;
+            default:
+                fprintf(stderr, "Error: Unknown error %d\n", error);
+                break;
+        }
         return 1;
     }
     
@@ -105,6 +119,7 @@ int main(void) {
 **Key Points:**
 - ✅ Always check return value of plugin_register()
 - ✅ Always check if plugin_apply_all() returns NULL
+- ✅ Use plugin_get_last_error() to get specific error details
 - ✅ Handle errors gracefully
 
 ### Step 3: Build and run

@@ -13,6 +13,8 @@ test_plugin_runner
 test_plugin_edge_runner
 test_plugin_runner_asan
 test_plugin_edge_runner_asan
+test_cpp_compat
+test_custom_config
 *_asan
 *_ubsan
 plugin_demo
