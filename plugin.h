@@ -60,28 +60,49 @@
 
 /* Plugin buffer size for transform chaining 
  * Can be overridden at compile time with -DPLUGIN_BUFFER_SIZE=N
+ * 
+ * IMPORTANT: With stack allocation (default), 2x this size is allocated on the stack.
+ * For embedded/small-stack environments or large buffers (>4KB), use heap allocation
+ * by compiling with -DPLUGIN_USE_HEAP to avoid stack overflow.
  */
 #ifndef PLUGIN_BUFFER_SIZE
 #define PLUGIN_BUFFER_SIZE 1024
 #endif
 
+#if PLUGIN_BUFFER_SIZE > 4096
+#warning "PLUGIN_BUFFER_SIZE > 4KB: Consider using -DPLUGIN_USE_HEAP to avoid stack overflow"
+#endif
+
 /* 
  * PORTABILITY AND LIMITATIONS:
  * 
- * - This plugin system uses GCC/Clang __attribute__((constructor)) for automatic
- *   registration. This is not portable to MSVC or other non-GCC-compatible compilers.
- *   If using unsupported compilers, plugins must use explicit registration (see below).
+ * - COMPILER SUPPORT: This plugin system uses GCC/Clang __attribute__((constructor))
+ *   for automatic registration. This is not portable to MSVC or other non-GCC-compatible
+ *   compilers. If using unsupported compilers, plugins must use explicit registration.
  * 
- * - Constructor execution order across translation units is not guaranteed by the C
- *   standard. Plugin registration order may vary depending on link order. Do not
- *   rely on specific plugin execution order for correctness.
+ * - LTO/LINKER STRIPPING: When building as a static library or with link-time optimization,
+ *   linkers may strip unused constructor functions. To prevent this:
+ *   a) Use explicit registration (call plugin_register from main), OR
+ *   b) Add linker flags to preserve constructors (e.g., --whole-archive on GNU ld), OR
+ *   c) Reference plugin symbols explicitly in main to prevent stripping
  * 
- * - THREAD SAFETY: The plugin system is NOT thread-safe. All plugin registration
- *   must complete before any plugin execution. Transform functions should be reentrant
- *   and avoid mutable global state unless synchronized externally.
+ * - REGISTRATION ORDER: Constructor execution order across translation units is not
+ *   guaranteed by the C standard. Plugin registration order may vary depending on link
+ *   order. Do not rely on specific plugin execution order for correctness.
+ * 
+ * - THREAD SAFETY: The plugin system is NOT thread-safe during registration.
+ *   **CRITICAL**: All plugin registration MUST complete before any threads are spawned
+ *   or before the first call to plugin_execute_* functions. Do NOT call plugin_register()
+ *   concurrently from multiple threads - this will cause race conditions and registry
+ *   corruption. Transform functions should be reentrant and avoid mutable global state
+ *   unless synchronized externally.
  * 
  * - REENTRANCY: Transform functions receive independent output buffers and should
  *   not rely on static/global mutable state to ensure correct chaining behavior.
+ * 
+ * - MEMORY ALLOCATION: By default, double-buffering uses stack allocation (2x PLUGIN_BUFFER_SIZE).
+ *   For embedded/small-stack environments or large buffers, compile with -DPLUGIN_USE_HEAP
+ *   to use heap allocation instead. See plugin.c for details.
  */
 
 /* Plugin function types with clear naming

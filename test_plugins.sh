@@ -296,8 +296,18 @@ else
     echo "Test 15: Valgrind not available, skipping memory check"
 fi
 
+# Test 16: Heap allocation mode (PLUGIN_USE_HEAP)
+echo "Test 16: Testing heap allocation mode..."
+if ! gcc -DUSE_PLUGINS -DPLUGIN_USE_HEAP -o hello_heap hello.c plugin.c plugin_uppercase.c -Wall -Wextra > /dev/null 2>&1; then
+    echo -e "${RED}✗ FAIL${NC}: Build with PLUGIN_USE_HEAP failed"
+    exit 1
+fi
+OUTPUT=$(./hello_heap)
+test_output "Heap allocation mode works" "$OUTPUT" "HELLO WORLD!"
+rm -f hello_heap
+
 echo ""
-echo "=== All Plugin System Tests Passed (15 tests) ==="
+echo "=== All Plugin System Tests Passed (16 tests) ==="
 echo "  - Core functionality: 3 tests"
 echo "  - Plugin chaining: 3 tests"
 echo "  - Hooks: 2 tests"
@@ -305,3 +315,4 @@ echo "  - Strict compilation: 2 tests"
 echo "  - Edge cases: 3 tests"
 echo "  - Error handling: 1 test"
 echo "  - Memory safety: 1 test (if Valgrind available)"
+echo "  - Heap allocation: 1 test"

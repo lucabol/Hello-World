@@ -445,7 +445,7 @@ void test_overflow(void) {
 }
 ```
 
-## Troubleshooting
+##Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
@@ -455,6 +455,111 @@ void test_overflow(void) {
 | Segfault | Check buffer handling, null termination, bounds |
 | Chaining broken | Verify return values, test individually first |
 | Compilation error | Check API signature matches new out-buffer model |
+| Stack overflow with large buffers | Use `-DPLUGIN_USE_HEAP` for heap allocation |
+
+## Configuration Options
+
+### Stack vs Heap Allocation
+
+**Default (Stack Allocation):**
+- Uses 2 × PLUGIN_BUFFER_SIZE bytes on the stack (default: 2KB)
+- Fast, no allocation overhead
+- **Recommended** for typical desktop/server applications
+- Safe up to PLUGIN_BUFFER_SIZE=4096 (compiler warning if exceeded)
+
+**Heap Allocation Mode:**
+Use when:
+- Running on embedded systems with small stack limits
+- Using large PLUGIN_BUFFER_SIZE values (>4KB)
+- Thread stacks are limited (e.g., <16KB)
+
+**Example:**
+```bash
+# Enable heap allocation
+gcc -DUSE_PLUGINS -DPLUGIN_USE_HEAP -o hello hello.c plugin.c my_plugin.c
+
+# Large buffer with heap allocation
+gcc -DUSE_PLUGINS -DPLUGIN_USE_HEAP -DPLUGIN_BUFFER_SIZE=16384 -o hello hello.c plugin.c my_plugin.c
+```
+
+**Performance Notes:**
+- Stack allocation: ~0 overhead
+- Heap allocation: Small malloc/free overhead per transform call
+- Difference is negligible for typical use cases
+
+### Thread-Safety Considerations
+
+**CRITICAL: Registration must happen before threads are spawned!**
+
+The plugin system is NOT thread-safe during registration. Follow these rules:
+
+1. **Single-threaded registration**: All `plugin_register()` calls (automatic or manual) must complete before spawning threads
+2. **No concurrent registration**: Never call `plugin_register()` from multiple threads
+3. **Transform functions**: Should be reentrant (no mutable global state)
+
+**Safe Pattern:**
+```c
+int main(void) {
+    /* Plugin registration happens here (constructors or explicit calls) */
+    
+    /* Spawn threads after registration complete */
+    pthread_create(...);
+    
+    /* NOW safe to call plugin_execute_* from multiple threads
+       (if transforms themselves are reentrant) */
+}
+```
+
+**Unsafe Pattern (DON'T DO THIS):**
+```c
+void* thread_func(void* arg) {
+    plugin_register(...);  /* ❌ RACE CONDITION! */
+    return NULL;
+}
+```
+
+### Link-Time Optimization (LTO) and Static Libraries
+
+When using LTO or building as a static library, linkers may strip constructor functions:
+
+**Solution 1: Explicit Registration (Recommended)**
+```c
+/* In my_plugin.c */
+void my_plugin_init(void) {
+    plugin_register("MyPlugin", transform_fn, before_fn, after_fn);
+}
+
+/* In main.c */
+extern void my_plugin_init(void);
+
+int main(void) {
+    my_plugin_init();  /* Explicit call */
+    /* ... */
+}
+```
+
+**Solution 2: Linker Flags**
+```bash
+# GNU ld
+gcc -Wl,--whole-archive libmy_plugins.a -Wl,--no-whole-archive
+
+# Or use explicit symbol references
+gcc -Wl,--undefined=__plugin_init_MyPlugin
+```
+
+**Solution 3: Reference Plugin Symbols**
+```c
+/* Force linker to keep plugin */
+extern void __plugin_init_MyPlugin(void) __attribute__((weak));
+
+int main(void) {
+    if (__plugin_init_MyPlugin) {
+        /* Constructor will have run */
+    }
+}
+```
+
+## Troubleshooting
 
 ## Migration from Old API (if applicable)
 

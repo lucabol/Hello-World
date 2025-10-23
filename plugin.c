@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef PLUGIN_USE_HEAP
+#include <stdlib.h>  /* For malloc/free */
+#endif
+
 /* Global plugin registry */
 plugin_t plugin_registry[MAX_PLUGINS];
 int plugin_count = 0;
@@ -40,25 +44,38 @@ int plugin_get_count(void) {
  * Uses double-buffering to safely chain transforms
  * 
  * MEMORY ALLOCATION:
- * This function uses STACK-ALLOCATED buffers for the double-buffering mechanism.
+ * This function uses STACK-ALLOCATED buffers by default for the double-buffering mechanism.
  * Two buffers of PLUGIN_BUFFER_SIZE (default 1024 bytes) are allocated on the stack.
  * 
- * Stack safety: With default PLUGIN_BUFFER_SIZE=1024, this allocates 2KB on the stack
- * which is safe for typical applications. If you increase PLUGIN_BUFFER_SIZE significantly
- * (e.g., >8KB), be aware of stack size limits. Most systems have at least 1MB stack by default.
+ * Stack allocation (default, no PLUGIN_USE_HEAP):
+ * - Stack safety: With default PLUGIN_BUFFER_SIZE=1024, this allocates 2KB on the stack
+ *   which is safe for typical applications. Most systems have at least 1MB stack by default.
+ * - WARNING: If PLUGIN_BUFFER_SIZE > 4KB, consider using heap allocation to avoid overflow
+ * - Benefits: No heap overhead, automatic cleanup, thread-local, deterministic
  * 
- * Why stack allocation:
- * - No heap allocation overhead (no malloc/free needed)
- * - Automatic cleanup (buffers freed when function returns)
- * - Thread-local (each call has independent buffers, though plugin system is not thread-safe)
- * - Deterministic performance
+ * Heap allocation (compile with -DPLUGIN_USE_HEAP):
+ * - Use for: Embedded systems, small thread stacks, or large PLUGIN_BUFFER_SIZE values
+ * - Allocates buffers with malloc(), frees with free()
+ * - Small overhead but avoids stack overflow risk
+ * - Still NOT thread-safe (registration must happen before execution)
  * 
  * Buffer lifetime: Buffers exist only during this function call. No memory is retained
  * between calls, ensuring no state leaks between plugin executions.
  */
 int plugin_execute_transforms(const char* input, char* output, size_t output_size) {
+#ifdef PLUGIN_USE_HEAP
+    char* buffer1 = (char*)malloc(PLUGIN_BUFFER_SIZE);
+    char* buffer2 = (char*)malloc(PLUGIN_BUFFER_SIZE);
+    if (buffer1 == NULL || buffer2 == NULL) {
+        fprintf(stderr, "ERROR: Failed to allocate plugin transform buffers\n");
+        free(buffer1);
+        free(buffer2);
+        return PLUGIN_ERROR_INTERNAL;
+    }
+#else
     char buffer1[PLUGIN_BUFFER_SIZE];
     char buffer2[PLUGIN_BUFFER_SIZE];
+#endif
     char* current_input;
     char* current_output;
     size_t input_len;
@@ -67,6 +84,10 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
     
     /* Validate input */
     if (input == NULL || output == NULL || output_size == 0) {
+#ifdef PLUGIN_USE_HEAP
+        free(buffer1);
+        free(buffer2);
+#endif
         return PLUGIN_ERROR_INVALID_INPUT;
     }
     
@@ -74,6 +95,10 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
     if (input_len >= PLUGIN_BUFFER_SIZE) {
         fprintf(stderr, "ERROR: Input message too long (%zu bytes, max %d)\n", 
                 input_len, PLUGIN_BUFFER_SIZE - 1);
+#ifdef PLUGIN_USE_HEAP
+        free(buffer1);
+        free(buffer2);
+#endif
         return PLUGIN_ERROR_INVALID_INPUT;
     }
     
@@ -91,6 +116,10 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
             if (result != PLUGIN_SUCCESS) {
                 fprintf(stderr, "ERROR: Plugin '%s' transform failed (code %d)\n", 
                         plugin_registry[i].name, result);
+#ifdef PLUGIN_USE_HEAP
+                free(buffer1);
+                free(buffer2);
+#endif
                 return result;
             }
             
@@ -114,6 +143,11 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
         fprintf(stderr, "WARNING: Output truncated (%zu bytes, buffer %zu bytes)\n",
                 strlen(current_input), output_size);
     }
+    
+#ifdef PLUGIN_USE_HEAP
+    free(buffer1);
+    free(buffer2);
+#endif
     
     return PLUGIN_SUCCESS;
 }
