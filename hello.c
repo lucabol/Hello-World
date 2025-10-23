@@ -19,7 +19,7 @@ void print_custom_message(const char* message) {
 #ifndef UNIT_TEST
 int main(void) {
     int exit_code = 0;
-    printf("%s\n", get_greeting());
+    puts(get_greeting());
     printf("Exit code: %d\n", exit_code);
     return exit_code;
 }
