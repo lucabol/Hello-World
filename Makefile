@@ -60,16 +60,19 @@ test: strict
 	@bash test/validate.sh
 
 # Build with Clang (portable without -Werror for cross-compiler compatibility)
+# CI can override flags: make clang CC=clang CFLAGS="..."
 .PHONY: clang
 clang:
-	clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -o hello_clang hello.c
+	$(CC) $(CFLAGS) -o hello_clang hello.c
 
 # Build code metrics tool with Clang (portable)
+# CI can override flags: make metrics_tool_clang CC=clang CFLAGS_METRICS="..."
 .PHONY: metrics_tool_clang
 metrics_tool_clang: metrics_tool.c code_metrics.c code_metrics.h
-	clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -D_POSIX_C_SOURCE=200809L -o metrics_tool_clang metrics_tool.c code_metrics.c
+	$(CC) $(CFLAGS_METRICS) -o metrics_tool_clang metrics_tool.c code_metrics.c
 
 # Build code metrics tool with AddressSanitizer for memory leak detection
+# CI can override flags: make metrics_tool_asan CFLAGS_METRICS="..."
 .PHONY: metrics_tool_asan
 metrics_tool_asan: metrics_tool.c code_metrics.c code_metrics.h
-	$(CC) -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L -fsanitize=address,undefined -fno-omit-frame-pointer -g -o metrics_tool_asan metrics_tool.c code_metrics.c
+	$(CC) $(CFLAGS_METRICS) -o metrics_tool_asan metrics_tool.c code_metrics.c
