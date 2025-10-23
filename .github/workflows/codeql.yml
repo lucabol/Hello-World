@@ -20,6 +20,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Language matrix for CodeQL analysis
+        # - 'javascript': Analyzes editor.html JavaScript code for security issues
+        # - 'cpp': Analyzes C code (CodeQL uses 'cpp' for both C and C++ analysis)
+        #   This covers the generated C code patterns and hello.c
         language: [ 'javascript', 'cpp' ]
 
     steps:

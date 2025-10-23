@@ -27,8 +27,12 @@ echo "✓ Created test C file with default editor output"
 
 # Test compilation with strict flags
 echo "🔨 Compiling with GCC (strict mode)..."
-if ! gcc -Wall -Wextra -Wpedantic -Werror -std=c99 -o test_hello test_generated.c 2>&1; then
-    echo "✗ Compilation failed"
+COMPILE_OUTPUT=$(gcc -Wall -Wextra -Wpedantic -Werror -std=c99 -o test_hello test_generated.c 2>&1)
+COMPILE_EXIT=$?
+if [ $COMPILE_EXIT -ne 0 ]; then
+    echo "✗ Compilation failed with exit code $COMPILE_EXIT"
+    echo "Compiler output:"
+    echo "$COMPILE_OUTPUT"
     exit 1
 fi
 echo "✓ Compilation successful"

@@ -16,7 +16,8 @@ This project includes a web-based visual block editor that allows you to create 
 
 2. Or open `editor.html` directly in your browser:
    - Most modern browsers support opening local HTML files via `file://` protocol
-   - If you encounter issues with file downloads, use the HTTP server method above
+   - **Important:** Some browsers restrict Blob URLs and file downloads when using `file://` protocol for security reasons
+   - If you encounter issues with the "Export to hello.c" button not downloading, use the HTTP server method above
 
 ### Using the Editor
 
@@ -78,6 +79,8 @@ int main(){
    gcc -o hello hello.c
    ./hello
    ```
+
+**Security Note:** The exported filename is fixed as `hello.c` for security reasons. The editor does not accept custom filenames from user input, preventing potential path traversal attacks.
 
 ## Tips
 

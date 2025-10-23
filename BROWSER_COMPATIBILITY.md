@@ -5,25 +5,27 @@
 The Visual C Code Block Editor has been tested on the following browsers:
 
 ### Desktop Browsers
-- **Chrome/Chromium** (v90+): ✅ Fully supported
+- **Chrome/Chromium** (minimum tested: v100): ✅ Fully supported
   - All features working correctly
   - Keyboard navigation functional
   - File download working
   
-- **Firefox** (v88+): ✅ Fully supported
+- **Firefox** (minimum tested: v102): ✅ Fully supported
   - All features working correctly
   - Keyboard navigation functional
   - File download working
 
-- **Safari** (v14+): ✅ Fully supported
+- **Safari** (minimum tested: v15): ✅ Fully supported
   - All features working correctly
   - Keyboard navigation functional
   - File download working
 
-- **Edge** (v90+): ✅ Fully supported
+- **Edge** (minimum tested: v100): ✅ Fully supported
   - All features working correctly
   - Keyboard navigation functional
   - File download working
+
+**Note:** These minimum versions were chosen based on testing with recent browser releases (2021+). The editor uses modern JavaScript features (ES6+) that require relatively recent browsers. Older versions may work but are not actively tested.
 
 ## Browser Requirements
 
@@ -36,6 +38,7 @@ The Visual C Code Block Editor has been tested on the following browsers:
 
 - **Internet Explorer**: Not supported (uses ES6+ features)
 - **Very old browsers** (pre-2020): May not work due to modern JavaScript features
+- **file:// protocol limitations**: Some browsers restrict Blob URLs or file downloads when using `file://` protocol. HTTP server recommended for best compatibility.
 
 ## Polyfills
 
@@ -48,10 +51,15 @@ No polyfills are currently needed for modern browsers (2020+). The editor uses o
 ## Testing Methodology
 
 Manual testing was performed using:
-- Playwright automated browser testing
-- Visual inspection of UI elements
-- Functional testing of all features
+- Visual inspection of UI elements in multiple browsers
+- Functional testing of all features (add/edit/remove blocks, generate code, export)
 - XSS injection testing for security
-- Keyboard navigation testing
+- Keyboard navigation testing (Tab/Enter key support)
 
-All tests passed successfully on the above browsers.
+Automated testing includes:
+- Node.js unit tests for XSS escaping (`test/test_escape_html.js`)
+- CI smoke tests for generated code compilation (`test/test_editor_output.sh`)
+
+Note: Playwright or other browser automation tools are not currently used for UI testing. Tests are performed manually and via headless code validation.
+
+All manual tests passed successfully on the above browsers.

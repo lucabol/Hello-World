@@ -30,9 +30,21 @@ bash test/test_editor_output.sh
 - Fail-fast error handling with `set -euo pipefail`
 - Timeout protection to prevent hung CI jobs
 
+**Diagnostic Output:**
+On failure, the script provides detailed information:
+- Exact compilation command and GCC error messages
+- Expected vs actual program output
+- Exit codes for different failure modes
+
+To view failure logs in CI, check the "Test visual editor generated code" step in the GitHub Actions workflow run.
+
 ### 2. XSS Escaping Unit Tests (`test/test_escape_html.js`)
 
 **Purpose:** Validates that the `escapeHtml()` function properly escapes user input to prevent XSS attacks.
+
+**Requirements:**
+- Node.js v12 or higher (uses modern JavaScript features like template literals and arrow functions)
+- The test is designed to run in Node.js only (not browser-based)
 
 **What it tests:**
 - XSS script tags: `<script>alert('XSS')</script>`
@@ -86,6 +98,24 @@ These tests run on every push and pull request to ensure:
 - Security escaping functions work correctly
 - No regressions are introduced
 
+### 4. CodeQL Security Scanning
+
+CodeQL security analysis is configured in `.github/workflows/codeql.yml` and scans:
+
+**Languages Analyzed:**
+- **JavaScript**: Scans `editor.html` for security vulnerabilities in the web interface code
+- **C/C++ (cpp)**: Scans C code including `hello.c` and validates C code generation patterns
+  - Note: CodeQL uses the identifier `'cpp'` for both C and C++ language analysis
+
+**When it runs:**
+- On every push to main branch
+- On every pull request to main branch
+- Weekly on Monday (scheduled scan)
+
+**Why 'cpp' for C code:** CodeQL does not have a separate 'c' language identifier. The 'cpp' analyzer handles both C and C++ code, making it suitable for analyzing the C code in this repository.
+
+**Security Posture:** The workflow runs on all pull requests including those from forks. This ensures code quality but means untrusted code will be analyzed. The workflow has limited permissions (read-only for code, write for security-events) to minimize risk.
+
 ## Running All Tests
 
 To run all tests locally:
@@ -113,8 +143,10 @@ bash test/test_editor_output.sh && node test/test_escape_html.js
 ## Future Test Enhancements
 
 Potential areas for additional testing:
-- Browser-based integration tests (e.g., with Playwright)
+- Browser-based integration tests (e.g., with Playwright) for UI interactions
 - Additional C code generation patterns (loops, variables)
-- File download/export functionality
-- Keyboard navigation and accessibility
+- File download/export functionality testing in browsers
+- Keyboard navigation and accessibility automated testing
 - Cross-browser compatibility automated tests
+
+**Note on Browser Testing:** Currently, browser-based UI testing is performed manually. The `test/test_escape_html.js` runs in Node.js only. For in-browser testing of the escapeHtml function, open the test file in a browser console (the script includes compatibility code for both environments).
