@@ -9,7 +9,7 @@ const char* get_greeting(void) {
 #ifndef UNIT_TEST
 int main(void) {
     int rc = 0;
-    printf("%s\n", get_greeting());
+    puts(get_greeting());
     printf("Exit code: %d\n", rc);
     return rc;
 }
