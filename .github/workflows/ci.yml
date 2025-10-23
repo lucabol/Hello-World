@@ -26,6 +26,9 @@ jobs:
     - name: Test visual editor generated code
       run: bash test/test_editor_output.sh
       
+    - name: Test XSS escaping function
+      run: node test/test_escape_html.js
+      
   build-and-test-clang:
     runs-on: ubuntu-latest
     

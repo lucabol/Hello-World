@@ -93,7 +93,10 @@ int main(){
 - The exported file is a standard C source file compatible with GCC and other C compilers
 - No internet connection required after the page loads
 - **Important:** The editor uses `file://` protocol which works in most browsers, but serving via HTTP is recommended for best compatibility
-- User input is properly escaped to prevent XSS vulnerabilities
+- **Security:** User input is properly escaped using `escapeHtml()` function to prevent XSS vulnerabilities
+  - All special HTML characters (`<`, `>`, `&`, `"`, `'`) are escaped before rendering
+  - Escaping is applied for both DOM rendering (using `textContent`) and display
+  - Unit tests verify XSS protection with various attack vectors
 - Keyboard navigation is fully supported with Tab and Enter keys
 - ARIA labels are provided for screen reader accessibility
 
