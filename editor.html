@@ -376,22 +376,19 @@
     
     /**
      * Escape string for safe use in C source code
-     * Handles backslashes, quotes, and format specifiers
+     * Handles backslashes, quotes, and escape sequences
      * 
      * @param {string} text - Text to escape for C
      * @returns {string} - C-safe escaped text
      * 
-     * SECURITY NOTE: This function intentionally preserves '%' characters
-     * to allow printf format specifiers (e.g., %d, %s, %f). This means:
+     * Note: This function is used to escape user strings that will be passed
+     * as DATA to printf (not as format strings). The generated code uses
+     * printf("%s", userString) to prevent format string vulnerabilities.
      * 
-     * - User-controlled format strings can affect program behavior
-     * - Generated printf("%s") expects a string argument (must be added manually)
-     * - Input "100%" will output "100%" which printf interprets as format+literal
-     * - Users should manually escape % → %% in non-format contexts after export
+     * Therefore, '%' characters in user input are preserved as literals and
+     * will be safely printed as-is (e.g., "100%" outputs "100%").
      * 
-     * This behavior is documented in EDITOR_GUIDE.md under "Known Limitations".
-     * 
-     * Note: NUL bytes (\0) cannot exist in JavaScript strings. If somehow
+     * NUL bytes: JavaScript strings cannot contain binary NUL (\0). If somehow
      * present in input, they would terminate the C string at that point.
      */
     function escapeCString(text) {
@@ -401,7 +398,7 @@
             .replace(/\n/g, '\\n')    // Keep newline escapes
             .replace(/\t/g, '\\t')    // Keep tab escapes
             .replace(/\r/g, '\\r');   // Keep carriage return escapes
-            // Note: '%' is intentionally NOT escaped to allow format specifiers
+            // Note: '%' is NOT escaped - it will be printed literally via printf("%s", ...)
     }
     
     /**
@@ -715,7 +712,10 @@
             if (block.type === 'printf') {
                 // Escape the string for C source code
                 const escaped = escapeCString(block.value);
-                code += `    printf("${escaped}");\n`;
+                // SECURITY: Use "%s" format to prevent user string from being interpreted as format
+                // This prevents format string vulnerabilities where user input like "%s%s%s"
+                // could crash the program or leak memory
+                code += `    printf("%s", "${escaped}");\n`;
             } else if (block.type === 'return') {
                 code += `    return ${block.value};\n`;
             }

@@ -76,15 +76,16 @@ function escapeCString(text) {
 
 **Behavior:**
 - NUL bytes: JavaScript strings cannot contain binary NUL (\0). Any NUL in input would be converted to empty string by the browser before reaching this function.
-- **Percent signs: INTENTIONALLY PRESERVED** - Allows printf format specifiers like %d, %s, %f
-- **Security consideration:** User-controlled format specifiers can affect program behavior
+- **Percent signs: Preserved and safe** - Generated code uses `printf("%s", userString)` so % is printed literally
+- **No format string vulnerabilities** - User input is always treated as data, never as format string
 - Non-printable chars: Passed through (caller's responsibility to validate)
 - Edge cases tested in `test/test_c_generation.js`
 
-**Format Specifier Behavior:**
-- Input: `"Value: %d\n"` → Output: `"Value: %d\n"` (preserved)
-- Input: `"100% complete"` → Output: `"100% complete"` (may cause printf issues)
-- **Recommendation:** Users should manually escape `%` → `%%` in non-format contexts after export
+**Format String Safety:**
+The code generator produces `printf("%s", "${escaped}")` instead of `printf("${escaped}")`, which means:
+- Input: `"100%"` → Generated: `printf("%s", "100%");` → Output: `100%` ✅ Safe
+- Input: `"Value: %d"` → Generated: `printf("%s", "Value: %d");` → Output: `Value: %d` ✅ Safe (literal)
+- **No format string vulnerability** - user cannot inject format specifiers like %s, %d, %x that could crash or leak memory
 
 ## 2. All innerHTML Usage Locations
 

@@ -120,36 +120,37 @@ Note: Traditional drag-and-drop may not work on all touch devices; use tap-to-ad
 4. Drag a `return` block with value `0`
 5. Export the code
 
-### Format Specifiers
-To use printf with format specifiers:
+### Format Specifiers and Special Characters
+The editor generates safe printf calls using `printf("%s", userString)` format:
 1. Add a printf block
-2. Enter text like: `Value: %d\n`
-3. The generated code will properly escape the string
-4. You'll need to manually add the variable parameter in the exported code
+2. Enter any text, including special characters like `%`, `\n`, `100%`, etc.
+3. The generated code safely prints your text as-is
+4. No manual escaping needed - `100%` will output `100%` correctly
 
-**⚠️ Important:** The editor intentionally preserves `%` characters to allow format specifiers. This means:
-- Input `"Value: %d\n"` generates `printf("Value: %d\n");` - you must add arguments manually
-- Input `"100% complete"` generates `printf("100% complete");` - the % is preserved and may cause runtime issues
-- **Security consideration:** User-controlled format strings can change program behavior
-- **Best practice:** If your string contains `%` as a literal (not a format specifier), manually change it to `%%` in the exported code
+**✅ Safe behavior:** The editor always uses `printf("%s", string)` to prevent format string vulnerabilities. User input is treated as data, not format strings, so characters like `%d`, `%s` are printed literally.
+
+**⚠️ For advanced users:** If you need actual format specifiers with variables, you must manually edit the exported code:
+- Generated: `printf("%s", "Value: %d\n");` outputs `"Value: %d\n"` literally
+- Manual edit: `printf("Value: %d\n", myVar);` outputs `"Value: 42\n"` with variable substitution
 
 ## Known Limitations
 
 ### What's Supported
 ✅ Basic C program structure (includes + main function)  
 ✅ Header includes  
-✅ Printf statements with string literals  
+✅ Printf statements with string literals (safe from format string vulnerabilities)
 ✅ Return statements  
 ✅ String escaping for C safety  
 ✅ Duplicate include detection  
-✅ Format specifiers (%, %d, %s, etc.) preserved in printf strings
+✅ Special characters (%, \n, etc.) handled safely
 
 ### What's NOT Supported
 ❌ Variable declarations  
 ❌ Function definitions (beyond main)  
 ❌ Control structures (if, while, for, switch)  
 ❌ Complex expressions  
-❌ Pointer operations  
+❌ Pointer operations
+❌ Printf with format specifiers and variables (can be added manually after export)  
 ❌ Struct/union definitions  
 ❌ Preprocessor directives (beyond #include)  
 ❌ Multi-file projects  

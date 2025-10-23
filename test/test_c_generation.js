@@ -40,8 +40,8 @@ const testCases = [
         expected: "Col1\tCol2\tCol3\n"
     },
     {
-        name: "Printf with format specifiers (escaped)",
-        printf: "100%% complete\\n",
+        name: "Printf with percent signs (safe with %s format)",
+        printf: "100% complete\\n",
         expected: "100% complete\n"
     },
     {
@@ -49,6 +49,16 @@ const testCases = [
         printf: "",
         expected: "",
         skipCompile: true  // Empty printf triggers -Werror=format-zero-length
+    },
+    {
+        name: "Format specifiers printed literally (security test)",
+        printf: "Value: %d, String: %s, Pointer: %p\\n",
+        expected: "Value: %d, String: %s, Pointer: %p\n"
+    },
+    {
+        name: "Multiple percent signs",
+        printf: "%s%s%s%d%d%d\\n",
+        expected: "%s%s%s%d%d%d\n"
     }
 ];
 
@@ -65,11 +75,11 @@ testCases.forEach((testCase, index) => {
     }
     
     try {
-        // Generate C code
+        // Generate C code with safe printf format
         const code = `#include <stdio.h>
 
 int main(){
-    printf("${testCase.printf}");
+    printf("%s", "${testCase.printf}");
     return 0;
 }`;
         
