@@ -1,5 +1,24 @@
-# include <stdio.h>
+#include <stdio.h>
+#include "hello.h"
 
-int main(){
-    printf("Hello world!");
+/* Returns the greeting message */
+const char* get_greeting(void) {
+    return "Ciao, Mondo!";
 }
+
+/* Prints a custom message to stdout */
+void print_custom_message(const char* message) {
+    if (message == NULL) {
+        printf("(null)\n");
+    } else {
+        printf("%s\n", message);
+    }
+}
+
+#ifndef UNIT_TEST
+int main(void) {
+    const char* greeting = get_greeting();
+    printf("%s\n", greeting);
+    return 0;
+}
+#endif
