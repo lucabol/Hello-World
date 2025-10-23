@@ -127,3 +127,112 @@ jobs:
         echo "Testing strict compilation with Clang..."
         clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -DUSE_PLUGINS -o hello_clang_strict hello.c plugin.c plugin_uppercase.c plugin_decorator.c plugin_logger.c
         ./hello_clang_strict | grep -q "CIAO, MONDO!"
+  
+  # Memory safety testing with Valgrind
+  test-memory-safety:
+    runs-on: ubuntu-latest
+    name: Memory safety checks (Valgrind)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Valgrind
+      run: sudo apt-get update && sudo apt-get install -y valgrind
+      
+    - name: Build with debug symbols
+      run: |
+        gcc -g -DUSE_PLUGINS -o hello_valgrind hello.c plugin.c plugin_uppercase.c plugin_decorator.c
+        
+    - name: Run Valgrind leak check
+      run: |
+        valgrind --leak-check=full --error-exitcode=1 --show-leak-kinds=all ./hello_valgrind
+        
+    - name: Run Valgrind with heap mode
+      run: |
+        gcc -g -DUSE_PLUGINS -DPLUGIN_USE_HEAP -o hello_valgrind_heap hello.c plugin.c plugin_uppercase.c
+        valgrind --leak-check=full --error-exitcode=1 --show-leak-kinds=all ./hello_valgrind_heap
+  
+  # AddressSanitizer testing
+  test-asan:
+    runs-on: ubuntu-latest
+    name: AddressSanitizer checks
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build with ASAN (stack mode)
+      run: |
+        gcc -fsanitize=address -fno-omit-frame-pointer -g -DUSE_PLUGINS -o hello_asan hello.c plugin.c plugin_uppercase.c plugin_decorator.c
+        
+    - name: Run ASAN checks
+      run: ./hello_asan
+      
+    - name: Build with ASAN (heap mode)
+      run: |
+        gcc -fsanitize=address -fno-omit-frame-pointer -g -DUSE_PLUGINS -DPLUGIN_USE_HEAP -o hello_asan_heap hello.c plugin.c plugin_uppercase.c
+        
+    - name: Run ASAN checks (heap mode)
+      run: ./hello_asan_heap
+  
+  # Windows/MSVC testing with manual registration
+  test-windows-msvc:
+    runs-on: windows-latest
+    name: Windows MSVC manual registration
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Create manual registration test file
+      shell: bash
+      run: |
+        cat > test_manual_registration.c << 'EOF'
+        #define PLUGIN_MANUAL_REGISTRATION
+        #include "hello.h"
+        #include "plugin.h"
+        #include <stdio.h>
+        
+        // Uppercase plugin
+        int uppercase_transform(const char* input, char* output, size_t output_size);
+        
+        int main(void) {
+            // Manual registration for MSVC
+            int result = plugin_register("Uppercase", uppercase_transform, NULL, NULL);
+            if (result != PLUGIN_SUCCESS) {
+                fprintf(stderr, "Failed to register plugin: %d\n", result);
+                return 1;
+            }
+            
+            // Now run hello with plugins
+            const char* greeting = get_greeting();
+            printf("Original: %s\n", greeting);
+            
+            #ifdef USE_PLUGINS
+            char output[PLUGIN_BUFFER_SIZE];
+            result = plugin_execute_transforms(greeting, output, PLUGIN_BUFFER_SIZE);
+            if (result == PLUGIN_SUCCESS) {
+                printf("Transformed: %s\n", output);
+            }
+            #endif
+            
+            return 0;
+        }
+        EOF
+        
+    - name: Compile with MSVC
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cl /W4 /DUSE_PLUGINS /DPLUGIN_MANUAL_REGISTRATION /I. /c hello.c
+        cl /W4 /DUSE_PLUGINS /DPLUGIN_MANUAL_REGISTRATION /I. /c plugin.c
+        cl /W4 /DUSE_PLUGINS /DPLUGIN_MANUAL_REGISTRATION /I. /c plugin_uppercase.c
+        cl /W4 /DUSE_PLUGINS /DPLUGIN_MANUAL_REGISTRATION /I. test_manual_registration.c hello.obj plugin.obj plugin_uppercase.obj
+        
+    - name: Run MSVC test
+      shell: cmd
+      run: test_manual_registration.exe

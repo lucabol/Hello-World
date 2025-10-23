@@ -39,7 +39,9 @@ if ! make > /dev/null 2>&1; then
     exit 1
 fi
 OUTPUT=$(./hello)
-test_output "Core hello.c works without plugins" "$OUTPUT" "Ciao, Mondo!"
+EXPECTED="Ciao, Mondo!
+Exit code: 0"
+test_output "Core hello.c works without plugins" "$OUTPUT" "$EXPECTED"
 
 # Test 2: Uppercase plugin
 echo "Test 2: Building and running with uppercase plugin..."
@@ -48,7 +50,9 @@ if ! make uppercase > /dev/null 2>&1; then
     exit 1
 fi
 OUTPUT=$(./hello_uppercase)
-test_output "Uppercase plugin transforms correctly" "$OUTPUT" "CIAO, MONDO!"
+EXPECTED="CIAO, MONDO!
+Exit code: 0"
+test_output "Uppercase plugin transforms correctly" "$OUTPUT" "$EXPECTED"
 
 # Test 3: Decorator plugin
 echo "Test 3: Building and running with decorator plugin..."
@@ -59,7 +63,9 @@ fi
 OUTPUT=$(./hello_decorator)
 EXPECTED="=== Plugin Output Start ===
 *** Ciao, Mondo! ***
-=== Plugin Output End ==="
+
+=== Plugin Output End ===
+Exit code: 0"
 test_output "Decorator plugin works correctly" "$OUTPUT" "$EXPECTED"
 
 # Test 4: Multiple plugins (chaining)
@@ -71,7 +77,9 @@ fi
 OUTPUT=$(./hello_chain_test)
 EXPECTED="=== Plugin Output Start ===
 *** CIAO, MONDO! ***
-=== Plugin Output End ==="
+
+=== Plugin Output End ===
+Exit code: 0"
 test_output "Multiple plugins chain correctly (decorator -> uppercase)" "$OUTPUT" "$EXPECTED"
 
 # Test 5: Plugin chaining in different order (uppercase -> decorator)
@@ -84,7 +92,9 @@ OUTPUT=$(./hello_chain_test2)
 # Should uppercase first, then decorate the uppercase version
 EXPECTED="=== Plugin Output Start ===
 *** CIAO, MONDO! ***
-=== Plugin Output End ==="
+
+=== Plugin Output End ===
+Exit code: 0"
 test_output "Plugin chaining order works (uppercase -> decorator)" "$OUTPUT" "$EXPECTED"
 
 # Test 6: Hooks-only plugin (logger)
@@ -202,7 +212,9 @@ rm -f /tmp/test_long_input.c /tmp/test_long
 echo "Test 12: Testing with zero plugins registered..."
 if gcc -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_no_plugins hello.c plugin.c 2>/dev/null; then
     OUTPUT=$(./hello_no_plugins)
-    test_output "Zero plugins (passthrough)" "$OUTPUT" "Ciao, Mondo!"
+    EXPECTED="Ciao, Mondo!
+Exit code: 0"
+    test_output "Zero plugins (passthrough)" "$OUTPUT" "$EXPECTED"
 else
     echo -e "${RED}✗ FAIL${NC}: Build with zero plugins failed"
     exit 1
@@ -303,7 +315,9 @@ if ! gcc -DUSE_PLUGINS -DPLUGIN_USE_HEAP -o hello_heap hello.c plugin.c plugin_u
     exit 1
 fi
 OUTPUT=$(./hello_heap)
-test_output "Heap allocation mode works" "$OUTPUT" "CIAO, MONDO!"
+EXPECTED="CIAO, MONDO!
+Exit code: 0"
+test_output "Heap allocation mode works" "$OUTPUT" "$EXPECTED"
 rm -f hello_heap
 
 echo ""

@@ -48,7 +48,7 @@ int plugin_get_count(void) {
  * Two buffers of PLUGIN_BUFFER_SIZE (default 1024 bytes) are allocated on the stack.
  * 
  * Stack allocation (default, no PLUGIN_USE_HEAP):
- * - Stack safety: With default PLUGIN_BUFFER_SIZE=1024, this allocates 2KB on the stack
+ * - Stack safety: With default PLUGIN_BUFFER_SIZE=1024, this allocates 2×1024 = 2048 bytes (2KB) on the stack
  *   which is safe for typical applications. Most systems have at least 1MB stack by default.
  * - WARNING: If PLUGIN_BUFFER_SIZE > 4KB, consider using heap allocation to avoid overflow
  * - Benefits: No heap overhead, automatic cleanup, thread-local, deterministic

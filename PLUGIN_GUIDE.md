@@ -364,6 +364,40 @@ stderr: "ERROR: Plugin 'failing_plugin' transform failed (code -1)"
 - Input and output limited to buffer size
 - Exceeding limit causes errors/warnings
 
+**Handling Large Messages:**
+
+If your application needs to process messages larger than the default 1024 bytes, you have several options:
+
+1. **Increase buffer size with heap mode (recommended for >4KB):**
+   ```bash
+   gcc -DUSE_PLUGINS -DPLUGIN_USE_HEAP -DPLUGIN_BUFFER_SIZE=8192 -o hello hello.c plugin.c my_plugin.c
+   ```
+
+2. **Chunking approach (for very large messages):**
+   - Split large messages into chunks
+   - Process each chunk separately through plugins
+   - Reassemble the transformed chunks
+   - Note: This requires application-level logic, not built into the plugin system
+
+3. **Error handling pattern:**
+   ```c
+   char output[PLUGIN_BUFFER_SIZE];
+   int result = plugin_execute_transforms(input, output, PLUGIN_BUFFER_SIZE);
+   if (result == PLUGIN_ERROR_INVALID_INPUT) {
+       // Input too large (>= PLUGIN_BUFFER_SIZE)
+       // Option A: Fallback to original message
+       printf("%s\n", input);
+       // Option B: Truncate and process
+       char truncated[PLUGIN_BUFFER_SIZE];
+       strncpy(truncated, input, PLUGIN_BUFFER_SIZE - 1);
+       truncated[PLUGIN_BUFFER_SIZE - 1] = '\0';
+       plugin_execute_transforms(truncated, output, PLUGIN_BUFFER_SIZE);
+   }
+   ```
+
+**Current Limitation:**
+The plugin API does not support dynamic buffer sizing or retry with larger buffers. The `PLUGIN_ERROR_BUFFER_TOO_SMALL` error code is fatal and indicates the plugin needs more space than available. This is a design choice to keep the API simple and avoid dynamic allocation in plugins. Configure `PLUGIN_BUFFER_SIZE` appropriately for your expected message sizes at compile time.
+
 ## Compilation
 
 ```bash
@@ -462,7 +496,7 @@ void test_overflow(void) {
 ### Stack vs Heap Allocation
 
 **Default (Stack Allocation):**
-- Uses 2 × PLUGIN_BUFFER_SIZE bytes on the stack (default: 2KB)
+- Uses 2 × PLUGIN_BUFFER_SIZE bytes on the stack (default: 2 × 1024 = 2048 bytes, or 2KB)
 - Fast, no allocation overhead
 - **Recommended** for typical desktop/server applications
 - Safe up to PLUGIN_BUFFER_SIZE=4096 (compiler warning if exceeded)
