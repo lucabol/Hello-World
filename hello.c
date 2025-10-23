@@ -9,9 +9,9 @@ const char* get_greeting(void) {
 /* Prints a custom message to stdout */
 void print_custom_message(const char* message) {
     if (message == NULL) {
-        printf("(null)\n");
+        puts("(null)");
     } else {
-        printf("%s\n", message);
+        puts(message);
     }
 }
 
@@ -19,7 +19,7 @@ void print_custom_message(const char* message) {
 int main(void) {
     int exit_code = 0;
     const char* greeting = get_greeting();
-    printf("%s\n", greeting);
+    puts(greeting);
     printf("Exit code: %d\n", exit_code);
     return exit_code;
 }
