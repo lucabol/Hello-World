@@ -148,6 +148,20 @@ gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_decorator.c plugin_uppercase.
 
 Note: The decorator transforms first (adds ***), then uppercase transforms the result.
 
+## Creating Your Own Plugin
+
+A complete example plugin is provided in `plugin_repeat_example.c`. This example shows:
+- How to structure a plugin file
+- Buffer management for transformed messages
+- Using all three plugin functions (transform, before, after)
+- Adding inline documentation
+
+You can use this file as a template for your own plugins. Simply:
+1. Copy `plugin_repeat_example.c` to your own filename (e.g., `plugin_myfeature.c`)
+2. Modify the transform, before, and after functions
+3. Update the PLUGIN_REGISTER call with your plugin name
+4. Compile with: `gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_myfeature.c`
+
 ## Plugin Execution Order
 
 1. All `before` hooks execute in registration order

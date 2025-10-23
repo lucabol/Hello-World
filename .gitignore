@@ -10,6 +10,7 @@ hello_with_plugins
 hello_uppercase
 hello_decorator
 hello_logger
+hello_repeat
 hello_multi
 voice_demo
 voice_demo_test
