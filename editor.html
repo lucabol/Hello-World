@@ -380,6 +380,19 @@
      * 
      * @param {string} text - Text to escape for C
      * @returns {string} - C-safe escaped text
+     * 
+     * SECURITY NOTE: This function intentionally preserves '%' characters
+     * to allow printf format specifiers (e.g., %d, %s, %f). This means:
+     * 
+     * - User-controlled format strings can affect program behavior
+     * - Generated printf("%s") expects a string argument (must be added manually)
+     * - Input "100%" will output "100%" which printf interprets as format+literal
+     * - Users should manually escape % → %% in non-format contexts after export
+     * 
+     * This behavior is documented in EDITOR_GUIDE.md under "Known Limitations".
+     * 
+     * Note: NUL bytes (\0) cannot exist in JavaScript strings. If somehow
+     * present in input, they would terminate the C string at that point.
      */
     function escapeCString(text) {
         return text
@@ -388,6 +401,7 @@
             .replace(/\n/g, '\\n')    // Keep newline escapes
             .replace(/\t/g, '\\t')    // Keep tab escapes
             .replace(/\r/g, '\\r');   // Keep carriage return escapes
+            // Note: '%' is intentionally NOT escaped to allow format specifiers
     }
     
     /**

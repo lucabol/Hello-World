@@ -111,3 +111,32 @@ if (failed > 0) {
 }
 
 console.log("\n✅ All escapeHtml() tests passed!");
+
+// Additional test: Surrogate pairs and edge cases
+console.log("\n🧪 Testing escapeHtml edge cases...\n");
+
+console.log("Test 11: Surrogate pairs (Unicode emojis)");
+const surrogatePair = "😀🎉";  // Emojis with surrogate pairs
+const escapedSurrogate = escapeHtml(surrogatePair);
+if (escapedSurrogate === surrogatePair) {
+    console.log("  ✓ Surrogate pairs preserved correctly");
+    passed++;
+} else {
+    console.log(`  ✗ Surrogate pairs corrupted: ${escapedSurrogate}`);
+    failed++;
+}
+
+console.log("\nTest 12: Very long string (performance check)");
+const longString = "a".repeat(10000);
+const escapedLong = escapeHtml(longString);
+if (escapedLong === longString && escapedLong.length === 10000) {
+    console.log("  ✓ Long string handled correctly");
+    passed++;
+} else {
+    console.log(`  ✗ Long string failed: length ${escapedLong.length}`);
+    failed++;
+}
+
+console.log("\n" + "=".repeat(50));
+console.log(`Total results: ${passed} passed, ${failed} failed`);
+console.log("=".repeat(50));

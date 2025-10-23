@@ -3,18 +3,23 @@
 ## 1. Exact Implementations of Security Functions
 
 ### escapeHtml() Implementation
-**Location:** `editor.html`, lines 371-376
+**Location:** `editor.html` → function `escapeHtml()`
+
+**Note:** Line numbers may change as code evolves. To find this function, search for `function escapeHtml(text)` in editor.html (currently ~line 371).
 
 ```javascript
 /**
  * Security: Escape HTML to prevent XSS attacks
  * Used before inserting user content into HTML attributes
  * 
+ * Implementation: Uses a freshly-created, detached DOM element
+ * to leverage browser's built-in escaping via textContent→innerHTML
+ * 
  * @param {string} text - Text to escape
  * @returns {string} - Escaped HTML-safe text
  */
 function escapeHtml(text) {
-    const div = document.createElement('div');
+    const div = document.createElement('div');  // Detached element
     div.textContent = text;
     return div.innerHTML;
 }
@@ -22,13 +27,16 @@ function escapeHtml(text) {
 
 **Escaping Rules:**
 - Uses browser's built-in textContent mechanism
+- Creates a fresh, detached element for each call (no DOM mutation)
 - Handles: `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#039;`
 - Safely handles Unicode surrogate pairs (preserved by textContent)
 - Null bytes: Converted to empty string by DOM API
 - Edge cases tested in `test/test_escape_html.js`
 
 ### escapeCString() Implementation
-**Location:** `editor.html`, lines 379-390
+**Location:** `editor.html` → function `escapeCString()`
+
+**Note:** Line numbers may change. Search for `function escapeCString(text)` in editor.html (currently ~line 384).
 
 ```javascript
 /**
@@ -37,6 +45,19 @@ function escapeHtml(text) {
  * 
  * @param {string} text - Text to escape for C
  * @returns {string} - C-safe escaped text
+ * 
+ * SECURITY NOTE: This function intentionally preserves '%' characters
+ * to allow printf format specifiers. If user input contains format
+ * specifiers like %s, %d, etc., the generated C code will expect
+ * corresponding arguments. This is by design for flexibility but means:
+ * 
+ * - Generated code with user-provided format strings may not compile
+ *   without manually adding arguments to the printf call
+ * - User must manually validate/adjust format specifiers after export
+ * - This is documented in EDITOR_GUIDE.md under "Known Limitations"
+ * 
+ * If you need to prevent format specifier interpretation, manually
+ * replace '%' with '%%' in the generated code after export.
  * 
  * Note: NUL bytes (\0) are NOT handled - JavaScript strings
  * cannot contain true NUL bytes. If present in input,
@@ -49,39 +70,46 @@ function escapeCString(text) {
         .replace(/\n/g, '\\n')    // Keep newline escapes
         .replace(/\t/g, '\\t')    // Keep tab escapes
         .replace(/\r/g, '\\r');   // Keep carriage return escapes
+        // Note: '%' is intentionally NOT escaped to allow format specifiers
 }
 ```
 
 **Behavior:**
 - NUL bytes: JavaScript strings cannot contain binary NUL (\0). Any NUL in input would be converted to empty string by the browser before reaching this function.
-- Percent signs: Preserved intentionally to allow printf format specifiers
+- **Percent signs: INTENTIONALLY PRESERVED** - Allows printf format specifiers like %d, %s, %f
+- **Security consideration:** User-controlled format specifiers can affect program behavior
 - Non-printable chars: Passed through (caller's responsibility to validate)
 - Edge cases tested in `test/test_c_generation.js`
+
+**Format Specifier Behavior:**
+- Input: `"Value: %d\n"` → Output: `"Value: %d\n"` (preserved)
+- Input: `"100% complete"` → Output: `"100% complete"` (may cause printf issues)
+- **Recommendation:** Users should manually escape `%` → `%%` in non-format contexts after export
 
 ## 2. All innerHTML Usage Locations
 
 ### Safe innerHTML Usage Audit
 
-**Location 1:** `editor.html`, line 374
+**Location 1:** `editor.html` → inside `escapeHtml()` function
 ```javascript
 return div.innerHTML;  // Inside escapeHtml() - returns escaped content
 ```
-**Why Safe:** This is the output of textContent conversion - browser has already escaped all special characters.
+**Why Safe:** This is the output of textContent conversion - browser has already escaped all special characters. The element is detached and freshly created.
 
-**Location 2:** `editor.html`, line 385
+**Location 2:** `editor.html` → inside `renderWorkspace()` function (clearing workspace)
 ```javascript
 workspaceArea.innerHTML = '';  // Clearing workspace
 ```
 **Why Safe:** Setting to empty string - no user content involved.
 
-**Location 3:** `editor.html`, line 390
+**Location 3:** `editor.html` → inside `renderWorkspace()` function (clearing before render)
 ```javascript
 workspaceArea.innerHTML = '';  // Clearing workspace before rendering
 ```
 **Why Safe:** Setting to empty string - no user content involved.
 
 **Total innerHTML uses:** 3
-- 1 inside escapeHtml (safe by design)
+- 1 inside escapeHtml (safe by design - detached element with escaped content)
 - 2 for clearing DOM (empty string)
 - 0 with unsanitized user content
 
@@ -90,10 +118,16 @@ workspaceArea.innerHTML = '';  // Clearing workspace before rendering
 ## 3. Header Whitelist and Include Deduplication
 
 ### Header Validation Regex
-**Location:** `editor.html`, line 398
+**Location:** `editor.html` → function `isValidHeader()`
+
+**Note:** Search for `function isValidHeader(header)` in editor.html (currently ~line 400).
 
 ```javascript
 function isValidHeader(header) {
+    // Reject path traversal attempts
+    if (header.includes('..')) {
+        return false;
+    }
     // Allow standard header patterns like stdio.h, sys/types.h
     const pattern = /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/;
     return pattern.test(header) && header.length < 100;
@@ -107,7 +141,9 @@ function isValidHeader(header) {
 - Examples tested in `test/test_header_validation.js`
 
 ### Include Deduplication Algorithm
-**Location:** `editor.html`, lines 405-416
+**Location:** `editor.html` → function `deduplicateIncludes()`
+
+**Note:** Search for `function deduplicateIncludes(includeBlocks)` in editor.html (currently ~line 411).
 
 ```javascript
 function deduplicateIncludes(includeBlocks) {

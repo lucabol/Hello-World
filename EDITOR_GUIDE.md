@@ -127,6 +127,12 @@ To use printf with format specifiers:
 3. The generated code will properly escape the string
 4. You'll need to manually add the variable parameter in the exported code
 
+**⚠️ Important:** The editor intentionally preserves `%` characters to allow format specifiers. This means:
+- Input `"Value: %d\n"` generates `printf("Value: %d\n");` - you must add arguments manually
+- Input `"100% complete"` generates `printf("100% complete");` - the % is preserved and may cause runtime issues
+- **Security consideration:** User-controlled format strings can change program behavior
+- **Best practice:** If your string contains `%` as a literal (not a format specifier), manually change it to `%%` in the exported code
+
 ## Known Limitations
 
 ### What's Supported
@@ -136,6 +142,7 @@ To use printf with format specifiers:
 ✅ Return statements  
 ✅ String escaping for C safety  
 ✅ Duplicate include detection  
+✅ Format specifiers (%, %d, %s, etc.) preserved in printf strings
 
 ### What's NOT Supported
 ❌ Variable declarations  
