@@ -67,17 +67,22 @@ debug: $(SRC) $(HEADER)
 
 # Unit tests target - compile hello.c as library and link with test
 # Note: Artifacts are cleaned up on exit. Set KEEP_TEST_ARTIFACTS=1 to preserve for debugging
+# Uses set -e to fail fast on any error in the command chain
 unit-test: $(SRC) $(HEADER) $(TEST_SRC) $(TEST_HEADER)
 	@echo "Building unit tests..."
 	@if [ "$(KEEP_TEST_ARTIFACTS)" = "1" ]; then \
-		$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS) && \
-		$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS) && \
-		(echo "Running unit tests..." && ./$(TEST_RUNNER)); \
+		set -e; \
+		$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS); \
+		$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS); \
+		echo "Running unit tests..."; \
+		./$(TEST_RUNNER); \
 	else \
+		set -e; \
 		trap 'rm -f $(HELLO_LIB) $(TEST_RUNNER)' EXIT; \
-		$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS) && \
-		$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS) && \
-		(echo "Running unit tests..." && ./$(TEST_RUNNER)); \
+		$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB) $(SRC) $(UNIT_TEST_FLAGS); \
+		$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) $(TEST_SRC) $(HELLO_LIB) $(LDFLAGS); \
+		echo "Running unit tests..."; \
+		./$(TEST_RUNNER); \
 	fi
 
 # Test target - run validation script
@@ -113,12 +118,16 @@ help:
 	@echo "                  Example: make CC=clang"
 	@echo "                  Example: CC=gcc-12 make"
 	@echo "  CLANG         - Clang compiler (default: clang, uses ?= for overriding)"
-	@echo "                  Note: Use 'make clang' or 'make CC=clang' to build with clang"
+	@echo "                  Note: The 'make clang' target delegates to \$$(MAKE) with CC=\$$(CLANG)"
+	@echo "                  and HELLO override to build hello_clang"
+	@echo "                  Alternatively: make CC=clang builds to standard hello binary"
 	@echo "  CFLAGS        - Standard compiler flags (default: -Wall -Wextra)"
 	@echo "                  Uses ?= assignment, so environment/CLI overrides are respected"
 	@echo "                  Example: make CFLAGS='-O2 -Wall'"
 	@echo "                  Example: CFLAGS='-O3' make"
 	@echo "  STRICT_FLAGS  - Strict compiler flags for quality assurance (includes -Werror -std=c99)"
+	@echo "                  Note: STRICT_FLAGS inherits from CFLAGS, so overriding CFLAGS affects strict builds"
+	@echo "                  Example: make strict CFLAGS='-O2 -Wall' adds -O2 to strict build"
 	@echo "  DEBUG_FLAGS   - Compiler flags for debugging builds"
 	@echo "  LDFLAGS       - Linker flags"
 	@echo "                  Example: make LDFLAGS='-lm'"
