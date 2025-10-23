@@ -21,10 +21,9 @@ unit-test:
 	@echo "Building unit tests..."
 	@$(CC) $(CFLAGS) -I. -c -o $(HELLO_LIB_OBJ) hello.c -DUNIT_TEST
 	@$(CC) $(CFLAGS) -I. -o $(TEST_RUNNER) test/test_hello.c $(HELLO_LIB_OBJ)
-	@rm -f $(HELLO_LIB_OBJ)
 	@echo "Running unit tests..."
 	@./$(TEST_RUNNER)
-	@rm -f $(TEST_RUNNER)
+	@rm -f $(HELLO_LIB_OBJ) $(TEST_RUNNER)
 
 # Clean build artifacts
 .PHONY: clean
