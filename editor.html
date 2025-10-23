@@ -393,11 +393,16 @@
     /**
      * Validate header file name
      * Only allows alphanumeric, dots, hyphens, underscores
+     * Rejects path traversal attempts (..)
      * 
      * @param {string} header - Header filename to validate
      * @returns {boolean} - True if valid
      */
     function isValidHeader(header) {
+        // Reject path traversal attempts
+        if (header.includes('..')) {
+            return false;
+        }
         // Allow standard header patterns like stdio.h, sys/types.h
         const pattern = /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/;
         return pattern.test(header) && header.length < 100;

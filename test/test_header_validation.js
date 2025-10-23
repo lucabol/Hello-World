@@ -13,6 +13,10 @@ let failed = 0;
 
 // Simulate the isValidHeader function from editor.html
 function isValidHeader(header) {
+    // Reject path traversal attempts
+    if (header.includes('..')) {
+        return false;
+    }
     const pattern = /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/;
     return pattern.test(header) && header.length < 100;
 }

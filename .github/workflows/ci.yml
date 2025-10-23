@@ -49,6 +49,9 @@ jobs:
     - name: Test C code generation safety
       run: node test/test_c_generation.js
       
+    - name: Test header validation and deduplication
+      run: node test/test_header_validation.js
+      
   build-and-test-clang:
     runs-on: ubuntu-latest
     
