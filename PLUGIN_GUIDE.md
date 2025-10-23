@@ -4,28 +4,44 @@
 
 The hello.c plugin system allows external developers to extend functionality without modifying the core hello.c file. Plugins can transform the output message and execute code before and after the message is printed.
 
+The system uses a **safe out-buffer API** to prevent buffer overflow and memory corruption issues.
+
 ## Architecture
 
 The plugin system uses a simple, compile-time registration mechanism:
 - Plugins are statically linked at compile time
-- Multiple plugins can be registered and will execute in registration order
+- Multiple plugins can be registered and chain together safely
+- **Double-buffering** prevents buffer clobbering during chaining
 - No dynamic library loading required (keeps it simple)
 - Backward compatible - hello.c works without plugins when compiled normally
 
+### Safety Features
+
+- Out-buffer API prevents static buffer issues
+- Buffer overflow detection
+- Error handling for transform failures
+- Truncation warnings
+- Double-buffering for safe plugin chaining
+
 ## Creating a Plugin
 
-### Basic Plugin Structure
+### Basic Plugin Structure (New Safe API)
 
 ```c
 #include "plugin.h"
 #include <stdio.h>
 #include <string.h>
 
-/* Transform function - modifies the message */
-static const char* my_transform(const char* input) {
-    static char buffer[256];
-    snprintf(buffer, sizeof(buffer), "Modified: %s", input);
-    return buffer;
+/* Transform function - modifies the message safely */
+static int my_transform(const char* input, char* output, size_t output_size) {
+    int result = snprintf(output, output_size, "Modified: %s", input);
+    
+    /* IMPORTANT: Always check for buffer overflow */
+    if (result < 0 || (size_t)result >= output_size) {
+        return -1;  /* Error: buffer too small */
+    }
+    
+    return 0;  /* Success */
 }
 
 /* Before hook - executes before message is printed */
@@ -45,194 +61,412 @@ PLUGIN_REGISTER(MyPlugin, my_transform, my_before, my_after);
 ### Plugin Components
 
 1. **Transform Function** (optional)
-   - Type: `const char* (*)(const char* input)`
-   - Receives the current message and returns a transformed version
-   - Must return a pointer to static or persistent storage
-   - Can return the input unchanged by returning `input` directly
+   - **Type**: `int (*)(const char* input, char* output, size_t output_size)`
+   - **Parameters**:
+     - `input`: The input message (null-terminated, read-only)
+     - `output`: Buffer to write transformed message (must null-terminate)
+     - `output_size`: Size of the output buffer in bytes
+   - **Returns**:
+     - `0` on success
+     - Non-zero on error (e.g., buffer too small)
+   - **CRITICAL**: Always check that output fits in the buffer
    - Pass `NULL` if no transformation is needed
 
 2. **Before Hook** (optional)
-   - Type: `void (*)(void)`
+   - **Type**: `void (*)(void)`
    - Executes before the message is printed
-   - Useful for printing headers, initializing state, etc.
+   - Useful for headers, logging, initialization
    - Pass `NULL` if not needed
 
 3. **After Hook** (optional)
-   - Type: `void (*)(void)`
+   - **Type**: `void (*)(void)`
    - Executes after the message is printed
-   - Useful for printing footers, cleanup, etc.
+   - Useful for footers, cleanup, logging
    - Pass `NULL` if not needed
 
 ### Registration
 
-Use the `PLUGIN_REGISTER` macro to register your plugin:
-
+**Automatic (GCC/Clang only):**
 ```c
 PLUGIN_REGISTER(PluginName, transform_fn, before_fn, after_fn);
 ```
 
-Note: The first parameter is an identifier (not a string), which will be converted to a string name automatically.
+**Manual (All compilers):**
+```c
+void init_plugins(void) {
+    plugin_register("PluginName", transform_fn, before_fn, after_fn);
+}
+```
 
-The registration happens automatically at program startup using GCC's constructor attribute.
+## Example Plugins with New API
+
+### Example 1: Uppercase Transformer
+
+```c
+#include "plugin.h"
+#include <ctype.h>
+#include <string.h>
+
+static int uppercase_transform(const char* input, char* output, size_t output_size) {
+    size_t len = strlen(input);
+    
+    /* Check buffer size */
+    if (len >= output_size) {
+        return -1;  /* Buffer too small */
+    }
+    
+    /* Transform to uppercase */
+    for (size_t i = 0; i < len; i++) {
+        output[i] = (char)toupper((unsigned char)input[i]);
+    }
+    output[len] = '\0';
+    
+    return 0;  /* Success */
+}
+
+PLUGIN_REGISTER(UppercasePlugin, uppercase_transform, NULL, NULL);
+```
+
+### Example 2: Decorator with Hooks
+
+```c
+#include "plugin.h"
+#include <stdio.h>
+
+static int decorator_transform(const char* input, char* output, size_t output_size) {
+    int result = snprintf(output, output_size, "*** %s ***", input);
+    
+    /* Check for overflow */
+    if (result < 0 || (size_t)result >= output_size) {
+        return -1;  /* Buffer too small */
+    }
+    
+    return 0;
+}
+
+static void decorator_before(void) {
+    printf("=== Plugin Output Start ===\n");
+}
+
+static void decorator_after(void) {
+    printf("\n=== Plugin Output End ===\n");
+}
+
+PLUGIN_REGISTER(DecoratorPlugin, decorator_transform, decorator_before, decorator_after);
+```
+
+### Example 3: Hooks-Only Logger
+
+```c
+#include "plugin.h"
+#include <stdio.h>
+#include <time.h>
+
+static void logger_before(void) {
+    time_t now = time(NULL);
+    printf("[%s] Starting\n", ctime(&now));
+}
+
+static void logger_after(void) {
+    printf("\n[INFO] Complete\n");
+}
+
+/* No transform - just hooks */
+PLUGIN_REGISTER(LoggerPlugin, NULL, logger_before, logger_after);
+```
+
+## Safe Plugin Chaining
+
+Multiple plugins chain safely using double-buffering:
+
+```bash
+gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_decorator.c plugin_uppercase.c
+./hello
+```
+
+**Output:**
+```
+=== Plugin Output Start ===
+*** HELLO WORLD! ***
+=== Plugin Output End ===
+```
+
+**How it works:**
+1. System starts with input: "Hello world!"
+2. Decorator transforms into Buffer A: "*** Hello world! ***"
+3. Uppercase reads Buffer A, transforms into Buffer B: "*** HELLO WORLD! ***"
+4. System prints final result from Buffer B
+
+**No buffer clobbering** - each transform has its own input and output buffer.
+
+## Buffer Safety - Critical Best Practices
+
+### ✅ CORRECT: Always Check Buffer Size
+
+```c
+static int safe_transform(const char* input, char* output, size_t output_size) {
+    /* Use snprintf and check return value */
+    int result = snprintf(output, output_size, "Prefix: %s", input);
+    
+    /* Critical: check for overflow */
+    if (result < 0 || (size_t)result >= output_size) {
+        return -1;  /* Signal error */
+    }
+    
+    return 0;  /* Success */
+}
+```
+
+### ❌ WRONG: Common Mistakes
+
+```c
+/* WRONG - No buffer size check */
+static int bad1(const char* input, char* output, size_t output_size) {
+    sprintf(output, "Prefix: %s", input);  /* BUFFER OVERFLOW! */
+    return 0;
+}
+
+/* WRONG - Doesn't check snprintf return */
+static int bad2(const char* input, char* output, size_t output_size) {
+    snprintf(output, output_size, "Prefix: %s", input);
+    return 0;  /* Might have truncated without detecting */
+}
+
+/* WRONG - Returns static buffer (old API, deprecated) */
+static const char* bad3(const char* input) {
+    static char buffer[256];
+    snprintf(buffer, sizeof(buffer), "Prefix: %s", input);
+    return buffer;  /* WRONG API! */
+}
+```
+
+## Portability and Limitations
+
+### Compiler Support
+
+| Compiler | Support | Notes |
+|----------|---------|-------|
+| GCC | ✅ Full | Auto-registration works |
+| Clang | ✅ Full | Auto-registration works |
+| MSVC | ⚠️ Manual | Use explicit `plugin_register()` |
+| Others | ❓ Maybe | If `__attribute__((constructor))` supported |
+
+### Registration Order
+
+⚠️ **Important Limitation**: Constructor execution order across translation units is **NOT guaranteed** by C standard.
+
+- Plugin order depends on link order
+- Order is deterministic for a given build
+- Don't rely on specific order for correctness
+- Test plugins in different orders
+
+### Thread Safety
+
+⚠️ **Not Thread-Safe**:
+- All registration must complete before execution
+- Transform functions receive independent buffers
+- Avoid mutable global state in transforms
+- Provide your own synchronization if needed
+
+### Buffer Limits
+
+- Default: 1024 bytes (configurable with `-DPLUGIN_BUFFER_SIZE=N`)
+- Input and output limited to buffer size
+- Exceeding limit causes errors/warnings
 
 ## Compilation
 
-### Compiling with Plugins
-
 ```bash
-# Compile with a single plugin
-gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_uppercase.c
-
-# Compile with multiple plugins
-gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_uppercase.c plugin_decorator.c
-
-# Compile without plugins (original behavior)
+# Without plugins (default)
 gcc -o hello hello.c
-```
+./hello
+# Output: Hello world!
 
-### Build Flags
-
-- `-DUSE_PLUGINS`: Enable plugin system in hello.c
-- Without this flag, hello.c behaves exactly as the original
-
-## Example Plugins
-
-### 1. Uppercase Plugin (`plugin_uppercase.c`)
-
-Transforms the message to uppercase letters.
-
-```bash
+# With single plugin
 gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_uppercase.c
 ./hello
 # Output: HELLO WORLD!
-```
 
-### 2. Decorator Plugin (`plugin_decorator.c`)
-
-Adds decorative borders and headers/footers.
-
-```bash
-gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_decorator.c
-./hello
-# Output:
-# === Plugin Output Start ===
-# *** Hello world! ***
-# === Plugin Output End ===
-```
-
-### 3. Logger Plugin (`plugin_logger.c`)
-
-Logs execution timestamps without modifying the message. Demonstrates using only hooks.
-
-```bash
-gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_logger.c
-./hello
-# Output:
-# [Thu Oct 23 11:53:17 2025] Starting hello.c execution
-# Hello world!
-# [INFO] Execution completed successfully
-```
-
-### 4. Multiple Plugins
-
-Plugins execute in the order they are linked:
-
-```bash
+# With multiple plugins
 gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_decorator.c plugin_uppercase.c
 ./hello
 # Output:
 # === Plugin Output Start ===
 # *** HELLO WORLD! ***
 # === Plugin Output End ===
+
+# Using Makefile
+make uppercase      # Build with uppercase only
+make decorator      # Build with decorator only
+make logger         # Build with logger only
+make with-plugins   # Build with all examples
 ```
 
-Note: The decorator transforms first (adds ***), then uppercase transforms the result.
+### Build Options
 
-## Creating Your Own Plugin
+```bash
+# Custom max plugins
+gcc -DMAX_PLUGINS=20 -DUSE_PLUGINS -o hello hello.c plugin.c my_plugin.c
 
-A complete example plugin is provided in `plugin_repeat_example.c`. This example shows:
-- How to structure a plugin file
-- Buffer management for transformed messages
-- Using all three plugin functions (transform, before, after)
-- Adding inline documentation
+# Custom buffer size
+gcc -DPLUGIN_BUFFER_SIZE=4096 -DUSE_PLUGINS -o hello hello.c plugin.c my_plugin.c
 
-You can use this file as a template for your own plugins. Simply:
-1. Copy `plugin_repeat_example.c` to your own filename (e.g., `plugin_myfeature.c`)
-2. Modify the transform, before, and after functions
-3. Update the PLUGIN_REGISTER call with your plugin name
-4. Compile with: `gcc -DUSE_PLUGINS -o hello hello.c plugin.c plugin_myfeature.c`
+# Strict compilation (recommended)
+gcc -Wall -Wextra -Wpedantic -Werror -DUSE_PLUGINS -o hello hello.c plugin.c my_plugin.c
+```
 
-## Plugin Execution Order
+## Testing
 
-1. All `before` hooks execute in registration order
-2. All `transform` functions execute in registration order (each transformation feeds into the next)
-3. The final message is printed
-4. All `after` hooks execute in registration order
+### Run Test Suite
 
-## Best Practices
+```bash
+./test_plugins.sh
+```
 
-1. **Static Storage**: Transform functions must return pointers to static or persistent storage, not stack-allocated buffers
-2. **Buffer Safety**: Always check buffer sizes to avoid overflows
-3. **Minimal Changes**: Keep plugins small and focused on a single task
-4. **NULL Checks**: You can pass NULL for any function you don't need
-5. **Idempotence**: Transform functions should be safe to call multiple times
-6. **Thread Safety**: The current implementation is not thread-safe
+Tests include:
+- Core functionality without plugins ✓
+- Individual plugin transforms ✓
+- Multi-plugin chaining (2-3 plugins) ✓
+- Hooks-only plugins ✓
+- Hooks + transforms combined ✓
+- Strict compilation (-Werror) ✓
+- Buffer safety verification ✓
 
-## Limitations
-
-- Maximum 10 plugins can be registered (see `MAX_PLUGINS` in plugin.h)
-- Plugins are statically linked at compile time (no runtime loading)
-- No plugin configuration or parameters beyond compile-time
-- Transform functions must use static buffers or return the input pointer
-- Not thread-safe in current implementation
-
-## Advanced Usage
-
-### Conditional Plugins
-
-You can create plugins that conditionally transform based on environment:
+### Unit Testing Your Plugin
 
 ```c
-static const char* conditional_transform(const char* input) {
-    const char* env = getenv("MY_PLUGIN_ENABLED");
-    if (env && strcmp(env, "1") == 0) {
-        static char buffer[256];
-        snprintf(buffer, sizeof(buffer), "MODIFIED: %s", input);
-        return buffer;
-    }
-    return input; /* No transformation */
+#include "plugin.h"
+#include <assert.h>
+#include <string.h>
+
+void test_my_transform(void) {
+    char output[256];
+    int result = my_transform("input", output, sizeof(output));
+    
+    assert(result == 0);  /* Should succeed */
+    assert(strcmp(output, "expected") == 0);
+}
+
+void test_overflow(void) {
+    char tiny[5];
+    int result = my_transform("long input", tiny, sizeof(tiny));
+    
+    assert(result != 0);  /* Should fail gracefully */
 }
 ```
 
-### Plugin Chains
-
-Plugins naturally form a chain - each transform receives the output of the previous transform:
-
-```
-Original message -> Plugin1.transform -> Plugin2.transform -> ... -> Final output
-```
-
-This allows for composable transformations without plugins needing to know about each other.
-
 ## Troubleshooting
 
-**Problem**: Plugin doesn't register
-- **Solution**: Make sure you're compiling with `-DUSE_PLUGINS`
-- **Solution**: Verify your plugin file is included in the compilation
+| Problem | Solution |
+|---------|----------|
+| Plugin not registering | Compile with `-DUSE_PLUGINS`, include plugin file |
+| "Max plugins reached" | Increase with `-DMAX_PLUGINS=N` |
+| Output truncated | Increase with `-DPLUGIN_BUFFER_SIZE=N` |
+| Segfault | Check buffer handling, null termination, bounds |
+| Chaining broken | Verify return values, test individually first |
+| Compilation error | Check API signature matches new out-buffer model |
 
-**Problem**: Message gets corrupted
-- **Solution**: Check that your transform function returns static storage, not a stack variable
-- **Solution**: Verify buffer sizes are adequate
+## Migration from Old API (if applicable)
 
-**Problem**: "Maximum number of plugins reached" warning
-- **Solution**: Increase `MAX_PLUGINS` in plugin.h or reduce the number of plugins
+If you have plugins written for an earlier draft:
 
-## Future Enhancements
+**Old API (deprecated):**
+```c
+const char* transform(const char* input) {
+    static char buffer[256];
+    snprintf(buffer, sizeof(buffer), "...%s", input);
+    return buffer;  /* Returns static pointer */
+}
+```
 
-Potential improvements for the plugin system:
-- Runtime plugin loading via shared libraries
-- Plugin configuration files
-- Thread-safe plugin execution
-- Plugin dependencies and ordering
-- Error handling and recovery
-- Plugin statistics and profiling
+**New API (current):**
+```c
+int transform(const char* input, char* output, size_t output_size) {
+    int result = snprintf(output, output_size, "...%s", input);
+    if (result < 0 || (size_t)result >= output_size) {
+        return -1;  /* Error */
+    }
+    return 0;  /* Success */
+}
+```
+
+**Changes:**
+1. Remove static buffer declaration
+2. Write to `output` parameter instead of static buffer
+3. Check `snprintf` return value
+4. Return 0 on success, -1 on error
+5. Update `PLUGIN_REGISTER` call if needed
+
+## Advanced Topics
+
+### Error Handling
+
+```c
+static int robust_transform(const char* input, char* output, size_t output_size) {
+    size_t len = strlen(input);
+    
+    /* Pre-check required size */
+    if (len + 10 >= output_size) {  /* 10 = overhead */
+        fprintf(stderr, "ERROR: Input too long: %zu bytes\n", len);
+        return -1;
+    }
+    
+    /* Transform */
+    int result = snprintf(output, output_size, "<<<%s>>>", input);
+    
+    /* Verify */
+    if (result < 0 || (size_t)result >= output_size) {
+        return -1;
+    }
+    
+    return 0;
+}
+```
+
+### Conditional Behavior
+
+```c
+#include <stdlib.h>
+
+static int conditional_transform(const char* input, char* output, size_t output_size) {
+    const char* enabled = getenv("MY_PLUGIN_ENABLED");
+    
+    if (enabled && strcmp(enabled, "1") == 0) {
+        /* Transform */
+        int result = snprintf(output, output_size, "[ON] %s", input);
+        return (result < 0 || (size_t)result >= output_size) ? -1 : 0;
+    }
+    
+    /* Pass through */
+    if (strlen(input) >= output_size) {
+        return -1;
+    }
+    strcpy(output, input);
+    return 0;
+}
+```
+
+## Complete Template
+
+See `plugin_repeat_example.c` for a complete, documented template showing:
+- Safe buffer handling with new API
+- Error checking best practices
+- Before/after hooks
+- Inline documentation
+
+Copy this file as a starting point for your own plugins.
+
+## See Also
+
+- `PLUGIN_SUMMARY.md` - Implementation overview
+- `CHANGELOG.md` - Version history and breaking changes
+- `README.md` - Quick start
+- `plugin.h` - API reference with detailed comments
+- `test_plugins.sh` - Test suite source
+
+## References
+
+- Buffer safety: Always use `snprintf` and check return values
+- GCC constructor attribute: `__attribute__((constructor))`
+- C standard: Registration order not guaranteed across translation units
+
