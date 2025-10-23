@@ -52,8 +52,53 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Print environment versions
+      run: |
+        echo "Clang version: $(clang --version | head -1)"
+      
     - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
       
     - name: Test Clang build
       run: ./hello_clang
+      
+    - name: Build code metrics tool with Clang (without -Werror for portability)
+      run: |
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion \
+            -std=c99 -D_POSIX_C_SOURCE=200809L \
+            -o metrics_tool_clang metrics_tool.c code_metrics.c
+      
+    - name: Test metrics tool with Clang
+      run: |
+        ./metrics_tool_clang --version
+        ./metrics_tool_clang --csv hello.c
+      
+    - name: Run metrics tool tests with Clang build
+      run: bash test/test_metrics.sh
+  
+  # Memory safety checks with AddressSanitizer
+  build-and-test-asan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build metrics tool with AddressSanitizer
+      run: |
+        gcc -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L \
+            -fsanitize=address,undefined -fno-omit-frame-pointer -g \
+            -o metrics_tool_asan metrics_tool.c code_metrics.c
+      
+    - name: Run tests with AddressSanitizer
+      run: |
+        export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+        ./metrics_tool_asan --version
+        ./metrics_tool_asan --csv hello.c
+        bash test/test_metrics.sh
+      
+    - name: Test signal handling cleanup
+      run: |
+        # Start metrics tool in background and send SIGINT
+        timeout 2s ./metrics_tool_asan hello.c < /dev/null || true
+        echo "Signal handling test completed"

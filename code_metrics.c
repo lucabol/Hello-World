@@ -1,3 +1,10 @@
+/*
+ * Code Metrics Tool - Implementation
+ * Part of the lucabol/Hello-World repository
+ * 
+ * Core analysis engine that parses C source files and collects metrics.
+ */
+
 #include "code_metrics.h"
 #include <string.h>
 #include <ctype.h>

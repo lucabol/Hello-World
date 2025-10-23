@@ -52,6 +52,13 @@ gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion \
     -o metrics_tool metrics_tool.c code_metrics.c
 ```
 
+**Compiler Flags Policy:**
+- **CI builds**: Use `-Werror` with GCC to catch warnings early
+- **Local development**: `-Werror` is optional (use `make strict` for strict builds)
+- **Clang builds**: Do not use `-Werror` in CI for better portability across versions
+- **Required flags**: `-Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L`
+- Contributors should ensure code compiles cleanly with `-Wall -Wextra` before submitting PRs
+
 ### Platform Support
 
 - **Linux/Unix**: Full support (tested with GCC and Clang)
@@ -133,8 +140,23 @@ Additional Metrics:
 
 ```csv
 Filename,Total Lines,Code Lines,Blank Lines,Comment Lines,Functions,Includes,Max Line Length
-hello.c,5,4,1,0,1,1,29
+hello.c,8,7,1,0,1,1,41
 ```
+
+**CSV Format Specification:**
+- **Header Row**: Column names (always present)
+- **Data Row**: One row per analyzed file
+- **Columns** (in order):
+  1. Filename - Source file path (string)
+  2. Total Lines - All lines including blank and comments (integer)
+  3. Code Lines - Lines with executable code (integer)
+  4. Blank Lines - Lines with only whitespace (integer)
+  5. Comment Lines - Lines that are primarily comments (integer)
+  6. Functions - Number of function definitions (integer)
+  7. Includes - Number of #include directives (integer)
+  8. Max Line Length - Longest line with tabs expanded to 8 spaces (integer)
+- **Locale**: Numbers use C locale (no comma separators)
+- **Encoding**: UTF-8 text output
 
 ## Implementation Details
 
@@ -157,6 +179,12 @@ hello.c,5,4,1,0,1,1,29
   - Requires return type keyword and opening brace
 - **Include Directives**: Counts #include directives (handles whitespace variations)
 - **Max Line Length**: Longest line with tabs expanded to 8 spaces
+
+**Tab Width Configuration:**
+- Tabs are expanded to **8 spaces** for line length calculation
+- This follows the standard terminal tab width convention
+- The tab width is currently fixed at 8 spaces (see TAB_WIDTH constant in code_metrics.c)
+- To customize: modify the TAB_WIDTH define and recompile
 
 ### Edge Cases Handled
 

@@ -10,6 +10,8 @@ voice_demo
 voice_demo_test
 test_hello_runner
 metrics_tool
+metrics_tool_clang
+metrics_tool_asan
 *.exe
 *.out
 

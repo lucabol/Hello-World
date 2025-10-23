@@ -1,3 +1,11 @@
+/*
+ * Code Metrics Tool - Header File
+ * Part of the lucabol/Hello-World repository
+ * 
+ * Provides data structures and API for analyzing C source files
+ * and collecting code metrics.
+ */
+
 #ifndef CODE_METRICS_H
 #define CODE_METRICS_H
 

@@ -1,3 +1,11 @@
+/*
+ * Code Metrics Spreadsheet Tool - Main Program
+ * Part of the lucabol/Hello-World repository
+ * 
+ * Interactive and non-interactive interface for displaying code metrics
+ * in spreadsheet-like format.
+ */
+
 #include "code_metrics.h"
 #include <stdio.h>
 #include <stdlib.h>

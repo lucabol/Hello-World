@@ -289,6 +289,34 @@ else
     fail "Empty function not counted correctly: ${OUTPUT}"
 fi
 
+# Test 17: UTF-8 BOM handling
+print_test "UTF-8 BOM (Byte Order Mark) handling"
+# Create file with UTF-8 BOM (0xEF 0xBB 0xBF)
+printf '\xEF\xBB\xBF#include <stdio.h>\nint main() { return 0; }\n' > "${TEST_DIR}/utf8_bom.c"
+OUTPUT=$("${TOOL}" --csv "${TEST_DIR}/utf8_bom.c")
+# Should handle BOM gracefully and count lines correctly
+if echo "${OUTPUT}" | grep -q "utf8_bom.c,2"; then
+    pass "UTF-8 BOM handled correctly"
+else
+    fail "UTF-8 BOM not handled correctly: ${OUTPUT}"
+fi
+
+# Test 18: Very long line stress test (over 10000 characters)
+print_test "Very long line (10000+ chars) with getline"
+LONG_VAR="x$(printf 'a%.0s' {1..10000})"
+cat > "${TEST_DIR}/very_long_line.c" << EOF
+#include <stdio.h>
+int ${LONG_VAR} = 1;
+int main() { return 0; }
+EOF
+OUTPUT=$("${TOOL}" --csv "${TEST_DIR}/very_long_line.c")
+# Should handle very long lines and report length > 10000
+if echo "${OUTPUT}" | grep -qE ",([1-9][0-9]{4,})$"; then
+    pass "Very long line handled correctly by getline"
+else
+    fail "Very long line not handled: ${OUTPUT}"
+fi
+
 # Cleanup
 rm -rf "${TEST_DIR}"
 
