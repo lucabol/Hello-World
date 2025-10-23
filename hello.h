@@ -1,19 +1,32 @@
-/* hello.h - Header file for hello.c
- * Provides greeting functionality for the Hello World program
+/* hello.h - Header file for hello world program
+ * Provides functions for greeting message functionality
  */
+
 #ifndef HELLO_H
 #define HELLO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Get the greeting message
- * Returns: Pointer to static string constant "Ciao, Mondo!"
- * 
- * Contract:
- * - Returns a pointer to a static string constant
- * - The returned pointer remains valid for the lifetime of the program
- * - Caller must NOT free() the returned pointer
- * - The returned string is read-only and should not be modified
- * - Multiple calls return the same static pointer
+ * Returns: A pointer to a static string constant containing the greeting.
+ *          The string does NOT include a trailing newline; callers should
+ *          add one when printing if desired.
+ * Note: The returned pointer is valid for the lifetime of the program
+ *       and should NOT be freed by the caller.
  */
 const char* get_greeting(void);
 
+/* Print a custom message to stdout
+ * Parameters:
+ *   message - The message to print. If NULL, the function does nothing.
+ */
+void print_custom_message(const char* message);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* HELLO_H */
+
