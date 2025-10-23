@@ -28,6 +28,22 @@ jobs:
     - name: Build with GCC (with warnings)
       run: gcc -Wall -Wextra -o hello hello.c
       
+    - name: Build code metrics tool with strict flags
+      run: |
+        gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion \
+            -Werror -std=c99 -D_POSIX_C_SOURCE=200809L \
+            -o metrics_tool metrics_tool.c code_metrics.c
+      
+    - name: Test metrics tool
+      run: |
+        ./metrics_tool --version
+        ./metrics_tool --help
+        ./metrics_tool --csv hello.c
+        ./metrics_tool -n hello.c
+      
+    - name: Run metrics tool tests
+      run: bash test/test_metrics.sh
+      
     - name: Run unit tests
       run: make unit-test
       

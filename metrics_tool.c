@@ -3,6 +3,66 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h>
+#include <stdbool.h>
+
+#define TOOL_VERSION "1.0.1"
+
+/* Global flag for signal handling */
+static volatile sig_atomic_t interrupted = 0;
+
+/* Signal handler for graceful shutdown */
+static void handle_signal(int sig) {
+    (void)sig; /* Unused parameter */
+    interrupted = 1;
+}
+
+/* Display version information */
+static void display_version(void) {
+    printf("Code Metrics Spreadsheet Tool v%s\n", TOOL_VERSION);
+    printf("A tool for analyzing C source files and displaying code metrics.\n");
+}
+
+/* Display help information */
+static void display_help(const char* program_name) {
+    printf("Usage: %s [OPTIONS] [FILE]\n\n", program_name);
+    printf("Analyze C source files and display code metrics in a spreadsheet-like format.\n\n");
+    printf("Options:\n");
+    printf("  -h, --help       Display this help message and exit\n");
+    printf("  -v, --version    Display version information and exit\n");
+    printf("  -n, --non-interactive\n");
+    printf("                   Run in non-interactive mode (display metrics and exit)\n");
+    printf("  -c, --csv        Output in CSV format (implies --non-interactive)\n");
+    printf("\n");
+    printf("Arguments:\n");
+    printf("  FILE             C source file to analyze (default: hello.c)\n");
+    printf("\n");
+    printf("Interactive commands:\n");
+    printf("  r - Refresh metrics (re-analyze the file)\n");
+    printf("  s - Show detailed statistics\n");
+    printf("  h - Display help menu\n");
+    printf("  q - Quit\n");
+    printf("\n");
+    printf("Examples:\n");
+    printf("  %s                      # Analyze hello.c interactively\n", program_name);
+    printf("  %s myfile.c             # Analyze myfile.c interactively\n", program_name);
+    printf("  %s -n myfile.c          # Analyze myfile.c non-interactively\n", program_name);
+    printf("  %s -c myfile.c          # Output metrics in CSV format\n", program_name);
+}
+
+/* Display metrics in CSV format */
+static void display_csv(CodeMetrics* metrics) {
+    printf("Filename,Total Lines,Code Lines,Blank Lines,Comment Lines,Functions,Includes,Max Line Length\n");
+    printf("%s,%d,%d,%d,%d,%d,%d,%d\n",
+           metrics->filename,
+           metrics->total_lines,
+           metrics->code_lines,
+           metrics->blank_lines,
+           metrics->comment_lines,
+           metrics->functions,
+           metrics->includes,
+           metrics->max_line_length);
+}
 
 /* Display detailed statistics */
 void display_detailed_stats(CodeMetrics* metrics) {
@@ -48,24 +108,67 @@ int main(int argc, char* argv[]) {
     char command[10];
     int result;
     const char* filename = "hello.c";
+    bool non_interactive = false;
+    bool csv_output = false;
+    int i;
     
-    /* Allow specifying a different file */
-    if (argc > 1) {
-        filename = argv[1];
+    /* Install signal handlers for graceful shutdown */
+    signal(SIGINT, handle_signal);
+    signal(SIGTERM, handle_signal);
+    
+    /* Parse command line arguments */
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            display_help(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            display_version();
+            return 0;
+        } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--non-interactive") == 0) {
+            non_interactive = true;
+        } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--csv") == 0) {
+            csv_output = true;
+            non_interactive = true;
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+            return 1;
+        } else {
+            filename = argv[i];
+        }
     }
     
-    printf("\n");
-    printf("════════════════════════════════════════════════════════════════════════════════\n");
-    printf("                   CODE METRICS SPREADSHEET TOOL v1.0                          \n");
-    printf("════════════════════════════════════════════════════════════════════════════════\n");
-    printf("\nAnalyzing: %s\n", filename);
-    
-    /* Initial analysis */
+    /* Analyze the file */
     result = analyze_file(filename, &metrics);
     if (result != 0) {
-        fprintf(stderr, "Failed to analyze file: %s\n", filename);
+        fprintf(stderr, "Error: Failed to analyze file '%s'\n", filename);
+        fprintf(stderr, "Make sure the file exists and is readable.\n");
         return 1;
     }
+    
+    /* Handle output based on mode */
+    if (csv_output) {
+        display_csv(&metrics);
+        return 0;
+    }
+    
+    if (non_interactive) {
+        printf("\n");
+        printf("════════════════════════════════════════════════════════════════════════════════\n");
+        printf("                   CODE METRICS SPREADSHEET TOOL v%s\n", TOOL_VERSION);
+        printf("════════════════════════════════════════════════════════════════════════════════\n");
+        printf("\nAnalyzing: %s\n", filename);
+        display_metrics_table(&metrics, 1);
+        display_detailed_stats(&metrics);
+        return 0;
+    }
+    
+    /* Interactive mode */
+    printf("\n");
+    printf("════════════════════════════════════════════════════════════════════════════════\n");
+    printf("                   CODE METRICS SPREADSHEET TOOL v%s\n", TOOL_VERSION);
+    printf("════════════════════════════════════════════════════════════════════════════════\n");
+    printf("\nAnalyzing: %s\n", filename);
     
     /* Display initial metrics */
     display_metrics_table(&metrics, 1);
@@ -76,11 +179,16 @@ int main(int argc, char* argv[]) {
     printf("\nEnter command (h for help): ");
     fflush(stdout);
     
-    while (fgets(command, sizeof(command), stdin)) {
+    while (!interrupted && fgets(command, sizeof(command), stdin)) {
         /* Remove newline */
         size_t len = strlen(command);
         if (len > 0 && command[len - 1] == '\n') {
             command[len - 1] = '\0';
+        }
+        
+        /* Check for interrupt signal */
+        if (interrupted) {
+            break;
         }
         
         /* Skip empty input */
@@ -130,6 +238,11 @@ int main(int argc, char* argv[]) {
         fflush(stdout);
     }
     
-    printf("\n");
+    if (interrupted) {
+        printf("\n\nReceived interrupt signal. Exiting gracefully...\n\n");
+    } else {
+        printf("\n");
+    }
+    
     return 0;
 }

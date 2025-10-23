@@ -26,7 +26,7 @@ test/*.out
 *.dSYM/
 *.pdb
 
-# Node.js dependencies and artifacts
+# Node.js dependencies and artifacts (if any)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -40,3 +40,7 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Build artifacts
+Makefile.bak
+.DS_Store

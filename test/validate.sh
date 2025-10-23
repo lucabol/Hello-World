@@ -144,6 +144,17 @@ else
     printf "Validation: All tests PASSED\n"
 fi
 
+# Test code metrics tool if present
+if [[ -f test/test_metrics.sh ]]; then
+    print_info "Running code metrics tool tests..."
+    if bash test/test_metrics.sh; then
+        print_success "Code metrics tests passed"
+    else
+        print_error "Code metrics tests failed"
+        exit 1
+    fi
+fi
+
 # Additional tests for voice command functionality if voice.c exists
 if [[ -f voice.c && -f voice.h ]]; then
     print_info "Testing voice command functionality..."
