@@ -43,6 +43,12 @@ jobs:
     - name: Test XSS integration
       run: node test/test_xss_integration.js
       
+    - name: Test innerHTML security scan
+      run: node test/test_innerHTML_scan.js
+      
+    - name: Test C code generation safety
+      run: node test/test_c_generation.js
+      
   build-and-test-clang:
     runs-on: ubuntu-latest
     
