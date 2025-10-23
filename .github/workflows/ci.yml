@@ -13,7 +13,11 @@ jobs:
     
     env:
       # Strict compilation flags for GCC (includes -Werror for CI quality assurance)
+      # -Werror ensures warnings are treated as errors to catch potential issues early
+      # This is intentional for CI to maintain high code quality
       GCC_FLAGS: "-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -D_POSIX_C_SOURCE=200809L"
+      # Force C locale for deterministic, locale-independent output
+      LC_ALL: C
     
     steps:
     - name: Checkout code
@@ -53,6 +57,8 @@ jobs:
     env:
       # Portable compilation flags for Clang (no -Werror for cross-compiler compatibility)
       CLANG_FLAGS: "-Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -std=c99 -D_POSIX_C_SOURCE=200809L"
+      # Force C locale for deterministic output
+      LC_ALL: C
     
     steps:
     - name: Checkout code
@@ -87,6 +93,8 @@ jobs:
     env:
       # AddressSanitizer flags for memory leak and undefined behavior detection
       ASAN_FLAGS: "-Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200809L -fsanitize=address,undefined -fno-omit-frame-pointer -g"
+      # Force C locale for deterministic output
+      LC_ALL: C
     
     steps:
     - name: Checkout code
@@ -105,24 +113,44 @@ jobs:
       
     - name: Test signal handling cleanup
       run: |
+        set -euo pipefail
         export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
-        # Test SIGINT handling: start tool in background, send SIGINT, verify clean exit
-        ./metrics_tool_asan -n hello.c &
-        PID=$!
-        sleep 0.3
-        kill -SIGINT $PID || true
-        wait $PID || EXIT_CODE=$?
-        # Exit code 130 (128+2) is expected for SIGINT
-        if [ "${EXIT_CODE:-0}" -eq 130 ] || [ "${EXIT_CODE:-0}" -eq 0 ]; then
-          echo "✓ SIGINT handling test passed (exit code: ${EXIT_CODE:-0})"
-        else
-          echo "✗ SIGINT handling test failed (unexpected exit code: ${EXIT_CODE:-0})"
-          exit 1
-        fi
         
-        # Test SIGTERM handling
-        ./metrics_tool_asan -n hello.c &
-        PID=$!
+        # Test SIGINT handling: verify tool exits cleanly without memory leaks
+        # Start tool in interactive mode, send SIGINT, verify clean exit with ASAN
+        timeout 5s bash -c '
+          (sleep 10 | ./metrics_tool_asan hello.c) &
+          PID=$!
+          sleep 0.5
+          # Send SIGINT and wait for process to exit
+          kill -SIGINT "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || EXIT_CODE=$?
+          # Accept either shell-propagated signal code (130) or normal exit (0)
+          # The key validation is ASAN detecting no leaks/errors
+          if [ "${EXIT_CODE:-0}" -ne 130 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "✗ SIGINT handling test failed with unexpected exit code: ${EXIT_CODE:-0}"
+            exit 1
+          fi
+          echo "✓ SIGINT handling test passed (exit code: ${EXIT_CODE:-0}, no ASAN errors)"
+        '
+        
+        # Test SIGTERM handling: verify clean exit without memory leaks
+        timeout 5s bash -c '
+          (sleep 10 | ./metrics_tool_asan hello.c) &
+          PID=$!
+          sleep 0.5
+          # Send SIGTERM and wait for process to exit
+          kill -SIGTERM "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || EXIT_CODE=$?
+          # Accept either shell-propagated signal code (143) or normal exit (0)
+          if [ "${EXIT_CODE:-0}" -ne 143 ] && [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "✗ SIGTERM handling test failed with unexpected exit code: ${EXIT_CODE:-0}"
+            exit 1
+          fi
+          echo "✓ SIGTERM handling test passed (exit code: ${EXIT_CODE:-0}, no ASAN errors)"
+        '
+        
+        echo "✓ All signal handling tests passed - no memory leaks or crashes detected"
         sleep 0.3
         kill -SIGTERM $PID || true
         wait $PID || EXIT_CODE=$?

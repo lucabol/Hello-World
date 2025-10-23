@@ -83,18 +83,49 @@ gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion \
 ./metrics_tool --version
 ```
 
+**Example output (interactive mode):**
+```
+════════════════════════════════════════════════════════════════════════════════
+                   CODE METRICS SPREADSHEET TOOL v1.0.1
+════════════════════════════════════════════════════════════════════════════════
+
+Analyzing: hello.c
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                         CODE METRICS SPREADSHEET                               ║
+╠═══════════════╦═════════╦═════════╦═════════╦═════════╦═════════╦═════════════╣
+║ Filename      ║ Total   ║ Code    ║ Blank   ║ Comment ║ Funcs   ║ Max Line    ║
+║               ║ Lines   ║ Lines   ║ Lines   ║ Lines   ║         ║ Length      ║
+╠═══════════════╬═════════╬═════════╬═════════╬═════════╬═════════╬═════════════╣
+║ hello.c       ║       8 ║       7 ║       1 ║       0 ║       1 ║          41 ║
+╚═══════════════╩═════════╩═════════╩═════════╩═════════╩═════════╩═════════════╝
+
+Enter command (h for help): q
+```
+
 ### Non-Interactive Mode
 
 ```bash
-# Analyze and display metrics, then exit
+# Analyze and display metrics, then exit (no prompts, suitable for CI/automation)
 ./metrics_tool --non-interactive myfile.c
 ./metrics_tool -n myfile.c
+```
+
+**Example output:**
+```
+Analyzing: myfile.c
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                         CODE METRICS SPREADSHEET                               ║
+╠═══════════════╦═════════╦═════════╦═════════╦═════════╦═════════╦═════════════╣
+║ Filename      ║ Total   ║ Code    ║ Blank   ║ Comment ║ Funcs   ║ Max Line    ║
+...
 ```
 
 ### CSV Export
 
 ```bash
-# Export metrics in CSV format
+# Export metrics in CSV format (deterministic, locale-independent)
 ./metrics_tool --csv myfile.c
 ./metrics_tool -c myfile.c
 
@@ -111,6 +142,31 @@ Once the tool is running in interactive mode, you can use these commands:
 - **h** - Display help menu
 - **q** - Quit the tool
 - **Ctrl+C** - Gracefully exit
+
+## Exit Codes
+
+The tool returns standard Unix exit codes:
+
+- **0** - Success (normal operation, file analyzed successfully)
+- **1** - Error (file not found, analysis failed, invalid arguments)
+- **130** - Interrupted by SIGINT (Ctrl+C)
+- **143** - Terminated by SIGTERM
+
+**Examples:**
+```bash
+# Success case
+./metrics_tool --csv hello.c
+echo $?  # Output: 0
+
+# Error case (file not found)
+./metrics_tool --csv nonexistent.c
+echo $?  # Output: 1
+
+# Signal handling (Ctrl+C while running)
+./metrics_tool hello.c
+# Press Ctrl+C
+echo $?  # Output: 130
+```
 
 ## Example Output
 
