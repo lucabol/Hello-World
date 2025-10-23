@@ -39,7 +39,7 @@ if ! make > /dev/null 2>&1; then
     exit 1
 fi
 OUTPUT=$(./hello)
-test_output "Core hello.c works without plugins" "$OUTPUT" "Hello world!"
+test_output "Core hello.c works without plugins" "$OUTPUT" "Ciao, Mondo!"
 
 # Test 2: Uppercase plugin
 echo "Test 2: Building and running with uppercase plugin..."
@@ -48,7 +48,7 @@ if ! make uppercase > /dev/null 2>&1; then
     exit 1
 fi
 OUTPUT=$(./hello_uppercase)
-test_output "Uppercase plugin transforms correctly" "$OUTPUT" "HELLO WORLD!"
+test_output "Uppercase plugin transforms correctly" "$OUTPUT" "CIAO, MONDO!"
 
 # Test 3: Decorator plugin
 echo "Test 3: Building and running with decorator plugin..."
@@ -58,7 +58,7 @@ if ! make decorator > /dev/null 2>&1; then
 fi
 OUTPUT=$(./hello_decorator)
 EXPECTED="=== Plugin Output Start ===
-*** Hello world! ***
+*** Ciao, Mondo! ***
 === Plugin Output End ==="
 test_output "Decorator plugin works correctly" "$OUTPUT" "$EXPECTED"
 
@@ -70,7 +70,7 @@ if ! gcc -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_chain_test hello.c plug
 fi
 OUTPUT=$(./hello_chain_test)
 EXPECTED="=== Plugin Output Start ===
-*** HELLO WORLD! ***
+*** CIAO, MONDO! ***
 === Plugin Output End ==="
 test_output "Multiple plugins chain correctly (decorator -> uppercase)" "$OUTPUT" "$EXPECTED"
 
@@ -83,7 +83,7 @@ fi
 OUTPUT=$(./hello_chain_test2)
 # Should uppercase first, then decorate the uppercase version
 EXPECTED="=== Plugin Output Start ===
-*** HELLO WORLD! ***
+*** CIAO, MONDO! ***
 === Plugin Output End ==="
 test_output "Plugin chaining order works (uppercase -> decorator)" "$OUTPUT" "$EXPECTED"
 
@@ -96,7 +96,7 @@ fi
 OUTPUT=$(./hello_logger)
 # Logger adds timestamp and completion message but doesn't transform
 if echo "$OUTPUT" | grep -q "Starting hello.c execution" && \
-   echo "$OUTPUT" | grep -q "Hello world!" && \
+   echo "$OUTPUT" | grep -q "Ciao, Mondo!" && \
    echo "$OUTPUT" | grep -q "Execution completed successfully"; then
     echo -e "${GREEN}✓ PASS${NC}: Hooks-only plugin works"
 else
@@ -114,7 +114,7 @@ if ! gcc -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_combined hello.c plugin
 fi
 OUTPUT=$(./hello_combined)
 if echo "$OUTPUT" | grep -q "Starting hello.c execution" && \
-   echo "$OUTPUT" | grep -q "HELLO WORLD!" && \
+   echo "$OUTPUT" | grep -q "CIAO, MONDO!" && \
    echo "$OUTPUT" | grep -q "Execution completed successfully"; then
     echo -e "${GREEN}✓ PASS${NC}: Hooks combined with transform works"
 else
@@ -202,7 +202,7 @@ rm -f /tmp/test_long_input.c /tmp/test_long
 echo "Test 12: Testing with zero plugins registered..."
 if gcc -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_no_plugins hello.c plugin.c 2>/dev/null; then
     OUTPUT=$(./hello_no_plugins)
-    test_output "Zero plugins (passthrough)" "$OUTPUT" "Hello world!"
+    test_output "Zero plugins (passthrough)" "$OUTPUT" "Ciao, Mondo!"
 else
     echo -e "${RED}✗ FAIL${NC}: Build with zero plugins failed"
     exit 1
@@ -268,7 +268,7 @@ OUTPUT=$(./hello_error_test 2>&1)
 if echo "$OUTPUT" | grep -q "ERROR_TEST_PLUGIN" && \
    echo "$OUTPUT" | grep -q "Before hook executed" && \
    echo "$OUTPUT" | grep -q "After hook executed" && \
-   echo "$OUTPUT" | grep -q "Hello world!"; then
+   echo "$OUTPUT" | grep -q "Ciao, Mondo!"; then
     echo -e "${GREEN}✓ PASS${NC}: Error handling works (before/after hooks run, fallback to original)"
 else
     echo -e "${RED}✗ FAIL${NC}: Error handling test failed"
@@ -303,7 +303,7 @@ if ! gcc -DUSE_PLUGINS -DPLUGIN_USE_HEAP -o hello_heap hello.c plugin.c plugin_u
     exit 1
 fi
 OUTPUT=$(./hello_heap)
-test_output "Heap allocation mode works" "$OUTPUT" "HELLO WORLD!"
+test_output "Heap allocation mode works" "$OUTPUT" "CIAO, MONDO!"
 rm -f hello_heap
 
 echo ""
