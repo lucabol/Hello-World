@@ -31,6 +31,16 @@
  *   - Output is not a TTY (e.g., redirected to file or pipe)
  *   - Environment variable SIMPLE_TEST_NO_COLOR is set to "1"
  *   This ensures compatibility with CI systems and non-ANSI terminals.
+ * 
+ * Implementation Note - Static Linkage:
+ *   All functions and variables in this header use 'static' storage to avoid
+ *   multiple definition errors when this header is included in multiple translation
+ *   units. Each translation unit gets its own copy of the test infrastructure.
+ *   This is a header-only library pattern suitable for single-file test runners.
+ *   
+ *   If you need to share test state across multiple test files, consider:
+ *   - Using a single test runner file that includes all test functions, OR
+ *   - Moving the test framework to a separate .c file and linking it as a library
  */
 #ifndef SIMPLE_TEST_H
 #define SIMPLE_TEST_H
