@@ -1,7 +1,11 @@
 # Makefile for Hello World C Program
 # Provides standardized build targets for local development and CI
 
+# Default goal
+.DEFAULT_GOAL := all
+
 # Shell configuration - use bash for trap support in unit-test target
+# Note: This Makefile requires /bin/bash for the trap functionality in unit-test
 SHELL := /bin/bash
 
 # Compiler settings
@@ -20,8 +24,8 @@ UNIT_TEST_FLAGS = -DUNIT_TEST
 # Linker flags (currently none needed)
 LDFLAGS ?=
 
-# Portable rm command
-RM = rm -f
+# Portable rm command - can be overridden if needed
+RM ?= rm -f
 
 # Source files
 SRC = hello.c
@@ -118,7 +122,10 @@ help:
 	@echo "                  Example: make LDFLAGS='-lm'"
 	@echo "  KEEP_TEST_ARTIFACTS - Set to 1 to preserve test binaries for debugging after unit-test"
 	@echo "                  Example: make unit-test KEEP_TEST_ARTIFACTS=1"
+	@echo "  RM            - Remove command (default: rm -f, can be overridden)"
+	@echo "                  Example: make RM='del /F' (for Windows compatibility)"
 	@echo ""
 	@echo "Notes:"
-	@echo "  - Unit-test target requires bash for trap support (SHELL := /bin/bash)"
+	@echo "  - This Makefile requires /bin/bash for trap support in unit-test target"
+	@echo "  - STRICT_FLAGS includes -std=c99; default builds use no explicit standard"
 	@echo "  - Use 'make help' to see this message"
