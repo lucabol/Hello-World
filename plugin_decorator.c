@@ -13,10 +13,10 @@ static int decorator_transform(const char* input, char* output, size_t output_si
     
     /* Check for errors or truncation */
     if (result < 0 || (size_t)result >= output_size) {
-        return -1; /* Error: buffer too small */
+        return PLUGIN_ERROR_BUFFER_TOO_SMALL;
     }
     
-    return 0; /* Success */
+    return PLUGIN_SUCCESS;
 }
 
 /* Before hook - prints a header */

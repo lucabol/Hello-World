@@ -11,7 +11,7 @@ plugin_t plugin_registry[MAX_PLUGINS];
 int plugin_count = 0;
 
 /* Register a plugin */
-void plugin_register(const char* name, 
+int plugin_register(const char* name, 
                     plugin_transform_fn transform,
                     plugin_hook_fn before,
                     plugin_hook_fn after) {
@@ -19,7 +19,7 @@ void plugin_register(const char* name,
         fprintf(stderr, "ERROR: Maximum number of plugins (%d) reached. Cannot register '%s'\n", 
                 MAX_PLUGINS, name);
         fprintf(stderr, "Increase MAX_PLUGINS at compile time with -DMAX_PLUGINS=N\n");
-        return;
+        return PLUGIN_ERROR_MAX_PLUGINS_EXCEEDED;
     }
     
     plugin_registry[plugin_count].name = name;
@@ -27,6 +27,8 @@ void plugin_register(const char* name,
     plugin_registry[plugin_count].before = before;
     plugin_registry[plugin_count].after = after;
     plugin_count++;
+    
+    return PLUGIN_SUCCESS;
 }
 
 /* Get the current plugin count */
@@ -48,14 +50,14 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
     
     /* Validate input */
     if (input == NULL || output == NULL || output_size == 0) {
-        return -1;
+        return PLUGIN_ERROR_INVALID_INPUT;
     }
     
     input_len = strlen(input);
     if (input_len >= PLUGIN_BUFFER_SIZE) {
         fprintf(stderr, "ERROR: Input message too long (%zu bytes, max %d)\n", 
                 input_len, PLUGIN_BUFFER_SIZE - 1);
-        return -1;
+        return PLUGIN_ERROR_INVALID_INPUT;
     }
     
     /* Copy input to first buffer */
@@ -69,7 +71,7 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
     for (i = 0; i < plugin_count; i++) {
         if (plugin_registry[i].transform != NULL) {
             result = plugin_registry[i].transform(current_input, current_output, PLUGIN_BUFFER_SIZE);
-            if (result != 0) {
+            if (result != PLUGIN_SUCCESS) {
                 fprintf(stderr, "ERROR: Plugin '%s' transform failed (code %d)\n", 
                         plugin_registry[i].name, result);
                 return result;
@@ -96,7 +98,7 @@ int plugin_execute_transforms(const char* input, char* output, size_t output_siz
                 strlen(current_input), output_size);
     }
     
-    return 0;
+    return PLUGIN_SUCCESS;
 }
 
 /* Execute all before hooks */

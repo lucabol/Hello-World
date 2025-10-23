@@ -15,7 +15,7 @@ static int uppercase_transform(const char* input, char* output, size_t output_si
     
     /* Check if output buffer is large enough */
     if (len >= output_size) {
-        return -1; /* Error: buffer too small */
+        return PLUGIN_ERROR_BUFFER_TOO_SMALL;
     }
     
     /* Transform to uppercase */
@@ -24,7 +24,7 @@ static int uppercase_transform(const char* input, char* output, size_t output_si
     }
     output[len] = '\0';
     
-    return 0; /* Success */
+    return PLUGIN_SUCCESS;
 }
 
 /* Before hook - executes before the main message */

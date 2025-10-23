@@ -74,23 +74,36 @@ jobs:
         echo "Testing plugin system with Clang..."
         # Test basic compilation
         clang -Wall -Wextra -Wpedantic -o hello_clang_basic hello.c
-        ./hello_clang_basic
-        
-        # Test with plugins
-        clang -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_clang_plugins hello.c plugin.c plugin_uppercase.c
-        OUTPUT=$(./hello_clang_plugins)
-        if [ "$OUTPUT" != "HELLO WORLD!" ]; then
-          echo "ERROR: Expected 'HELLO WORLD!', got '$OUTPUT'"
+        OUTPUT=$(./hello_clang_basic)
+        if ! printf '%s' "$OUTPUT" | grep -Fxq "Hello world!"; then
+          echo "ERROR: Expected 'Hello world!', got '$OUTPUT'"
           exit 1
         fi
         
+        # Test with plugins - use grep for robust comparison
+        clang -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_clang_plugins hello.c plugin.c plugin_uppercase.c
+        OUTPUT=$(./hello_clang_plugins)
+        if ! printf '%s' "$OUTPUT" | grep -Fxq "HELLO WORLD!"; then
+          echo "ERROR: Expected 'HELLO WORLD!', got '$OUTPUT'"
+          exit 1
+        fi
+        echo "✓ Clang plugin test passed"
+        
         # Test multiple plugins chaining
         clang -Wall -Wextra -Wpedantic -DUSE_PLUGINS -o hello_clang_chain hello.c plugin.c plugin_decorator.c plugin_uppercase.c
-        ./hello_clang_chain | grep -q "HELLO WORLD!"
+        if ! ./hello_clang_chain | grep -q "HELLO WORLD!"; then
+          echo "ERROR: Plugin chaining failed"
+          exit 1
+        fi
+        echo "✓ Clang chaining test passed"
         
         # Test strict compilation
         clang -Wall -Wextra -Wpedantic -Werror -std=c99 -DUSE_PLUGINS -o hello_clang_strict hello.c plugin.c plugin_uppercase.c plugin_decorator.c plugin_logger.c
-        ./hello_clang_strict | grep -q "HELLO WORLD!"
+        if ! ./hello_clang_strict | grep -q "HELLO WORLD!"; then
+          echo "ERROR: Strict compilation test failed"
+          exit 1
+        fi
+        echo "✓ Clang strict compilation test passed"
         
         echo "All Clang plugin tests passed!"
         
