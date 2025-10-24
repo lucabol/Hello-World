@@ -8,6 +8,7 @@ hello_warnings
 hello_test*
 hello_with_plugins
 plugin_demo
+custom_plugin_example
 voice_demo
 voice_demo_test
 test_hello_runner

@@ -36,8 +36,12 @@ hello-plugins: hello_with_plugins.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
 plugin_demo: plugin_demo.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
 	$(CC) $(CFLAGS) -o plugin_demo plugin_demo.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
 
+# Custom plugin example
+custom_plugin_example: custom_plugin_example.c $(PLUGIN_SOURCES)
+	$(CC) $(CFLAGS) -o custom_plugin_example custom_plugin_example.c $(PLUGIN_SOURCES)
+
 # Build and run demo
-demo: plugin_demo hello-plugins
+demo: plugin_demo hello-plugins custom_plugin_example
 	@echo "===================================="
 	@echo "Running Plugin System Demo"
 	@echo "===================================="
@@ -47,6 +51,11 @@ demo: plugin_demo hello-plugins
 	@echo "Running Hello with Plugins"
 	@echo "===================================="
 	@./hello_with_plugins
+	@echo ""
+	@echo "===================================="
+	@echo "Running Custom Plugin Example"
+	@echo "===================================="
+	@./custom_plugin_example
 
 # Strict build for CI/validation
 strict: $(HELLO_SOURCE) $(PLUGIN_SOURCES)
@@ -54,7 +63,7 @@ strict: $(HELLO_SOURCE) $(PLUGIN_SOURCES)
 
 # Clean build artifacts
 clean:
-	rm -f hello hello_strict hello_with_plugins plugin_demo
+	rm -f hello hello_strict hello_with_plugins plugin_demo custom_plugin_example
 	rm -f *.o *.exe *.out
 	rm -f test_hello_runner hello_lib.o
 
@@ -71,14 +80,15 @@ test: strict
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  all           - Build hello (default)"
-	@echo "  hello         - Build basic hello program with plugin support"
-	@echo "  demo          - Build and run plugin demonstration"
-	@echo "  hello-plugins - Build hello with example plugins"
-	@echo "  plugin_demo   - Build plugin demo program"
-	@echo "  strict        - Build with strict compilation flags"
-	@echo "  clean         - Remove all built files"
-	@echo "  test          - Run validation tests"
-	@echo "  help          - Show this help message"
+	@echo "  all                  - Build hello (default)"
+	@echo "  hello                - Build basic hello program with plugin support"
+	@echo "  demo                 - Build and run plugin demonstration"
+	@echo "  hello-plugins        - Build hello with example plugins"
+	@echo "  plugin_demo          - Build plugin demo program"
+	@echo "  custom_plugin_example - Build custom plugin example"
+	@echo "  strict               - Build with strict compilation flags"
+	@echo "  clean                - Remove all built files"
+	@echo "  test                 - Run validation tests"
+	@echo "  help                 - Show this help message"
 
 .PHONY: all demo clean test strict help
