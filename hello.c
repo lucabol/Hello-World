@@ -16,7 +16,7 @@ void print_custom_message(const char* message) {
 }
 
 #ifndef UNIT_TEST
-int main(){
+int main(void){
     const char* greeting = get_greeting();
     print_custom_message(greeting);
     printf("\nExit code: 0\n");
