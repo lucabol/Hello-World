@@ -4,8 +4,10 @@
  * without modifying the core file directly.
  * 
  * Thread Safety:
- * - This library is NOT thread-safe. All plugin registration and application
- *   must be done from a single thread or protected by external synchronization.
+ * - ⚠️ NOT THREAD-SAFE: All plugin operations must be performed from a single
+ *   thread or protected by external synchronization (e.g., mutex).
+ * - Recommended pattern for multi-threaded use: wrap all plugin_* calls with
+ *   pthread_mutex_lock(&your_mutex) / pthread_mutex_unlock(&your_mutex).
  * 
  * Plugin Contract:
  * - Plugins implement a transform function that processes a message
@@ -38,6 +40,10 @@
 #define PLUGIN_H
 
 #include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Maximum message length supported by plugins */
 #define PLUGIN_MAX_MESSAGE_LEN 256
@@ -163,5 +169,9 @@ void plugin_clear(void);
 #define apply_plugins(i, o, s) plugin_apply_all(i, o, s)
 #define get_plugin_count() plugin_get_count()
 #define clear_plugins() plugin_clear()
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PLUGIN_H */

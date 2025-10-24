@@ -15,6 +15,31 @@
 static plugin_t* plugin_registry[PLUGIN_MAX_COUNT];
 static int plugin_count = 0;
 
+/* Safe string copy helper - always NUL-terminates
+ * Returns 0 on success, -1 if truncation occurred */
+static int safe_string_copy(char* dest, const char* src, size_t dest_size) {
+    size_t src_len;
+    
+    if (dest == NULL || src == NULL || dest_size == 0) {
+        return -1;
+    }
+    
+    src_len = strlen(src);
+    
+    if (src_len >= dest_size) {
+        /* Truncation needed */
+        if (dest_size > 0) {
+            memcpy(dest, src, dest_size - 1);
+            dest[dest_size - 1] = '\0';
+        }
+        return -1;
+    }
+    
+    /* Full copy with NUL termination */
+    memcpy(dest, src, src_len + 1);
+    return 0;
+}
+
 /* Register a plugin with full validation */
 int plugin_register(plugin_t* plugin) {
     /* Validate plugin pointer */
@@ -99,13 +124,10 @@ int plugin_apply_all(const char* input, char* output, size_t output_size) {
     
     /* If no plugins registered, just copy input to output */
     if (plugin_count == 0) {
-        size_t input_len = strlen(input);
-        if (input_len >= output_size) {
+        if (safe_string_copy(output, input, output_size) != 0) {
             fprintf(stderr, "Error: Input too large for output buffer\n");
             return PLUGIN_ERR_BUFFER_TOO_SMALL;
         }
-        strncpy(output, input, output_size - 1);
-        output[output_size - 1] = '\0';
         return 0;
     }
     
@@ -116,8 +138,10 @@ int plugin_apply_all(const char* input, char* output, size_t output_size) {
     char* current_output = buffer2;
     
     /* Initialize first buffer with input */
-    strncpy(current_input, input, PLUGIN_MAX_MESSAGE_LEN - 1);
-    current_input[PLUGIN_MAX_MESSAGE_LEN - 1] = '\0';
+    if (safe_string_copy(current_input, input, PLUGIN_MAX_MESSAGE_LEN) != 0) {
+        fprintf(stderr, "Error: Input too large for internal buffer\n");
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
+    }
     
     /* Apply each plugin in sequence */
     for (i = 0; i < plugin_count; i++) {
@@ -137,8 +161,7 @@ int plugin_apply_all(const char* input, char* output, size_t output_size) {
                     plugin->name ? plugin->name : "unknown", result);
             
             /* Copy the last successful result to output */
-            strncpy(output, current_input, output_size - 1);
-            output[output_size - 1] = '\0';
+            safe_string_copy(output, current_input, output_size);
             
             return PLUGIN_ERR_TRANSFORM_FAILED;
         }
@@ -150,14 +173,10 @@ int plugin_apply_all(const char* input, char* output, size_t output_size) {
     }
     
     /* Copy final result to output (current_input has the last result) */
-    size_t result_len = strlen(current_input);
-    if (result_len >= output_size) {
+    if (safe_string_copy(output, current_input, output_size) != 0) {
         fprintf(stderr, "Error: Final result too large for output buffer\n");
         return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
-    
-    strncpy(output, current_input, output_size - 1);
-    output[output_size - 1] = '\0';
     
     return plugin_count;
 }

@@ -16,6 +16,50 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Safe string copy helper - always NUL-terminates */
+static int safe_copy(char* dest, const char* src, size_t dest_size) {
+    size_t src_len;
+    
+    if (dest == NULL || src == NULL || dest_size == 0) {
+        return -1;
+    }
+    
+    src_len = strlen(src);
+    
+    if (src_len >= dest_size) {
+        if (dest_size > 0) {
+            memcpy(dest, src, dest_size - 1);
+            dest[dest_size - 1] = '\0';
+        }
+        return -1;
+    }
+    
+    memcpy(dest, src, src_len + 1);
+    return 0;
+}
+
+/* Safe string concatenation helper - always NUL-terminates */
+static int safe_concat(char* dest, const char* src, size_t dest_size) {
+    size_t dest_len = strlen(dest);
+    size_t src_len = strlen(src);
+    size_t available;
+    
+    if (dest == NULL || src == NULL || dest_size == 0 || dest_len >= dest_size) {
+        return -1;
+    }
+    
+    available = dest_size - dest_len - 1;
+    
+    if (src_len > available) {
+        memcpy(dest + dest_len, src, available);
+        dest[dest_size - 1] = '\0';
+        return -1;
+    }
+    
+    memcpy(dest + dest_len, src, src_len + 1);
+    return 0;
+}
+
 /* Uppercase Plugin - Converts message to uppercase */
 static int uppercase_transform(const char* input, char* output, size_t output_size) {
     size_t i;
@@ -66,22 +110,21 @@ plugin_t reverse_plugin = {
 
 /* Exclaim Plugin - Adds extra exclamation marks */
 static int exclaim_transform(const char* input, char* output, size_t output_size) {
-    size_t len = strlen(input);
     const char* suffix = "!!!";
-    size_t suffix_len = strlen(suffix);
     
     /* Check buffer size */
-    if (len + suffix_len >= output_size) {
+    if (strlen(input) + strlen(suffix) >= output_size) {
         return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
     /* Use safe string operations */
-    strncpy(output, input, output_size - 1);
-    output[output_size - 1] = '\0';
+    if (safe_copy(output, input, output_size) != 0) {
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
+    }
     
-    /* Append suffix if there's room */
-    if (len + suffix_len < output_size) {
-        strncat(output, suffix, output_size - len - 1);
+    /* Append suffix */
+    if (safe_concat(output, suffix, output_size) != 0) {
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
     return PLUGIN_SUCCESS;
@@ -95,21 +138,20 @@ plugin_t exclaim_plugin = {
 /* Prefix Plugin - Adds a prefix to the message */
 static int prefix_transform(const char* input, char* output, size_t output_size) {
     const char* prefix = "[Plugin] ";
-    size_t prefix_len = strlen(prefix);
-    size_t input_len = strlen(input);
     
     /* Check buffer size */
-    if (prefix_len + input_len >= output_size) {
+    if (strlen(prefix) + strlen(input) >= output_size) {
         return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
     /* Use safe string operations */
-    strncpy(output, prefix, output_size - 1);
-    output[output_size - 1] = '\0';
+    if (safe_copy(output, prefix, output_size) != 0) {
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
+    }
     
-    /* Append input if there's room */
-    if (prefix_len < output_size) {
-        strncat(output, input, output_size - prefix_len - 1);
+    /* Append input */
+    if (safe_concat(output, input, output_size) != 0) {
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
     return PLUGIN_SUCCESS;

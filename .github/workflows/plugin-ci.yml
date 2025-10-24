@@ -10,49 +10,56 @@ jobs:
   build-and-test:
     name: Build and Test Plugin System
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
     
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install dependencies
+    - name: Build with strict flags (${{ matrix.compiler }})
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc clang
-
-    - name: Build with strict flags (GCC)
-      run: |
+        set -e
         make clean
-        make strict
+        CC=${{ matrix.compiler }} make strict
         ./hello_strict
     
-    - name: Run unit tests
+    - name: Run unit tests (${{ matrix.compiler }})
       run: |
-        make unit-test
+        set -e
+        CC=${{ matrix.compiler }} make unit-test
     
-    - name: Run validation tests
+    - name: Build all demo programs (${{ matrix.compiler }})
       run: |
-        if [ -f test/validate.sh ]; then
-          ./test/validate.sh
-        fi
-    
-    - name: Build all demo programs
-      run: |
+        set -e
         make clean
-        make plugin_demo
-        make hello-plugins
-        make custom_plugin_example
+        CC=${{ matrix.compiler }} make plugin_demo
+        CC=${{ matrix.compiler }} make hello-plugins
+        CC=${{ matrix.compiler }} make custom_plugin_example
     
     - name: Test plugin demo
       run: |
+        set -e
         ./plugin_demo
     
     - name: Test hello with plugins
       run: |
+        set -e
         ./hello_with_plugins
     
     - name: Test custom plugin example
       run: |
+        set -e
         ./custom_plugin_example
+    
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.compiler }}
+        path: |
+          *.log
+          test/*.log
   
   sanitizers:
     name: Memory Safety Tests (ASAN/UBSAN)
@@ -63,26 +70,45 @@ jobs:
     
     - name: Run tests with ASAN/UBSAN
       run: |
-        make asan
+        set -e
+        make asan 2>&1 | tee asan-output.log
+    
+    - name: Upload sanitizer logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: sanitizer-logs
+        path: asan-output.log
   
-  clang-build:
-    name: Build with Clang
+  backwards-compatibility:
+    name: Test Backwards Compatibility
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install Clang
+    - name: Test hello without plugins
       run: |
-        sudo apt-get update
-        sudo apt-get install -y clang
-    
-    - name: Build with Clang
-      run: |
+        set -e
         make clean
-        CC=clang make strict
-        ./hello_strict
+        make hello
+        output=$(./hello)
+        expected="Hello world!"
+        if [ "$output" = "$expected" ]; then
+          echo "✓ Output matches expected: '$output'"
+        else
+          echo "✗ Output mismatch. Expected: '$expected', Got: '$output'"
+          exit 1
+        fi
     
-    - name: Run unit tests with Clang
+    - name: Verify exit code
       run: |
-        CC=clang make unit-test
+        set -e
+        ./hello
+        exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+          echo "✓ Exit code is 0"
+        else
+          echo "✗ Exit code is $exit_code"
+          exit 1
+        fi

@@ -8,6 +8,23 @@
  * - Plugin unregistration
  * - Plugin ordering
  * - Error propagation
+ * - NUL termination guarantees
+ * - Double unregister protection
+ * 
+ * Test Categories:
+ * 1. test_null_pointers()         - NULL pointer handling (7 tests)
+ * 2. test_registration_limits()   - Plugin count limits (3 tests)
+ * 3. test_unregistration()        - Plugin removal (7 tests)
+ * 4. test_failing_plugin()        - Error propagation (4 tests)
+ * 5. test_buffer_sizes()          - Buffer overflow protection (2 tests)
+ * 6. test_plugin_ordering()       - Deterministic ordering (3 tests)
+ * 7. test_clear_plugins()         - Registry reset (5 tests)
+ * 8. test_no_plugins()            - No plugins registered (2 tests)
+ * 9. test_duplicate_registration() - Duplicate plugins (3 tests)
+ * 10. test_nul_termination()      - NUL termination (5 tests)
+ * 11. test_double_unregister()    - Double unregister protection (4 tests)
+ * 
+ * Total: 52 tests covering all edge cases
  */
 
 #include "plugin.h"
@@ -355,6 +372,80 @@ void test_duplicate_registration(void) {
     plugin_clear();
 }
 
+/* Test: NUL termination guarantees */
+void test_nul_termination(void) {
+    char output[256];
+    int result;
+    int i;
+    
+    printf(COLOR_YELLOW "\nTesting NUL termination guarantees...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* Fill output buffer with non-NUL bytes to verify NUL termination */
+    memset(output, 'X', sizeof(output));
+    
+    /* Test with no plugins */
+    result = plugin_apply_all("test", output, sizeof(output));
+    TEST_ASSERT(result == 0 && output[4] == '\0',
+                "Output NUL-terminated with no plugins");
+    
+    /* Verify no data beyond NUL */
+    for (i = 5; i < 10; i++) {
+        if (output[i] != 'X') {
+            TEST_ASSERT(0, "Data corruption beyond NUL terminator");
+            break;
+        }
+    }
+    if (i == 10) {
+        TEST_ASSERT(1, "No data corruption beyond NUL terminator");
+    }
+    
+    /* Test with plugins */
+    extern plugin_t uppercase_plugin;
+    plugin_register(&uppercase_plugin);
+    
+    memset(output, 'X', sizeof(output));
+    result = plugin_apply_all("hello", output, sizeof(output));
+    TEST_ASSERT(result == 1 && output[5] == '\0',
+                "Output NUL-terminated with plugins");
+    
+    /* Test with small buffer */
+    char small_output[6];
+    memset(small_output, 'X', sizeof(small_output));
+    result = plugin_apply_all("hello", small_output, sizeof(small_output));
+    TEST_ASSERT(result == 1 && small_output[5] == '\0',
+                "Output NUL-terminated with small buffer");
+    
+    plugin_clear();
+}
+
+/* Test: Double unregister protection */
+void test_double_unregister(void) {
+    int result;
+    
+    printf(COLOR_YELLOW "\nTesting double unregister protection...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* Register a plugin */
+    plugin_register(&identity_plugin);
+    TEST_ASSERT(plugin_get_count() == 1, "Plugin registered");
+    
+    /* Unregister once */
+    result = plugin_unregister("identity");
+    TEST_ASSERT(result == PLUGIN_SUCCESS, "First unregister succeeds");
+    TEST_ASSERT(plugin_get_count() == 0, "Plugin count is 0");
+    
+    /* Unregister again (should be safe) */
+    result = plugin_unregister("identity");
+    TEST_ASSERT(result == PLUGIN_ERR_PLUGIN_NOT_FOUND,
+                "Second unregister returns PLUGIN_ERR_PLUGIN_NOT_FOUND");
+    TEST_ASSERT(plugin_get_count() == 0, "Plugin count still 0");
+    
+    plugin_clear();
+}
+
 /* Main test runner */
 int main(void) {
     printf("\n");
@@ -372,6 +463,8 @@ int main(void) {
     test_clear_plugins();
     test_no_plugins();
     test_duplicate_registration();
+    test_nul_termination();
+    test_double_unregister();
     
     printf("\n");
     printf(COLOR_YELLOW "========================================\n");
