@@ -27,86 +27,124 @@ const editorContent = fs.readFileSync(editorPath, 'utf8');
 let passed = 0;
 let failed = 0;
 
-// Test 1: Verify generator.js is included
+/**
+ * Helper function to parse HTML and extract elements/attributes
+ * Uses regex patterns that are more specific than simple string.includes()
+ */
+function parseHtmlForElement(html, tagName, attributes = {}) {
+    // Create a more specific regex that looks for opening tags
+    const attrPatterns = Object.entries(attributes).map(([key, value]) => {
+        if (value === true) {
+            // Just check if attribute exists
+            return `${key}(?:=|\\s|>)`;
+        }
+        return `${key}=["']${value}["']`;
+    });
+    
+    const attrPattern = attrPatterns.length > 0 ? attrPatterns.join('.*') : '';
+    const pattern = new RegExp(`<${tagName}[^>]*${attrPattern}[^>]*>`, 'i');
+    return pattern.test(html);
+}
+
+function countOccurrences(html, pattern) {
+    const matches = html.match(pattern);
+    return matches ? matches.length : 0;
+}
+
+// Test 1: Verify generator.js script tag is properly included
 console.log("Test 1: Checking for generator.js integration...");
-if (editorContent.includes('generator.js')) {
-    console.log("  ✓ generator.js script included");
+const hasGeneratorScript = parseHtmlForElement(editorContent, 'script', { src: 'generator.js' });
+if (hasGeneratorScript) {
+    console.log("  ✓ generator.js script tag found with correct src attribute");
     passed++;
 } else {
-    console.log("  ✗ generator.js script not included");
+    console.log("  ✗ generator.js script tag not found or improperly configured");
     failed++;
 }
 
-// Test 2: Verify CSP meta tag exists
+// Test 2: Verify CSP meta tag with proper http-equiv attribute
 console.log("\nTest 2: Checking for Content-Security-Policy...");
-if (editorContent.includes('Content-Security-Policy')) {
-    console.log("  ✓ CSP meta tag found");
+const hasCspMeta = parseHtmlForElement(editorContent, 'meta', { 'http-equiv': 'Content-Security-Policy' });
+if (hasCspMeta) {
+    console.log("  ✓ CSP meta tag with http-equiv attribute found");
     passed++;
 } else {
-    console.log("  ✗ CSP meta tag missing");
+    console.log("  ✗ CSP meta tag missing or improperly configured");
     failed++;
 }
 
-// Test 3: Verify CCodeGenerator is used
+// Test 3: Verify CCodeGenerator module usage in JavaScript
 console.log("\nTest 3: Checking for CCodeGenerator usage...");
-if (editorContent.includes('CCodeGenerator')) {
-    console.log("  ✓ CCodeGenerator module is used");
+const codeGeneratorPattern = /CCodeGenerator\s*\.\s*generateCode/;
+if (codeGeneratorPattern.test(editorContent)) {
+    console.log("  ✓ CCodeGenerator.generateCode() is called");
     passed++;
 } else {
-    console.log("  ✗ CCodeGenerator module not used");
+    console.log("  ✗ CCodeGenerator module not properly used");
     failed++;
 }
 
-// Test 4: Verify accessibility attributes
+// Test 4: Verify accessibility attributes using DOM-aware parsing
 console.log("\nTest 4: Checking for ARIA accessibility attributes...");
-const ariaChecks = [
-    'aria-label',
-    'role="region"',
-    'role="button"',
-    'aria-live'
+const ariaTests = [
+    { name: 'aria-label attributes', pattern: /aria-label=["'][^"']+["']/g, minCount: 5 },
+    { name: 'role="region" attributes', pattern: /role=["']region["']/g, minCount: 3 },
+    { name: 'role="button" attributes', pattern: /role=["']button["']/g, minCount: 3 },
+    { name: 'aria-live attributes', pattern: /aria-live=["'][^"']+["']/g, minCount: 1 }
 ];
-let ariaFound = 0;
-ariaChecks.forEach(attr => {
-    if (editorContent.includes(attr)) {
-        ariaFound++;
+
+let ariaTestsPassed = 0;
+ariaTests.forEach(test => {
+    const count = countOccurrences(editorContent, test.pattern);
+    if (count >= test.minCount) {
+        ariaTestsPassed++;
+    } else {
+        console.log(`  ✗ ${test.name}: found ${count}, expected at least ${test.minCount}`);
     }
 });
-if (ariaFound === ariaChecks.length) {
-    console.log(`  ✓ All ${ariaChecks.length} ARIA attributes found`);
+
+if (ariaTestsPassed === ariaTests.length) {
+    console.log(`  ✓ All ${ariaTests.length} ARIA attribute types properly configured`);
     passed++;
 } else {
-    console.log(`  ✗ Only ${ariaFound}/${ariaChecks.length} ARIA attributes found`);
+    console.log(`  ✗ Only ${ariaTestsPassed}/${ariaTests.length} ARIA attribute types passed`);
     failed++;
 }
 
-// Test 5: Verify keyboard support
+// Test 5: Verify keyboard event handlers are properly attached
 console.log("\nTest 5: Checking for keyboard navigation support...");
-if (editorContent.includes('onkeydown') && editorContent.includes('tabindex')) {
-    console.log("  ✓ Keyboard support found");
+const hasOnKeyDown = /\.onkeydown\s*=/.test(editorContent);
+const hasTabIndex = /tabindex=["']\d+["']/.test(editorContent);
+if (hasOnKeyDown && hasTabIndex) {
+    console.log("  ✓ Keyboard event handlers and tabindex properly configured");
     passed++;
 } else {
     console.log("  ✗ Keyboard support incomplete");
+    if (!hasOnKeyDown) console.log("    - Missing onkeydown handlers");
+    if (!hasTabIndex) console.log("    - Missing tabindex attributes");
     failed++;
 }
 
-// Test 6: Verify security comments
+// Test 6: Verify security documentation in comments
 console.log("\nTest 6: Checking for security documentation...");
-const securityComments = [
-    'Security:',
-    'XSS',
-    'Hardcoded filename'
+const securityPatterns = [
+    { name: 'Security comments', pattern: /\/\*\*[\s\S]*?Security:[\s\S]*?\*\// },
+    { name: 'XSS protection docs', pattern: /XSS|Cross-Site Scripting/i },
+    { name: 'Hardcoded filename docs', pattern: /Hardcoded filename|cannot be manipulated/i }
 ];
-let commentFound = 0;
-securityComments.forEach(term => {
-    if (editorContent.includes(term)) {
-        commentFound++;
+
+let securityDocsPassed = 0;
+securityPatterns.forEach(test => {
+    if (test.pattern.test(editorContent)) {
+        securityDocsPassed++;
     }
 });
-if (commentFound >= 2) {
-    console.log(`  ✓ Security documentation found (${commentFound}/${securityComments.length} markers)`);
+
+if (securityDocsPassed >= 2) {
+    console.log(`  ✓ Security documentation found (${securityDocsPassed}/${securityPatterns.length} types)`);
     passed++;
 } else {
-    console.log(`  ✗ Insufficient security documentation (${commentFound}/${securityComments.length} markers)`);
+    console.log(`  ✗ Insufficient security documentation (${securityDocsPassed}/${securityPatterns.length} types)`);
     failed++;
 }
 
@@ -166,30 +204,33 @@ if (edgeCasesPassed === testCases.length) {
     failed++;
 }
 
-// Test 8: Verify no unsafe innerHTML with user data
+// Test 8: Verify no unsafe innerHTML with user data using strict pattern matching
 console.log("\nTest 8: Verifying safe DOM manipulation...");
 const dangerousPatterns = [
-    /innerHTML\s*=\s*block\.value/,
-    /innerHTML\s*=\s*text/,
-    /innerHTML\s*=\s*newValue/
+    { pattern: /\.innerHTML\s*=\s*(?:block\.value|text|newValue)/g, desc: 'Direct innerHTML with user data' },
+    { pattern: /\.innerHTML\s*\+=\s*(?:block\.value|text|newValue)/g, desc: 'Appending innerHTML with user data' }
 ];
 let unsafeUsage = false;
-dangerousPatterns.forEach(pattern => {
-    if (pattern.test(editorContent)) {
+let unsafeDetails = [];
+dangerousPatterns.forEach(test => {
+    if (test.pattern.test(editorContent)) {
         unsafeUsage = true;
+        unsafeDetails.push(test.desc);
     }
 });
 if (!unsafeUsage) {
     console.log("  ✓ No unsafe innerHTML usage with user data");
     passed++;
 } else {
-    console.log("  ✗ Unsafe innerHTML usage detected");
+    console.log("  ✗ Unsafe innerHTML usage detected:");
+    unsafeDetails.forEach(detail => console.log(`    - ${detail}`));
     failed++;
 }
 
-// Test 9: Verify textContent is used
+// Test 9: Verify textContent is used for safe DOM manipulation
 console.log("\nTest 9: Verifying textContent usage for safety...");
-const textContentCount = (editorContent.match(/textContent\s*=/g) || []).length;
+const textContentPattern = /\.textContent\s*=/g;
+const textContentCount = countOccurrences(editorContent, textContentPattern);
 if (textContentCount >= 3) {
     console.log(`  ✓ textContent used ${textContentCount} times (safe DOM manipulation)`);
     passed++;
@@ -198,13 +239,15 @@ if (textContentCount >= 3) {
     failed++;
 }
 
-// Test 10: Verify announceToScreenReader function
+// Test 10: Verify screen reader support
 console.log("\nTest 10: Checking for screen reader announcements...");
-if (editorContent.includes('announceToScreenReader') || editorContent.includes('aria-live')) {
-    console.log("  ✓ Screen reader support found");
+const hasAriaLive = /aria-live=["'](?:polite|assertive)["']/.test(editorContent);
+const hasScreenReaderFunc = /function\s+announceToScreenReader/.test(editorContent);
+if (hasAriaLive || hasScreenReaderFunc) {
+    console.log("  ✓ Screen reader support properly configured");
     passed++;
 } else {
-    console.log("  ✗ Screen reader support missing");
+    console.log("  ✗ Screen reader support missing or incomplete");
     failed++;
 }
 
