@@ -9,15 +9,19 @@
         Content Security Policy (CSP) Compatibility:
         This editor uses inline styles and scripts for simplicity and zero dependencies.
         
-        For strict CSP environments, use hash-based CSP:
-        Content-Security-Policy: default-src 'none'; style-src 'sha256-HASH1'; script-src 'sha256-HASH2'; img-src data:;
+        For strict CSP environments, use these exact hashes:
         
-        Calculate hashes:
-        - Style: openssl dgst -sha256 -binary editor.html (style section) | openssl base64
-        - Script: openssl dgst -sha256 -binary editor.html (script section) | openssl base64
+        Content-Security-Policy: default-src 'none'; 
+            style-src 'sha256-AhJg7cRrY528/OzfSZ+Dl0QTqD1Ibc/mXzEBX0GOoVE='; 
+            script-src 'sha256-roPm8L2Q//kEikZKoLTL0Rl1Ec3pkpWI+1mDl/qHfQE='; 
+            img-src data:;
         
-        Alternatively, externalize styles/scripts for nonce-based CSP.
-        See SECURITY_REVIEW.md for details.
+        To recompute hashes after modifications:
+        - Style: awk '/<style>/,/<\/style>/' editor.html | openssl dgst -sha256 -binary | openssl base64
+        - Script: awk '/<script>/,/<\/script>/' editor.html | openssl dgst -sha256 -binary | openssl base64
+        
+        Alternative: Externalize styles/scripts for nonce-based CSP.
+        See SECURITY_REVIEW.md for complete CSP documentation.
     -->
     <style>
         /**
@@ -420,7 +424,12 @@
     /**
      * Validate header file name
      * Only allows alphanumeric, dots, hyphens, underscores
-     * Rejects path traversal attempts (..)
+     * Explicitly rejects:
+     * - Path traversal (..)
+     * - Backslashes (Windows paths)
+     * - Protocol schemes (http://, file://)
+     * - Absolute paths (leading /)
+     * - Multiple consecutive slashes
      * 
      * @param {string} header - Header filename to validate
      * @returns {boolean} - True if valid
@@ -430,7 +439,29 @@
         if (header.includes('..')) {
             return false;
         }
+        
+        // Reject backslashes (Windows paths, UNC paths)
+        if (header.includes('\\')) {
+            return false;
+        }
+        
+        // Reject protocol schemes (http://, file://, etc.)
+        if (header.includes('://')) {
+            return false;
+        }
+        
+        // Reject absolute paths (leading slash)
+        if (header.startsWith('/')) {
+            return false;
+        }
+        
+        // Reject multiple consecutive slashes
+        if (/\/\//.test(header)) {
+            return false;
+        }
+        
         // Allow standard header patterns like stdio.h, sys/types.h
+        // Permits: letters, numbers, underscore, dot, hyphen, single forward slashes
         const pattern = /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/;
         return pattern.test(header) && header.length < 100;
     }

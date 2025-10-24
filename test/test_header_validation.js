@@ -17,6 +17,27 @@ function isValidHeader(header) {
     if (header.includes('..')) {
         return false;
     }
+    
+    // Reject backslashes (Windows paths, UNC paths)
+    if (header.includes('\\')) {
+        return false;
+    }
+    
+    // Reject protocol schemes (http://, file://, etc.)
+    if (header.includes('://')) {
+        return false;
+    }
+    
+    // Reject absolute paths (leading slash)
+    if (header.startsWith('/')) {
+        return false;
+    }
+    
+    // Reject multiple consecutive slashes
+    if (/\/\//.test(header)) {
+        return false;
+    }
+    
     const pattern = /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/;
     return pattern.test(header) && header.length < 100;
 }
@@ -50,6 +71,11 @@ const validationTests = [
     { name: "Path traversal (..)", input: "../etc/passwd", expected: false },
     { name: "Path traversal (../..)", input: "../../root/.bashrc", expected: false },
     { name: "Backslash (Windows path)", input: "path\\to\\file.h", expected: false },
+    { name: "Backslash (Windows UNC)", input: "\\\\server\\share\\file.h", expected: false },
+    { name: "Protocol (http://)", input: "http://evil.com/file.h", expected: false },
+    { name: "Protocol (file://)", input: "file://path/to/file.h", expected: false },
+    { name: "Absolute path", input: "/etc/passwd", expected: false },
+    { name: "Multiple slashes", input: "path//to//file.h", expected: false },
     { name: "Semicolon injection", input: "header;rm -rf.h", expected: false },
     { name: "Command injection", input: "file.h;malicious", expected: false },
     { name: "Pipe injection", input: "file|cmd.h", expected: false },

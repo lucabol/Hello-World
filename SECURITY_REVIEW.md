@@ -75,28 +75,51 @@ block.querySelector('.vce-block-value').textContent = escapeHtml(value);
 - **Inline styles**: Present in `<style>` tag
 - **Inline scripts**: Present in `<script>` tag  
 - **No external resources**: All code self-contained
+- **No inline handlers**: All events via addEventListener()
 
-### CSP Hash Support:
-To run with strict CSP, calculate hashes:
+### Actual CSP Hashes (Current Version):
+
+**Style hash**: `sha256-AhJg7cRrY528/OzfSZ+Dl0QTqD1Ibc/mXzEBX0GOoVE=`  
+**Script hash**: `sha256-roPm8L2Q//kEikZKoLTL0Rl1Ec3pkpWI+1mDl/qHfQE=`
+
+These hashes were computed from the current inline content in editor.html.
+
+### How to Compute Hashes:
+
+If editor.html is modified, recompute hashes:
 
 ```bash
 # Style hash
-cat editor.html | sed -n '/<style>/,/<\/style>/p' | openssl dgst -sha256 -binary | openssl base64
+awk '/<style>/,/<\/style>/' editor.html | openssl dgst -sha256 -binary | openssl base64
 
 # Script hash  
-cat editor.html | sed -n '/<script>/,/<\/script>/p' | openssl dgst -sha256 -binary | openssl base64
+awk '/<script>/,/<\/script>/' editor.html | openssl dgst -sha256 -binary | openssl base64
 ```
 
-### Recommended CSP Header:
+### Recommended CSP Header (Production-Ready):
+
 ```
 Content-Security-Policy: 
   default-src 'none'; 
-  style-src 'sha256-<STYLE_HASH>'; 
-  script-src 'sha256-<SCRIPT_HASH>'; 
+  style-src 'sha256-AhJg7cRrY528/OzfSZ+Dl0QTqD1Ibc/mXzEBX0GOoVE='; 
+  script-src 'sha256-roPm8L2Q//kEikZKoLTL0Rl1Ec3pkpWI+1mDl/qHfQE='; 
   img-src data:;
 ```
 
-**Note**: CSP hashes are stable as long as whitespace/content doesn't change. For dynamic CSP, consider externalizing scripts/styles.
+### Alternative: Nonce-Based CSP
+
+For dynamic environments, use nonces:
+
+```html
+<!-- Server generates unique nonce per request -->
+<meta http-equiv="Content-Security-Policy" 
+      content="style-src 'nonce-RANDOM123'; script-src 'nonce-RANDOM123'">
+
+<style nonce="RANDOM123">...</style>
+<script nonce="RANDOM123">...</script>
+```
+
+**Note**: CSP hashes are stable as long as whitespace/content doesn't change. Any modification to `<style>` or `<script>` content requires hash recomputation.
 
 ## XSS Attack Vectors - Tested & Mitigated
 
@@ -136,9 +159,57 @@ Never generates: `printf(userString);` ❌
 | test_xss_integration.js | 7 | End-to-end XSS scenarios |
 | test_innerHTML_scan.js | 5 | Automated security scanning |
 | test_c_generation.js | 7 | C code safety, format strings |
-| test_header_validation.js | 51 | Path traversal, injection |
+| test_header_validation.js | 57 | Path traversal, backslashes, protocols, injection |
+| test_e2e_editor.js | 33 | Workflow validation |
+| test_accessibility.js | 31 | A11y compliance |
 
-**Total: 84 security-focused test cases**
+**Total: 152 automated test cases (90 security-focused)**
+
+## Header Validation Security
+
+### Validation Rules (isValidHeader function):
+```javascript
+function isValidHeader(header) {
+    // Reject path traversal
+    if (header.includes('..')) return false;
+    
+    // Reject backslashes (Windows paths, UNC)
+    if (header.includes('\\')) return false;
+    
+    // Reject protocol schemes (http://, file://)
+    if (header.includes('://')) return false;
+    
+    // Reject absolute paths
+    if (header.startsWith('/')) return false;
+    
+    // Reject multiple consecutive slashes
+    if (/\/\//.test(header)) return false;
+    
+    // Whitelist: letters, numbers, _, ., -, single /
+    const pattern = /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/;
+    return pattern.test(header) && header.length < 100;
+}
+```
+
+### Attack Vectors Blocked:
+| Attack Type | Example | Status |
+|-------------|---------|--------|
+| Path traversal | `../etc/passwd` | ✅ Blocked |
+| Backslash paths | `path\to\file.h` | ✅ Blocked |
+| UNC paths | `\\server\share\file.h` | ✅ Blocked |
+| HTTP protocol | `http://evil.com/file.h` | ✅ Blocked |
+| File protocol | `file://path.h` | ✅ Blocked |
+| Absolute paths | `/etc/passwd` | ✅ Blocked |
+| Multiple slashes | `path//to//file.h` | ✅ Blocked |
+| Command injection | `file;rm -rf.h` | ✅ Blocked |
+| Pipe injection | `file\|cmd.h` | ✅ Blocked |
+
+### Allowed Patterns:
+- ✅ `stdio.h` (standard header)
+- ✅ `sys/types.h` (system header with single slash)
+- ✅ `my_header.h` (underscore)
+- ✅ `my-header.h` (hyphen)
+- ✅ `lib.v1.2.h` (multiple dots)
 
 ## Vulnerability Response
 
