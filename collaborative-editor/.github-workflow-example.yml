@@ -1,0 +1,79 @@
+# Example GitHub Actions workflow for collaborative editor
+# This file demonstrates how to integrate the collaborative editor tests into CI
+# Place this file in .github/workflows/ to enable automated testing
+
+name: Collaborative Editor Tests
+
+on:
+  push:
+    paths:
+      - 'collaborative-editor/**'
+      - '.github/workflows/collaborative-editor.yml'
+  pull_request:
+    paths:
+      - 'collaborative-editor/**'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: collaborative-editor/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd collaborative-editor
+          npm ci
+      
+      - name: Run unit tests
+        run: |
+          cd collaborative-editor
+          npm test
+      
+      - name: Run concurrent editing tests
+        run: |
+          cd collaborative-editor
+          npm run test:concurrent
+      
+      - name: Run linting
+        run: |
+          cd collaborative-editor
+          npm run lint
+      
+      - name: Run integration tests
+        run: |
+          ./test/test_collaborative_editor.sh
+      
+      - name: Check security
+        run: |
+          cd collaborative-editor
+          npm audit --audit-level=moderate
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
