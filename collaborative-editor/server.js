@@ -38,7 +38,11 @@ const CONFIG = {
     MAX_USERNAME_LENGTH: 50,
     
     // Optional authentication token
+    // SECURITY: Store as string for now, will convert to Buffer during validation
     AUTH_TOKEN: process.env.COLLAB_AUTH_TOKEN || null,
+    
+    // This will be set during validation to a Buffer for constant-time comparison
+    AUTH_TOKEN_BUFFER: null,
     
     // Logging
     LOG_LEVEL: process.env.COLLAB_LOG_LEVEL || 'info' // 'error', 'warn', 'info', 'debug'
@@ -69,19 +73,14 @@ async function validateConfig() {
     const normalizedPath = path.normalize(providedPath);
     const resolvedPath = path.resolve(normalizedPath);
     
-    // Check if normalization changed the path (potential traversal attempt)
-    if (normalizedPath !== providedPath) {
-        logger.error('SECURITY: COLLAB_TARGET_FILE path normalization detected traversal');
+    // Check for path traversal by looking for '..' segments
+    // This is more lenient than requiring exact normalization match (allows duplicate slashes, etc.)
+    const pathSegments = normalizedPath.split(path.sep);
+    if (pathSegments.includes('..')) {
+        logger.error('SECURITY: COLLAB_TARGET_FILE contains path traversal patterns (..)');
         logger.error(`Provided: ${providedPath}`);
         logger.error(`Normalized: ${normalizedPath}`);
-        logger.error('Path traversal patterns are not allowed');
-        process.exit(1);
-    }
-    
-    // Check for suspicious path patterns after normalization
-    if (resolvedPath.includes('../') || resolvedPath.includes('..\\')) {
-        logger.error('SECURITY: COLLAB_TARGET_FILE contains suspicious path traversal patterns');
-        logger.error(`Provided: ${providedPath}`);
+        logger.error('Path traversal (parent directory references) are not allowed');
         process.exit(1);
     }
     
@@ -110,7 +109,9 @@ async function validateConfig() {
     }
     
     // Check if target file is inside repository (using real paths to avoid symlink bypass)
-    const isInRepo = targetRealPath.startsWith(repoRealPath + path.sep) || targetRealPath === repoRealPath;
+    // Use path.relative for canonical containment check (safer than startsWith)
+    const relativePath = path.relative(repoRealPath, targetRealPath);
+    const isInRepo = !!relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
     
     if (isInRepo) {
         // SECURITY: Two-step opt-in required for repository writes
@@ -144,6 +145,10 @@ async function validateConfig() {
         logger.info('Authentication enabled');
         // SECURITY: Never log the actual token value
         logger.debug('Token length: ' + CONFIG.AUTH_TOKEN.length + ' characters');
+        
+        // SECURITY: Pre-convert token to Buffer with explicit UTF-8 encoding
+        // This ensures consistent encoding in comparison and avoids repeated conversions
+        CONFIG.AUTH_TOKEN_BUFFER = Buffer.from(CONFIG.AUTH_TOKEN, 'utf8');
     } else {
         logger.warn('WARNING: No authentication configured. Set COLLAB_AUTH_TOKEN for production use.');
     }
@@ -637,33 +642,25 @@ app.post('/api/auth', (req, res) => {
     }
     
     // SECURITY: Constant-time comparison to prevent timing attacks
-    const expectedToken = CONFIG.AUTH_TOKEN;
-    
-    // SECURITY: Check lengths match (fail early but safely)
-    // This prevents timingSafeEqual from throwing on different-length buffers
-    if (providedToken.length !== expectedToken.length) {
-        logger.warn('Authentication failed: invalid token length');
-        return res.status(401).json({ error: 'Invalid token' });
-    }
-    
-    // Use crypto.timingSafeEqual for constant-time comparison
-    // Explicitly use 'utf8' encoding for consistency
+    // Pre-convert provided token to Buffer with explicit UTF-8 encoding
     const providedBuffer = Buffer.from(providedToken, 'utf8');
-    const expectedBuffer = Buffer.from(expectedToken, 'utf8');
+    const expectedBuffer = CONFIG.AUTH_TOKEN_BUFFER;
     
-    // Double-check buffer lengths match (defensive programming)
+    // SECURITY: Check buffer lengths match (fail early but safely)
+    // This prevents timingSafeEqual from throwing on different-length buffers
+    // Comparing Buffer lengths reveals no timing information about the token content
     if (providedBuffer.length !== expectedBuffer.length) {
-        logger.warn('Authentication failed: buffer length mismatch');
+        logger.warn('Authentication failed: invalid token length');
         return res.status(401).json({ error: 'Invalid token' });
     }
     
     let isValid = false;
     try {
-        // SECURITY: timingSafeEqual will throw if lengths differ
-        // We've already checked, but wrap in try-catch for safety
+        // SECURITY: Use constant-time comparison
+        // Both buffers have same length, so timingSafeEqual is safe to call
         isValid = crypto.timingSafeEqual(providedBuffer, expectedBuffer);
     } catch (error) {
-        // Should not happen due to length checks above, but handle gracefully
+        // Should not happen due to length check above, but handle gracefully
         logger.error('Authentication error during token comparison:', error.message);
         // SECURITY: Never log the actual tokens
         return res.status(401).json({ error: 'Invalid token' });

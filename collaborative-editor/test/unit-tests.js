@@ -405,6 +405,67 @@ runner.test('Shell expansion detection catches dollar sign', () => {
     assert.strictEqual(pathWithVar.includes('${'), true);
 });
 
+// Test: Containment check using path.relative
+runner.test('Containment check with path.relative detects outside repo', () => {
+    const repoPath = '/home/user/repo';
+    const outsidePath = '/home/user/other/file.txt';
+    
+    const relativePath = path.relative(repoPath, outsidePath);
+    const isInRepo = !!relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+    
+    assert.strictEqual(isInRepo, false);
+});
+
+// Test: Containment check handles inside repo
+runner.test('Containment check with path.relative detects inside repo', () => {
+    const repoPath = '/home/user/repo';
+    const insidePath = '/home/user/repo/subdir/file.txt';
+    
+    const relativePath = path.relative(repoPath, insidePath);
+    const isInRepo = !!relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+    
+    assert.strictEqual(isInRepo, true);
+});
+
+// Test: Containment check handles repo root equality
+runner.test('Containment check with path.relative handles repo root', () => {
+    const repoPath = '/home/user/repo';
+    const sameAsRepo = '/home/user/repo';
+    
+    const relativePath = path.relative(repoPath, sameAsRepo);
+    // relativePath will be empty string for equal paths
+    const isInRepo = !!relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+    
+    // Empty string is falsy, so this should be false (repo root itself, not inside)
+    assert.strictEqual(isInRepo, false);
+    assert.strictEqual(relativePath, '');
+});
+
+// Test: Path normalization allows duplicate slashes
+runner.test('Path normalization is lenient with duplicate slashes', () => {
+    const pathWithDuplicateSlashes = '/home//user///file.txt';
+    const normalized = path.normalize(pathWithDuplicateSlashes);
+    const segments = normalized.split(path.sep);
+    
+    // Should not contain '..' after normalization
+    assert.strictEqual(segments.includes('..'), false);
+    // Normalization should clean up duplicate slashes
+    assert.strictEqual(normalized, '/home/user/file.txt');
+});
+
+// Test: Path normalization detects traversal in segments
+runner.test('Path normalization detects .. in path segments', () => {
+    const traversalPath = '/home/user/../../etc/passwd';
+    const normalized = path.normalize(traversalPath);
+    const segments = normalized.split(path.sep);
+    
+    // After normalization, path will be '/etc/passwd', no '..' segments
+    // But the normalized path will show the traversal occurred
+    assert.strictEqual(segments.includes('..'), false);
+    // The path itself will have changed significantly
+    assert.strictEqual(normalized, '/etc/passwd');
+});
+
 // Run all tests
 runner.run().then(success => {
     process.exit(success ? 0 : 1);

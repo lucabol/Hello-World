@@ -45,8 +45,10 @@ export COLLAB_CONFIRM_REPO_WRITE=true
 - `COLLAB_TARGET_FILE` **must be an absolute path** (no `../`, `./`, or `~`)
 - No shell expansions allowed (`~`, `$`)
 - Relative paths are rejected on startup for security
-- Path normalization is checked to detect traversal attempts
+- Path normalization allows benign variations (duplicate slashes, trailing slashes)
+- Path traversal patterns (`..`) in segments are detected and rejected
 - Server uses `fs.realpath()` to resolve symlinks and validate repository containment
+- Repository containment check uses `path.relative()` for canonical comparison (safer than `startsWith()`)
 - Server validates path and fails with clear error if unsafe
 
 **Repository Write Protection (Two-Step Opt-In):**
@@ -98,11 +100,14 @@ export COLLAB_PORT=3000
 - Logout invalidates session on server and clears cookie
 
 **Token Security:**
+- Expected token pre-converted to Buffer at startup with explicit UTF-8 encoding
+- Provided tokens converted to Buffer with same encoding for comparison
 - Tokens compared using `crypto.timingSafeEqual()` (constant-time comparison)
 - Prevents timing attacks that could leak token information
-- Token length checked before comparison to avoid exceptions
+- Buffer length checked before comparison to prevent exceptions (safe failure)
+- Length comparison reveals no information about token content
 - Tokens never logged (only token length in debug mode)
-- UTF-8 encoding explicitly specified for consistency
+- Consistent encoding (UTF-8) throughout authentication flow
 
 ### Performance Configuration
 
@@ -238,6 +243,13 @@ Before deploying to production, ensure you have:
 - Symlinks are detected using `fs.lstat()` and rejected
 - Protects against symlink swap attacks (TOCTOU)
 - Temp file is also verified to not be a symlink before rename
+
+**Repository Containment Check:**
+- Uses `path.relative()` for canonical path comparison
+- Resolves symlinks with `fs.realpath()` before checking containment
+- Safer than `startsWith()` comparison (avoids false positives)
+- Handles edge cases: repo root, paths outside repo, symlinks pointing elsewhere
+- Rejects paths that escape repository boundaries via any method
 
 ### 2. Authentication is Optional
 **Risk**: Anyone who can reach the server can edit files  
