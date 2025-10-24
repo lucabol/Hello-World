@@ -5,6 +5,16 @@
  * 
  * Run with: node test/test_generator_unit.js
  * Dependencies: None - uses only built-in Node.js APIs
+ * 
+ * Requirements:
+ * - Node.js (required)
+ * - GCC compiler (optional, for compilation validation tests)
+ * 
+ * CI Note: If GCC is not available, compilation tests are automatically skipped
+ * with a warning. To run full tests in CI, ensure GCC is installed:
+ *   - Ubuntu/Debian: apt-get install gcc
+ *   - Alpine: apk add gcc musl-dev  
+ *   - macOS: xcode-select --install
  */
 
 const generator = require('../tools/editor/generator.js');
@@ -14,6 +24,20 @@ const path = require('path');
 const os = require('os');
 
 console.log("🧪 Running C Code Generator Unit Tests...\n");
+
+// Check if GCC is available
+let hasGCC = false;
+try {
+    execSync('gcc --version', { stdio: 'pipe' });
+    hasGCC = true;
+    console.log("✓ GCC detected - compilation tests will run\n");
+} catch (e) {
+    console.log("⚠ GCC not found - compilation tests will be skipped");
+    console.log("  To enable compilation tests, install GCC:");
+    console.log("    Ubuntu/Debian: apt-get install gcc");
+    console.log("    Alpine: apk add gcc musl-dev");
+    console.log("    macOS: xcode-select --install\n");
+}
 
 let passed = 0;
 let failed = 0;
@@ -323,52 +347,58 @@ assert(
     emptyCode
 );
 
-// Test 11: Compilation test - Generate and compile actual code
+// Test 11: Compilation test - Generate and compile actual code (requires GCC)
 console.log("\nTest Suite 11: Compilation Validation");
-const compilationBlocks = [
-    { id: 0, type: 'include', value: 'stdio.h' },
-    { id: 1, type: 'printf', value: 'Hello world!' }
-];
-const compilationCode = generator.generateCode(compilationBlocks);
 
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cgen-test-'));
-const testFile = path.join(tmpDir, 'test.c');
-const testExe = path.join(tmpDir, 'test');
+if (!hasGCC) {
+    console.log("  ⊘ Skipping compilation tests (GCC not available)");
+    console.log("  ⊘ Skipping execution tests (GCC not available)");
+} else {
+    const compilationBlocks = [
+        { id: 0, type: 'include', value: 'stdio.h' },
+        { id: 1, type: 'printf', value: 'Hello world!' }
+    ];
+    const compilationCode = generator.generateCode(compilationBlocks);
 
-try {
-    fs.writeFileSync(testFile, compilationCode);
-    
-    // Try to compile
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cgen-test-'));
+    const testFile = path.join(tmpDir, 'test.c');
+    const testExe = path.join(tmpDir, 'test');
+
     try {
-        execSync(`gcc -Wall -Wextra -Wpedantic -Werror -o "${testExe}" "${testFile}"`, {
-            stdio: 'pipe'
-        });
-        assert(true, 'Generated code compiles successfully');
+        fs.writeFileSync(testFile, compilationCode);
         
-        // Try to run
+        // Try to compile
         try {
-            const output = execSync(`"${testExe}"`, { encoding: 'utf-8' });
-            assert(
-                output === 'Hello world!',
-                'Compiled program produces correct output',
-                'Hello world!',
-                output
-            );
-        } catch (runError) {
-            assert(false, 'Compiled program runs successfully');
+            execSync(`gcc -Wall -Wextra -Wpedantic -Werror -o "${testExe}" "${testFile}"`, {
+                stdio: 'pipe'
+            });
+            assert(true, 'Generated code compiles successfully');
+            
+            // Try to run
+            try {
+                const output = execSync(`"${testExe}"`, { encoding: 'utf-8' });
+                assert(
+                    output === 'Hello world!',
+                    'Compiled program produces correct output',
+                    'Hello world!',
+                    output
+                );
+            } catch (runError) {
+                assert(false, 'Compiled program runs successfully');
+            }
+        } catch (compileError) {
+            assert(false, 'Generated code compiles successfully');
+            console.log(`    Compilation error: ${compileError.message}`);
         }
-    } catch (compileError) {
-        assert(false, 'Generated code compiles successfully');
-        console.log(`    Compilation error: ${compileError.message}`);
-    }
-} finally {
-    // Cleanup
-    try {
-        fs.unlinkSync(testFile);
-        if (fs.existsSync(testExe)) fs.unlinkSync(testExe);
-        fs.rmdirSync(tmpDir);
-    } catch (e) {
-        // Ignore cleanup errors
+    } finally {
+        // Cleanup
+        try {
+            fs.unlinkSync(testFile);
+            if (fs.existsSync(testExe)) fs.unlinkSync(testExe);
+            fs.rmdirSync(tmpDir);
+        } catch (e) {
+            // Ignore cleanup errors
+        }
     }
 }
 
