@@ -328,6 +328,36 @@ runner.test('Token comparison with matching lengths but different content', () =
     assert.strictEqual(result, false);
 });
 
+runner.test('Token comparison with non-ASCII characters (UTF-8 multi-byte)', () => {
+    // Test with emojis and accented characters to ensure UTF-8 encoding works correctly
+    const token1 = 'secret-🔐-token';  // Contains emoji (multi-byte UTF-8)
+    const token2 = 'secret-🔐-token';  // Same token
+    const token3 = 'secret-café-token'; // Contains accented character
+    
+    // String length counts UTF-16 code units, not bytes
+    // Emoji is 2 UTF-16 code units but 4 UTF-8 bytes
+    // This test verifies Buffer.from handles this correctly
+    
+    const buffer1 = Buffer.from(token1, 'utf8');
+    const buffer2 = Buffer.from(token2, 'utf8');
+    const buffer3 = Buffer.from(token3, 'utf8');
+    
+    // Identical tokens should match
+    const result1 = crypto.timingSafeEqual(buffer1, buffer2);
+    assert.strictEqual(result1, true, 'Identical multi-byte tokens should match');
+    
+    // Different tokens should not match (even if similar string length)
+    // Note: buffer3 has different length so we test inequality without timingSafeEqual
+    assert.notStrictEqual(buffer1.length, buffer3.length, 'Different tokens should have different byte lengths');
+    
+    // Verify Buffer.byteLength vs string.length difference
+    const stringLength = token1.length;  // UTF-16 code units
+    const byteLength = Buffer.byteLength(token1, 'utf8');  // UTF-8 bytes
+    
+    // Emoji takes more bytes than string length suggests
+    assert.ok(byteLength > stringLength, 'Multi-byte characters should use more bytes than string length');
+});
+
 // Test environment variable parsing
 runner.test('Environment variable parsing accepts "true" (lowercase)', () => {
     const value = 'true';

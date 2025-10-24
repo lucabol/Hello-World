@@ -100,14 +100,18 @@ export COLLAB_PORT=3000
 - Logout invalidates session on server and clears cookie
 
 **Token Security:**
+- Token validation at startup: Empty or whitespace-only tokens rejected immediately
 - Expected token pre-converted to Buffer at startup with explicit UTF-8 encoding
 - Provided tokens converted to Buffer with same encoding for comparison
+- Byte length validation using `Buffer.byteLength()` or Buffer instances (handles multi-byte UTF-8 correctly)
 - Tokens compared using `crypto.timingSafeEqual()` (constant-time comparison)
 - Prevents timing attacks that could leak token information
 - Buffer length checked before comparison to prevent exceptions (safe failure)
-- Length comparison reveals no information about token content
-- Tokens never logged (only token length in debug mode)
-- Consistent encoding (UTF-8) throughout authentication flow
+- Byte length comparison reveals no information about token content
+- **Tokens never logged** (server only logs "Authentication enabled", not token value or length)
+- Token length not logged even in debug mode (avoids minimal information disclosure)
+- Consistent UTF-8 encoding throughout authentication flow
+- Supports non-ASCII tokens (emojis, accented characters, etc.)
 
 ### Performance Configuration
 

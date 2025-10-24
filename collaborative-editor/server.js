@@ -142,13 +142,27 @@ async function validateConfig() {
     }
     
     if (CONFIG.AUTH_TOKEN) {
+        // SECURITY: Validate token is not empty
+        if (CONFIG.AUTH_TOKEN.trim().length === 0) {
+            logger.error('SECURITY: COLLAB_AUTH_TOKEN is configured but empty');
+            logger.error('Empty authentication tokens are not allowed');
+            process.exit(1);
+        }
+        
         logger.info('Authentication enabled');
-        // SECURITY: Never log the actual token value
-        logger.debug('Token length: ' + CONFIG.AUTH_TOKEN.length + ' characters');
+        // SECURITY: Never log the actual token value or its length
+        // Token length could be minimal information disclosure in some threat models
+        // Only log boolean status that auth is configured
         
         // SECURITY: Pre-convert token to Buffer with explicit UTF-8 encoding
         // This ensures consistent encoding in comparison and avoids repeated conversions
         CONFIG.AUTH_TOKEN_BUFFER = Buffer.from(CONFIG.AUTH_TOKEN, 'utf8');
+        
+        // Validate buffer was created successfully and is non-empty
+        if (CONFIG.AUTH_TOKEN_BUFFER.length === 0) {
+            logger.error('SECURITY: Failed to create valid auth token buffer');
+            process.exit(1);
+        }
     } else {
         logger.warn('WARNING: No authentication configured. Set COLLAB_AUTH_TOKEN for production use.');
     }
@@ -635,8 +649,9 @@ app.post('/api/auth', (req, res) => {
     
     const providedToken = parts[1];
     
-    // Validate token is not empty
-    if (!providedToken || providedToken.length === 0) {
+    // SECURITY: Validate token is not empty using byte length
+    // Use Buffer.byteLength to avoid UTF-16 vs UTF-8 encoding confusion
+    if (!providedToken || Buffer.byteLength(providedToken, 'utf8') === 0) {
         logger.warn('Authentication attempt with empty token');
         return res.status(401).json({ error: 'Invalid token' });
     }
@@ -648,7 +663,9 @@ app.post('/api/auth', (req, res) => {
     
     // SECURITY: Check buffer lengths match (fail early but safely)
     // This prevents timingSafeEqual from throwing on different-length buffers
-    // Comparing Buffer lengths reveals no timing information about the token content
+    // Comparing Buffer byte lengths reveals no timing information about the token content
+    // Note: Buffer.byteLength would work here too, but providedBuffer.length is equivalent
+    // and more efficient since buffer is already created
     if (providedBuffer.length !== expectedBuffer.length) {
         logger.warn('Authentication failed: invalid token length');
         return res.status(401).json({ error: 'Invalid token' });
