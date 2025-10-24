@@ -2,17 +2,28 @@
  * Analyzes C source files and displays metrics in tabular format
  * 
  * Version: 1.0.0
+ * Author: GitHub Copilot
  * 
- * Buffer Safety:
- * - MAX_LINE_LENGTH (1024): Maximum line length for fgets() buffer
- * - MAX_FILENAME (256): Maximum filename length with explicit null termination
- * - All string operations use strncpy() with explicit null termination
- * - fgets() provides automatic null termination and buffer overflow protection
+ * This code is provided as-is without any warranty. It may be freely used,
+ * modified, and distributed for any purpose.
+ * 
+ * Buffer Safety Documentation:
+ * - MAX_LINE_LENGTH (1024): Maximum line length for fgets() buffer.
+ *   Lines longer than this will be truncated (fgets behavior).
+ * - MAX_FILENAME (256): Maximum filename length with explicit null termination.
+ * - All string operations use strncpy() with explicit null termination.
+ * - fgets() provides automatic null termination and buffer overflow protection.
  * 
  * String Handling:
  * - filename buffer: Always null-terminated via strncpy() + explicit '\0'
  * - line buffer: Null-terminated by fgets(), size-limited by MAX_LINE_LENGTH
  * - No dynamic allocation: All buffers are stack-allocated with fixed sizes
+ * 
+ * Edge Case Handling:
+ * - is_inside_string(): Detects if a position is within a string literal by
+ *   counting unescaped quotes. Handles escaped quotes (\") correctly.
+ * - Multi-line comments: Tracks comment blocks across lines with state flag.
+ * - Mixed line endings: Works with both LF and CRLF line endings.
  */
 
 #include <stdio.h>

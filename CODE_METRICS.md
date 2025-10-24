@@ -139,15 +139,17 @@ Uses standard ASCII characters (+|-) for maximum compatibility. Recommended when
 - Multi-line comments are counted as separate comment lines
 - String literals containing comment-like patterns (e.g., "/* comment */") are handled but not perfectly
 - Printf detection includes any occurrence of "printf" in code (not just function calls)
+- **Maximum Line Length**: Lines are limited to 1024 characters. Lines longer than this will be truncated by `fgets()`. The "Maximum Line Length" metric will reflect the truncated length, not the actual line length if it exceeds the buffer.
 
 ## Edge Cases and Robustness
 
 The analyzer handles several edge cases:
-- **Multi-line comments**: Properly tracks `/*` ... `*/` comment blocks
-- **String literals**: Attempts to avoid counting comment markers inside strings
-- **Mixed line endings**: Handles both LF and CRLF line endings
-- **Long lines**: Buffer size of 1024 characters (lines longer than this are truncated)
-- **File errors**: Returns non-zero exit code and error message for missing files
+- **Multi-line comments**: Properly tracks `/*` ... `*/` comment blocks across multiple lines
+- **String literals**: Uses `is_inside_string()` function to avoid counting comment markers inside strings. Handles escaped quotes (`\"`) correctly.
+- **Mixed line endings**: Handles both LF (Unix) and CRLF (Windows) line endings
+- **Long lines**: Buffer size of 1024 characters via MAX_LINE_LENGTH. Lines exceeding this are truncated by `fgets()`.
+- **File errors**: Returns non-zero exit code and error message for missing or inaccessible files
+- **Unicode output**: Default mode uses Unicode box-drawing characters. Use `--plain` or `--ascii` for ASCII-only output in environments without Unicode support.
 
 ## Exit Codes
 

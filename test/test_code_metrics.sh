@@ -6,6 +6,10 @@ set -e  # Exit on any error
 set -u  # Exit on unset variables
 set -o pipefail  # Exit on pipeline failures
 
+# Set locale for hermetic testing and Unicode support
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
