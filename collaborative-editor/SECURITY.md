@@ -33,12 +33,25 @@ All configuration is done via environment variables:
 ### Required Configuration
 
 ```bash
-# Target file to edit (required)
-export COLLAB_TARGET_FILE=/path/to/your/file.c
+# Target file to edit (MUST be absolute path)
+export COLLAB_TARGET_FILE=/absolute/path/to/your/file.c
 
-# If target is in repository, must explicitly enable
+# If target is in repository, TWO-STEP confirmation required
 export COLLAB_ALLOW_REPO_WRITE=true
+export COLLAB_CONFIRM_REPO_WRITE=true
 ```
+
+**Path Safety Requirements:**
+- `COLLAB_TARGET_FILE` **must be an absolute path** (no `../`, `./`, or `~`)
+- Relative paths are rejected on startup for security
+- Server validates path and fails with clear error if unsafe
+
+**Repository Write Protection (Two-Step Opt-In):**
+- Writing to repository files requires **both** environment variables set to `true`
+- `COLLAB_ALLOW_REPO_WRITE=true` alone is **not sufficient**
+- `COLLAB_CONFIRM_REPO_WRITE=true` must also be explicitly set
+- This prevents accidental repository modifications in CI or development environments
+- Server will refuse to start without both confirmations if target is in repository
 
 ### Security Configuration
 
@@ -56,19 +69,29 @@ export COLLAB_PORT=3000
 **Authentication Method (Secure by Design):**
 - Tokens must be sent via `Authorization: Bearer <token>` header
 - **Tokens are NEVER passed in URL** (prevents leaks via browser history, logs, Referer headers)
+- **Constant-time token comparison** prevents timing attacks
 - Initial authentication creates a secure, HttpOnly session cookie
 - WebSocket connections use the session cookie automatically
 - Sessions expire after 24 hours
+- Server-side session invalidation on logout
 
 **Login Flow:**
 1. User opens the editor
 2. If `COLLAB_AUTH_TOKEN` is set, a login modal appears
 3. User enters the token
 4. Client sends `POST /api/auth` with `Authorization: Bearer <token>` header
-5. Server validates token and creates session
-6. Server sets secure, HttpOnly cookie (`collab_session`)
+5. Server validates token using constant-time comparison
+6. Server creates session and sets secure, HttpOnly cookie (`collab_session`)
 7. WebSocket connection automatically uses the cookie
 8. No tokens in URLs at any point
+
+**Session Security:**
+- HttpOnly cookies (not accessible via JavaScript - XSS protection)
+- Secure flag (HTTPS only in production)
+- SameSite: strict (CSRF protection)
+- 24-hour expiration
+- Server-side session store (in-memory - use Redis/database for production)
+- Logout invalidates session on server and clears cookie
 
 ### Performance Configuration
 
@@ -102,11 +125,14 @@ npm start
 ### With Repository Write (Use with Caution)
 
 ```bash
-# Enable writing to repository files
+# Enable writing to repository files (TWO-STEP CONFIRMATION REQUIRED)
+export COLLAB_TARGET_FILE=/absolute/path/to/repo/hello.c
 export COLLAB_ALLOW_REPO_WRITE=true
-export COLLAB_TARGET_FILE=/path/to/repo/hello.c
+export COLLAB_CONFIRM_REPO_WRITE=true
 npm start
 ```
+
+**⚠️ Important:** Both `COLLAB_ALLOW_REPO_WRITE` and `COLLAB_CONFIRM_REPO_WRITE` must be set to `true`.
 
 ### With Authentication
 
@@ -187,25 +213,44 @@ Before deploying to production, ensure you have:
 
 ## Known Security Issues
 
-### 1. Authentication is Optional
+### 1. Atomic Writes - Cross-Platform Behavior
+**Behavior**: File writes use temp file + rename for atomicity  
+**POSIX Systems (Linux, macOS, BSD)**: `fs.rename()` is atomic  
+**Windows**: `fs.rename()` may not be atomic if target exists  
+**Mitigation**: 
+- On Windows, consider using `fs.replace()` or atomic-write libraries for production
+- Current implementation uses `fs.rename()` which works well on POSIX systems
+- Server logs and documentation specify POSIX atomicity guarantee
+
+**Symlink Protection:**
+- Server checks if target file is a symlink before writing
+- Symlinks are detected using `fs.lstat()` and rejected
+- Protects against symlink swap attacks (TOCTOU)
+- Temp file is also verified to not be a symlink before rename
+
+### 2. Authentication is Optional
 **Risk**: Anyone who can reach the server can edit files  
 **Mitigation**: Always set `COLLAB_AUTH_TOKEN` and use TLS
 
-### 2. Simple Conflict Resolution
+### 3. Simple Conflict Resolution
 **Risk**: Last-write-wins can lose concurrent edits  
 **Mitigation**: Educate users, use for low-conflict scenarios, or implement OT/CRDT
 
-### 3. No Fine-grained Access Control
+### 4. No Fine-grained Access Control
 **Risk**: All users have same permissions  
 **Mitigation**: Implement custom authentication/authorization layer
 
-### 4. No Persistent Audit Log
+### 5. No Persistent Audit Log
 **Risk**: Can't track who made what changes  
 **Mitigation**: Implement custom logging to database or log aggregation service
 
-### 5. No Undo/Versioning
+### 6. No Undo/Versioning
 **Risk**: Mistakes can't be easily reverted  
 **Mitigation**: Implement external version control or backup strategy
+
+### 7. In-Memory Session Store
+**Risk**: Sessions lost on server restart  
+**Mitigation**: Use Redis or database-backed session store for production
 
 ## Testing Security
 

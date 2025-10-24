@@ -47,9 +47,26 @@ npm start
 
 # For production with authentication (RECOMMENDED)
 export COLLAB_AUTH_TOKEN=$(openssl rand -hex 32)
-export COLLAB_TARGET_FILE=/path/to/your/file.c
+export COLLAB_TARGET_FILE=/absolute/path/to/your/file.c
+npm start
+
+# To enable repository file writes (REQUIRES TWO-STEP CONFIRMATION)
+export COLLAB_TARGET_FILE=/absolute/path/to/repo/hello.c
+export COLLAB_ALLOW_REPO_WRITE=true
+export COLLAB_CONFIRM_REPO_WRITE=true
 npm start
 ```
+
+**⚠️ Repository Write Safety:**
+- Writing to repository files requires **TWO explicit environment variables**
+- Both `COLLAB_ALLOW_REPO_WRITE=true` AND `COLLAB_CONFIRM_REPO_WRITE=true` must be set
+- This two-step confirmation prevents accidental repository modifications
+- The server will refuse to start without both confirmations if the target is in the repository
+
+**Path Security:**
+- `COLLAB_TARGET_FILE` must be an **absolute path** (no relative paths like `../`)
+- Symlinks are detected and rejected during file writes (symlink protection)
+- The server validates paths on startup and fails loudly if unsafe patterns are detected
 
 **Authentication Flow (when COLLAB_AUTH_TOKEN is set):**
 1. Open the editor in your browser
@@ -57,10 +74,6 @@ npm start
 3. Enter the token value set in `COLLAB_AUTH_TOKEN`
 4. The server will create a secure session cookie
 5. WebSocket connection uses the session cookie (tokens never in URL)
-
-**Important**: Review [SECURITY.md](SECURITY.md) before deploying to production.
-npm start
-```
 
 **Important**: Review [SECURITY.md](SECURITY.md) before deploying to production.
 
@@ -86,9 +99,12 @@ All configuration is done via environment variables for security:
 
 - `COLLAB_HOST`: Server bind address (default: `127.0.0.1` for localhost-only)
 - `COLLAB_PORT`: Server port (default: `3000`)
-- `COLLAB_TARGET_FILE`: Path to file to edit (default: `./data/hello.c`)
-- `COLLAB_ALLOW_REPO_WRITE`: Set to `true` to enable writing to repository files (default: `false`)
-- `COLLAB_AUTH_TOKEN`: Authentication token (optional but recommended)
+- `COLLAB_TARGET_FILE`: **Absolute path** to file to edit (default: `./data/hello.c`) - no relative paths allowed
+- `COLLAB_ALLOW_REPO_WRITE`: Set to `true` for repository write (default: `false`)  
+  ⚠️ **Both this AND `COLLAB_CONFIRM_REPO_WRITE` must be `true` for repository writes**
+- `COLLAB_CONFIRM_REPO_WRITE`: Confirmation for repository write (default: `false`)  
+  ⚠️ **Required safety gate - must be explicitly set along with `COLLAB_ALLOW_REPO_WRITE`**
+- `COLLAB_AUTH_TOKEN`: Authentication token (optional but recommended for production)
 - `COLLAB_MAX_MESSAGE_SIZE`: Max message size in bytes (default: `1048576`)
 - `COLLAB_MAX_FILE_SIZE`: Max file size in bytes (default: `1048576`)
 - `COLLAB_RATE_LIMIT`: Max edits per minute per client (default: `30`)
@@ -96,7 +112,7 @@ All configuration is done via environment variables for security:
 
 ### Example Configurations
 
-**Local development (default):**
+**Local development (default - safe):**
 ```bash
 npm start
 # Server runs on http://127.0.0.1:3000
@@ -107,15 +123,18 @@ npm start
 ```bash
 export COLLAB_AUTH_TOKEN="your-secret-token"
 npm start
-# Access with: http://127.0.0.1:3000?token=your-secret-token
+# Login modal will appear - enter token securely
+# Token sent via Authorization: Bearer header (never in URL)
 ```
 
-**Edit repository file:**
+**Edit repository file (requires two-step confirmation):**
 ```bash
+export COLLAB_TARGET_FILE=/absolute/path/to/repo/hello.c
 export COLLAB_ALLOW_REPO_WRITE=true
-export COLLAB_TARGET_FILE=/path/to/repo/hello.c
+export COLLAB_CONFIRM_REPO_WRITE=true
 npm start
-# WARNING: This modifies repository files
+# ⚠️ WARNING: This modifies repository files
+# Both confirmations required to proceed
 ```
 
 See [SECURITY.md](SECURITY.md) for complete configuration guidance.

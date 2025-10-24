@@ -22,10 +22,13 @@ const CONFIG = {
     PORT: process.env.COLLAB_PORT || 3000,
     
     // Target file path - must be explicitly configured
+    // SECURITY: Only absolute paths are allowed (no relative paths, no ~ expansion)
     TARGET_FILE: process.env.COLLAB_TARGET_FILE || path.join(__dirname, 'data', 'hello.c'),
     
-    // Require explicit opt-in to write to repository files
+    // Require explicit TWO-STEP opt-in to write to repository files
+    // Both environment variables must be set to 'true' for repository writes
     ALLOW_REPO_WRITE: process.env.COLLAB_ALLOW_REPO_WRITE === 'true',
+    CONFIRM_REPO_WRITE: process.env.COLLAB_CONFIRM_REPO_WRITE === 'true',
     
     // Security limits
     MAX_MESSAGE_SIZE: parseInt(process.env.COLLAB_MAX_MESSAGE_SIZE || '1048576', 10), // 1MB
@@ -43,19 +46,55 @@ const CONFIG = {
 
 // Validate configuration on startup
 function validateConfig() {
+    // SECURITY: Validate target path
     const targetPath = path.resolve(CONFIG.TARGET_FILE);
+    
+    // Ensure target path is absolute (no relative paths like ../, no ~ expansion)
+    if (!path.isAbsolute(CONFIG.TARGET_FILE)) {
+        logger.error('SECURITY: COLLAB_TARGET_FILE must be an absolute path');
+        logger.error(`Provided: ${CONFIG.TARGET_FILE}`);
+        logger.error('Relative paths (../, ./, ~) are not allowed for security reasons');
+        process.exit(1);
+    }
+    
+    // Check for suspicious path patterns
+    if (CONFIG.TARGET_FILE.includes('../') || CONFIG.TARGET_FILE.includes('..\\')) {
+        logger.error('SECURITY: COLLAB_TARGET_FILE contains suspicious path traversal patterns');
+        logger.error(`Provided: ${CONFIG.TARGET_FILE}`);
+        process.exit(1);
+    }
+    
     const repoPath = path.resolve(__dirname, '..');
     
     // Check if target file is inside repository
     const isInRepo = targetPath.startsWith(repoPath);
     
-    if (isInRepo && !CONFIG.ALLOW_REPO_WRITE) {
-        logger.error('SECURITY: Target file is inside repository but COLLAB_ALLOW_REPO_WRITE is not set to "true"');
-        logger.error(`Target: ${targetPath}`);
-        logger.error(`Repo: ${repoPath}`);
-        logger.error('To enable writing to repository files, set environment variable:');
-        logger.error('  export COLLAB_ALLOW_REPO_WRITE=true');
-        process.exit(1);
+    if (isInRepo) {
+        // SECURITY: Two-step opt-in required for repository writes
+        if (!CONFIG.ALLOW_REPO_WRITE || !CONFIG.CONFIRM_REPO_WRITE) {
+            logger.error('');
+            logger.error('='.repeat(70));
+            logger.error('SECURITY: Target file is inside repository');
+            logger.error('='.repeat(70));
+            logger.error(`Target: ${targetPath}`);
+            logger.error(`Repo: ${repoPath}`);
+            logger.error('');
+            logger.error('Writing to repository files requires EXPLICIT TWO-STEP OPT-IN:');
+            logger.error('  export COLLAB_ALLOW_REPO_WRITE=true');
+            logger.error('  export COLLAB_CONFIRM_REPO_WRITE=true');
+            logger.error('');
+            logger.error('Both environment variables must be set to proceed.');
+            logger.error('This protection prevents accidental repository modifications.');
+            logger.error('='.repeat(70));
+            logger.error('');
+            process.exit(1);
+        }
+        
+        logger.warn('');
+        logger.warn('⚠️  WARNING: Repository write mode is ENABLED');
+        logger.warn('   This allows modifications to files inside the repository!');
+        logger.warn('   Target: ' + targetPath);
+        logger.warn('');
     }
     
     if (CONFIG.AUTH_TOKEN) {
@@ -66,7 +105,7 @@ function validateConfig() {
     
     logger.info(`Server will bind to ${CONFIG.HOST}:${CONFIG.PORT}`);
     logger.info(`Target file: ${targetPath}`);
-    logger.info(`Repository write: ${CONFIG.ALLOW_REPO_WRITE ? 'ENABLED' : 'DISABLED'}`);
+    logger.info(`Repository write: ${(CONFIG.ALLOW_REPO_WRITE && CONFIG.CONFIRM_REPO_WRITE) ? 'ENABLED (BOTH CONFIRMATIONS SET)' : 'DISABLED'}`);
 }
 
 // Simple structured logger
@@ -176,7 +215,10 @@ async function loadFile() {
     }
 }
 
-// Save file content with atomic write (temp file + rename)
+// Save file content with atomic write and symlink protection
+// SECURITY: Implements atomic writes using temp file + rename
+// This is atomic on POSIX systems (Linux, macOS, BSD)
+// On Windows, fs.rename may not be atomic; see documentation for limitations
 async function saveFile(content) {
     // Validate content size
     const size = Buffer.byteLength(content, 'utf8');
@@ -185,14 +227,42 @@ async function saveFile(content) {
         return false;
     }
     
-    const tempFile = `${CONFIG.TARGET_FILE}.tmp.${Date.now()}.${crypto.randomBytes(4).toString('hex')}`;
+    const targetPath = path.resolve(CONFIG.TARGET_FILE);
+    const targetDir = path.dirname(targetPath);
+    const tempFile = path.join(targetDir, `.collab-tmp-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`);
     
     try {
-        // Write to temporary file first
+        // SECURITY: Check if target is a symlink before writing
+        // This protects against symlink swap attacks (TOCTOU)
+        try {
+            const stats = await fs.lstat(targetPath);
+            if (stats.isSymbolicLink()) {
+                logger.error('SECURITY: Target file is a symlink, refusing to write');
+                logger.error(`Target: ${targetPath}`);
+                return false;
+            }
+        } catch (error) {
+            // File doesn't exist yet, which is OK (will be created)
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+        
+        // Write to temporary file first (in same directory as target for atomic rename)
         await fs.writeFile(tempFile, content, 'utf8');
         
-        // Atomically rename temp file to target (this is atomic on POSIX systems)
-        await fs.rename(tempFile, CONFIG.TARGET_FILE);
+        // SECURITY: Verify temp file was created and is not a symlink
+        const tempStats = await fs.lstat(tempFile);
+        if (tempStats.isSymbolicLink()) {
+            logger.error('SECURITY: Temp file became a symlink, aborting');
+            await fs.unlink(tempFile);
+            return false;
+        }
+        
+        // Atomically rename temp file to target
+        // NOTE: On POSIX this is atomic. On Windows rename semantics differ.
+        // For Windows production use, consider using fs.replace or atomic-write libraries
+        await fs.rename(tempFile, targetPath);
         
         // Update in-memory state only after successful write
         fileContent = content;
@@ -493,6 +563,7 @@ app.use((req, res, next) => {
 
 // Authentication endpoint - must use Authorization: Bearer header
 // SECURITY: Tokens are never passed via URL to prevent leaks
+// SECURITY: Uses constant-time comparison to prevent timing attacks
 app.post('/api/auth', (req, res) => {
     if (!CONFIG.AUTH_TOKEN) {
         // No authentication required
@@ -502,16 +573,41 @@ app.post('/api/auth', (req, res) => {
     // Extract token from Authorization: Bearer header
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
+        logger.warn('Authentication attempt without Authorization header');
         return res.status(401).json({ error: 'Missing Authorization header' });
     }
     
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
+        logger.warn('Authentication attempt with invalid Authorization header format');
         return res.status(401).json({ error: 'Invalid Authorization header format. Expected: Bearer <token>' });
     }
     
-    const token = parts[1];
-    if (token !== CONFIG.AUTH_TOKEN) {
+    const providedToken = parts[1];
+    
+    // SECURITY: Constant-time comparison to prevent timing attacks
+    // Compare token length first (still constant time for same length)
+    const expectedToken = CONFIG.AUTH_TOKEN;
+    if (providedToken.length !== expectedToken.length) {
+        logger.warn('Authentication failed: invalid token');
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    // Use crypto.timingSafeEqual for constant-time comparison
+    const providedBuffer = Buffer.from(providedToken, 'utf8');
+    const expectedBuffer = Buffer.from(expectedToken, 'utf8');
+    
+    let isValid = false;
+    try {
+        isValid = crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+    } catch (error) {
+        // Buffers are different lengths (shouldn't happen due to check above)
+        logger.warn('Authentication failed: token comparison error');
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    if (!isValid) {
+        logger.warn('Authentication failed: invalid token');
         return res.status(401).json({ error: 'Invalid token' });
     }
     
@@ -536,14 +632,18 @@ app.post('/api/auth', (req, res) => {
     res.json({ authenticated: true, expiresAt: expiresAt });
 });
 
-// Logout endpoint
+// Logout endpoint - invalidates session server-side
 app.post('/api/logout', (req, res) => {
     const sessionId = parseCookie(req.headers.cookie)?.collab_session;
     if (sessionId) {
-        sessions.delete(sessionId);
-        logger.info('Session logged out');
+        // SECURITY: Delete session from server-side store
+        const deleted = sessions.delete(sessionId);
+        if (deleted) {
+            logger.info('Session invalidated on logout');
+        }
     }
     
+    // Clear cookie on client
     res.clearCookie('collab_session');
     res.json({ message: 'Logged out' });
 });
