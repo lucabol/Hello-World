@@ -235,6 +235,7 @@ class CollaborativeEditor {
         this.usersList.innerHTML = '';
         this.users.forEach((user, id) => {
             const li = document.createElement('li');
+            // Use textContent instead of innerHTML to prevent XSS
             li.textContent = user.name;
             if (id === this.clientId) {
                 li.classList.add('you');
@@ -267,6 +268,7 @@ class CollaborativeEditor {
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
+        // Use textContent to prevent XSS
         notification.textContent = message;
         
         const container = document.getElementById('notifications');

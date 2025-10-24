@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node test/unit-tests.js",
+    "lint": "eslint server.js public/*.js test/*.js || true"
   },
   "keywords": ["collaborative", "editor", "real-time"],
   "author": "",
@@ -13,5 +15,8 @@
   "dependencies": {
     "express": "^4.18.2",
     "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0"
   }
 }
