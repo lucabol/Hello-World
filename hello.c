@@ -1,6 +1,7 @@
-# include <stdio.h>
+#include <stdio.h>
 
-int main(){
-    printf("Ciao, Mondo!\n");
-    printf("Exit code: 0\n");
+int main(void){
+    puts("Ciao, Mondo!");
+    puts("Exit code: 0");
+    return 0;
 }
