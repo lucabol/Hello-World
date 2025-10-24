@@ -34,7 +34,7 @@ jobs:
         set -e
         make clean
         CC=${{ matrix.compiler }} make plugin_demo
-        CC=${{ matrix.compiler }} make hello-plugins
+        CC=${{ matrix.compiler }} make hello_with_plugins
         CC=${{ matrix.compiler }} make custom_plugin_example
     
     - name: Test plugin demo

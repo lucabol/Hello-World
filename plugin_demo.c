@@ -1,4 +1,5 @@
 /* Plugin System Demo
+ * SPDX-License-Identifier: MIT
  * 
  * This program demonstrates how the plugin system extends hello.c functionality
  * without modifying the core file.

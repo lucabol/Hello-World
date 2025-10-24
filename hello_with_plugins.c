@@ -1,4 +1,5 @@
 /* Hello with Plugins
+ * SPDX-License-Identifier: MIT
  * 
  * This demonstrates integrating the plugin system with hello.c
  * External developers can register plugins to transform the greeting

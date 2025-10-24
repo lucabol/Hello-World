@@ -64,6 +64,36 @@ apply_plugins("Hello world!", output, sizeof(output));
 - `hello_with_plugins.c` - Integration example
 - `PLUGIN_SYSTEM.md` - Complete documentation
 
+## API Versioning
+
+The plugin API uses semantic versioning to ensure compatibility:
+
+**Current Version:** 1.0.0 (defined in plugin.h)
+
+```c
+#define PLUGIN_API_VERSION_MAJOR 1
+#define PLUGIN_API_VERSION_MINOR 0
+#define PLUGIN_API_VERSION_PATCH 0
+```
+
+**Versioning Guarantees:**
+- **Major version** increments indicate breaking API changes (function signatures changed, removed functions)
+- **Minor version** increments indicate backward-compatible additions (new functions, new error codes)
+- **Patch version** increments indicate bug fixes with no API changes
+
+**Checking API Version:**
+Your plugin code can check the API version at compile time:
+```c
+#if PLUGIN_API_VERSION_MAJOR != 1
+#error "This plugin requires Plugin API version 1.x"
+#endif
+```
+
+**Backward Compatibility Policy:**
+- v1.x.x versions will maintain backward compatibility
+- Breaking changes will increment major version to v2.0.0
+- All breaking changes will be documented in CHANGELOG.md
+
 ## Make Targets
 
 - `make` - Build hello

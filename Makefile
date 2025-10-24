@@ -35,8 +35,11 @@ hello: $(HELLO_SOURCE) $(PLUGIN_SOURCES)
 	$(CC) $(CFLAGS) -o hello $(HELLO_SOURCE) $(PLUGIN_SOURCES)
 
 # Hello with example plugins pre-registered
-hello-plugins: hello_with_plugins.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
+hello_with_plugins: hello_with_plugins.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
 	$(CC) $(CFLAGS) -o hello_with_plugins hello_with_plugins.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
+
+# Backward compatibility alias
+hello-plugins: hello_with_plugins
 
 # Plugin demonstration program
 plugin_demo: plugin_demo.c $(PLUGIN_SOURCES) $(PLUGIN_EXAMPLES)
@@ -58,7 +61,7 @@ unit-test: test_plugin_unit
 	@./test_plugin_unit
 
 # Build and run demo
-demo: plugin_demo hello-plugins custom_plugin_example
+demo: plugin_demo hello_with_plugins custom_plugin_example
 	@echo "===================================="
 	@echo "Running Plugin System Demo"
 	@echo "===================================="

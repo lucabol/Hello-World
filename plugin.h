@@ -1,4 +1,5 @@
 /* Plugin Interface for hello.c
+ * SPDX-License-Identifier: MIT
  * 
  * This header defines the plugin architecture for extending hello.c functionality
  * without modifying the core file directly.
@@ -66,6 +67,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Plugin API Version - increment on breaking changes */
+#define PLUGIN_API_VERSION_MAJOR 1
+#define PLUGIN_API_VERSION_MINOR 0
+#define PLUGIN_API_VERSION_PATCH 0
 
 /* Maximum message length supported by plugins */
 #define PLUGIN_MAX_MESSAGE_LEN 256

@@ -1,4 +1,5 @@
 /* Custom Plugin Example
+ * SPDX-License-Identifier: MIT
  * 
  * This example demonstrates how an external developer can create
  * a custom plugin without modifying hello.c or any core files.

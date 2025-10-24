@@ -1,4 +1,5 @@
 /* Plugin System Implementation
+ * SPDX-License-Identifier: MIT
  * 
  * This file implements the plugin management system for hello.c.
  * It provides plugin registration, storage, and execution functionality.

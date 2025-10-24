@@ -1,4 +1,5 @@
 /* Example Plugins for hello.c
+ * SPDX-License-Identifier: MIT
  * 
  * This file demonstrates how to create plugins that extend hello.c functionality
  * without modifying the core file.
