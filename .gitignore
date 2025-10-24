@@ -14,6 +14,7 @@ test_plugin_unit_asan
 voice_demo
 voice_demo_test
 test_hello_runner
+code_metrics
 *.exe
 *.out
 

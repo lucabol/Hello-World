@@ -3,9 +3,9 @@ Test repo for JediMaster
 
 ## Plugin System
 
-This repository now includes a plugin architecture that allows external developers to extend hello.c functionality without modifying the core file.
+This repository includes a plugin architecture that allows external developers to extend hello.c functionality without modifying the core file.
 
-### Quick Start
+### Quick Start - Plugin System
 
 ```bash
 # Build and run basic hello
@@ -16,15 +16,15 @@ make
 make demo
 ```
 
-### Documentation
+### Plugin Documentation
 
-- **[PLUGIN_QUICKSTART.md](PLUGIN_QUICKSTART.md)** - Quick start for plugin authors (NEW!)
+- **[PLUGIN_QUICKSTART.md](PLUGIN_QUICKSTART.md)** - Quick start for plugin authors
 - **[PLUGIN_README.md](PLUGIN_README.md)** - Overview and examples
 - **[PLUGIN_SYSTEM.md](PLUGIN_SYSTEM.md)** - Complete API documentation
 - **[CODE_DIFFS.md](CODE_DIFFS.md)** - Implementation details and code review
 - **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical summary
 
-### Features
+### Plugin Features
 
 - ✅ Zero-modification extensibility
 - ✅ Plugin chaining support
@@ -43,3 +43,48 @@ make demo
 - **Leetspeak** - Letter-to-number conversion
 
 See the documentation for how to create your own plugins!
+
+## Code Metrics Analyzer
+
+This repository also includes a spreadsheet-like code metrics analyzer that can analyze C source files and display various metrics in a tabular format.
+
+### Quick Start - Code Metrics
+
+```bash
+# Build the analyzer
+gcc -Wall -Wextra -o code_metrics code_metrics.c
+
+# Analyze hello.c (default)
+./code_metrics
+
+# Analyze any C file
+./code_metrics filename.c
+
+# Use ASCII output for compatibility
+./code_metrics --plain filename.c
+
+# View help
+./code_metrics --help
+
+# Check version
+./code_metrics --version
+```
+
+### Code Metrics Features
+
+The analyzer displays metrics including:
+- Line counts (total, code, blank, comments)
+- Function definitions
+- Include statements
+- Printf statements
+- Code-to-total and comment-to-total ratios
+- Complexity estimation
+
+See [CODE_METRICS.md](CODE_METRICS.md) for detailed documentation.
+
+### Testing
+
+Run the test suite:
+```bash
+./test/test_code_metrics.sh
+```
