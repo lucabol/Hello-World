@@ -26,9 +26,9 @@ const CONFIG = {
     TARGET_FILE: process.env.COLLAB_TARGET_FILE || path.join(__dirname, 'data', 'hello.c'),
     
     // Require explicit TWO-STEP opt-in to write to repository files
-    // Both environment variables must be set to 'true' for repository writes
-    ALLOW_REPO_WRITE: process.env.COLLAB_ALLOW_REPO_WRITE === 'true',
-    CONFIRM_REPO_WRITE: process.env.COLLAB_CONFIRM_REPO_WRITE === 'true',
+    // Both environment variables must be set to 'true' (case-insensitive) for repository writes
+    ALLOW_REPO_WRITE: (process.env.COLLAB_ALLOW_REPO_WRITE || '').toLowerCase() === 'true',
+    CONFIRM_REPO_WRITE: (process.env.COLLAB_CONFIRM_REPO_WRITE || '').toLowerCase() === 'true',
     
     // Security limits
     MAX_MESSAGE_SIZE: parseInt(process.env.COLLAB_MAX_MESSAGE_SIZE || '1048576', 10), // 1MB
@@ -45,29 +45,72 @@ const CONFIG = {
 };
 
 // Validate configuration on startup
-function validateConfig() {
+async function validateConfig() {
     // SECURITY: Validate target path
-    const targetPath = path.resolve(CONFIG.TARGET_FILE);
+    const providedPath = CONFIG.TARGET_FILE;
     
     // Ensure target path is absolute (no relative paths like ../, no ~ expansion)
-    if (!path.isAbsolute(CONFIG.TARGET_FILE)) {
+    if (!path.isAbsolute(providedPath)) {
         logger.error('SECURITY: COLLAB_TARGET_FILE must be an absolute path');
-        logger.error(`Provided: ${CONFIG.TARGET_FILE}`);
+        logger.error(`Provided: ${providedPath}`);
         logger.error('Relative paths (../, ./, ~) are not allowed for security reasons');
         process.exit(1);
     }
     
-    // Check for suspicious path patterns
-    if (CONFIG.TARGET_FILE.includes('../') || CONFIG.TARGET_FILE.includes('..\\')) {
-        logger.error('SECURITY: COLLAB_TARGET_FILE contains suspicious path traversal patterns');
-        logger.error(`Provided: ${CONFIG.TARGET_FILE}`);
+    // Check for suspicious path patterns before normalization
+    if (providedPath.includes('~') || providedPath.includes('${')) {
+        logger.error('SECURITY: COLLAB_TARGET_FILE contains shell expansions');
+        logger.error(`Provided: ${providedPath}`);
+        logger.error('Shell expansions (~, $) are not allowed for security reasons');
         process.exit(1);
     }
     
-    const repoPath = path.resolve(__dirname, '..');
+    // Normalize the path and check for path traversal
+    const normalizedPath = path.normalize(providedPath);
+    const resolvedPath = path.resolve(normalizedPath);
     
-    // Check if target file is inside repository
-    const isInRepo = targetPath.startsWith(repoPath);
+    // Check if normalization changed the path (potential traversal attempt)
+    if (normalizedPath !== providedPath) {
+        logger.error('SECURITY: COLLAB_TARGET_FILE path normalization detected traversal');
+        logger.error(`Provided: ${providedPath}`);
+        logger.error(`Normalized: ${normalizedPath}`);
+        logger.error('Path traversal patterns are not allowed');
+        process.exit(1);
+    }
+    
+    // Check for suspicious path patterns after normalization
+    if (resolvedPath.includes('../') || resolvedPath.includes('..\\')) {
+        logger.error('SECURITY: COLLAB_TARGET_FILE contains suspicious path traversal patterns');
+        logger.error(`Provided: ${providedPath}`);
+        process.exit(1);
+    }
+    
+    // Get real paths to avoid symlink bypass
+    const repoPath = path.resolve(__dirname, '..');
+    let targetRealPath;
+    let repoRealPath;
+    
+    try {
+        repoRealPath = await fs.realpath(repoPath);
+    } catch (error) {
+        logger.error(`Failed to resolve repository path: ${error.message}`);
+        process.exit(1);
+    }
+    
+    // Target file may not exist yet, so get realpath of parent directory
+    const targetDir = path.dirname(resolvedPath);
+    try {
+        const targetDirRealPath = await fs.realpath(targetDir);
+        const targetBasename = path.basename(resolvedPath);
+        targetRealPath = path.join(targetDirRealPath, targetBasename);
+    } catch (error) {
+        // Directory doesn't exist - use the resolved path
+        logger.warn(`Target directory does not exist, using resolved path: ${resolvedPath}`);
+        targetRealPath = resolvedPath;
+    }
+    
+    // Check if target file is inside repository (using real paths to avoid symlink bypass)
+    const isInRepo = targetRealPath.startsWith(repoRealPath + path.sep) || targetRealPath === repoRealPath;
     
     if (isInRepo) {
         // SECURITY: Two-step opt-in required for repository writes
@@ -76,14 +119,14 @@ function validateConfig() {
             logger.error('='.repeat(70));
             logger.error('SECURITY: Target file is inside repository');
             logger.error('='.repeat(70));
-            logger.error(`Target: ${targetPath}`);
-            logger.error(`Repo: ${repoPath}`);
+            logger.error(`Target: ${targetRealPath}`);
+            logger.error(`Repo: ${repoRealPath}`);
             logger.error('');
             logger.error('Writing to repository files requires EXPLICIT TWO-STEP OPT-IN:');
             logger.error('  export COLLAB_ALLOW_REPO_WRITE=true');
             logger.error('  export COLLAB_CONFIRM_REPO_WRITE=true');
             logger.error('');
-            logger.error('Both environment variables must be set to proceed.');
+            logger.error('Both environment variables must be set to "true" (case-insensitive).');
             logger.error('This protection prevents accidental repository modifications.');
             logger.error('='.repeat(70));
             logger.error('');
@@ -93,18 +136,20 @@ function validateConfig() {
         logger.warn('');
         logger.warn('⚠️  WARNING: Repository write mode is ENABLED');
         logger.warn('   This allows modifications to files inside the repository!');
-        logger.warn('   Target: ' + targetPath);
+        logger.warn('   Target: ' + targetRealPath);
         logger.warn('');
     }
     
     if (CONFIG.AUTH_TOKEN) {
         logger.info('Authentication enabled');
+        // SECURITY: Never log the actual token value
+        logger.debug('Token length: ' + CONFIG.AUTH_TOKEN.length + ' characters');
     } else {
         logger.warn('WARNING: No authentication configured. Set COLLAB_AUTH_TOKEN for production use.');
     }
     
     logger.info(`Server will bind to ${CONFIG.HOST}:${CONFIG.PORT}`);
-    logger.info(`Target file: ${targetPath}`);
+    logger.info(`Target file: ${targetRealPath}`);
     logger.info(`Repository write: ${(CONFIG.ALLOW_REPO_WRITE && CONFIG.CONFIRM_REPO_WRITE) ? 'ENABLED (BOTH CONFIRMATIONS SET)' : 'DISABLED'}`);
 }
 
@@ -585,29 +630,47 @@ app.post('/api/auth', (req, res) => {
     
     const providedToken = parts[1];
     
+    // Validate token is not empty
+    if (!providedToken || providedToken.length === 0) {
+        logger.warn('Authentication attempt with empty token');
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
     // SECURITY: Constant-time comparison to prevent timing attacks
-    // Compare token length first (still constant time for same length)
     const expectedToken = CONFIG.AUTH_TOKEN;
+    
+    // SECURITY: Check lengths match (fail early but safely)
+    // This prevents timingSafeEqual from throwing on different-length buffers
     if (providedToken.length !== expectedToken.length) {
-        logger.warn('Authentication failed: invalid token');
+        logger.warn('Authentication failed: invalid token length');
         return res.status(401).json({ error: 'Invalid token' });
     }
     
     // Use crypto.timingSafeEqual for constant-time comparison
+    // Explicitly use 'utf8' encoding for consistency
     const providedBuffer = Buffer.from(providedToken, 'utf8');
     const expectedBuffer = Buffer.from(expectedToken, 'utf8');
     
+    // Double-check buffer lengths match (defensive programming)
+    if (providedBuffer.length !== expectedBuffer.length) {
+        logger.warn('Authentication failed: buffer length mismatch');
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
     let isValid = false;
     try {
+        // SECURITY: timingSafeEqual will throw if lengths differ
+        // We've already checked, but wrap in try-catch for safety
         isValid = crypto.timingSafeEqual(providedBuffer, expectedBuffer);
     } catch (error) {
-        // Buffers are different lengths (shouldn't happen due to check above)
-        logger.warn('Authentication failed: token comparison error');
+        // Should not happen due to length checks above, but handle gracefully
+        logger.error('Authentication error during token comparison:', error.message);
+        // SECURITY: Never log the actual tokens
         return res.status(401).json({ error: 'Invalid token' });
     }
     
     if (!isValid) {
-        logger.warn('Authentication failed: invalid token');
+        logger.warn('Authentication failed: token mismatch');
         return res.status(401).json({ error: 'Invalid token' });
     }
     
@@ -629,6 +692,7 @@ app.post('/api/auth', (req, res) => {
     });
     
     logger.info('Authentication successful, session created');
+    // SECURITY: Never log the token or session ID
     res.json({ authenticated: true, expiresAt: expiresAt });
 });
 
@@ -678,7 +742,7 @@ app.get('/api/health', (req, res) => {
 async function start() {
     try {
         // Validate configuration
-        validateConfig();
+        await validateConfig();
         
         // Load initial file
         await loadFile();

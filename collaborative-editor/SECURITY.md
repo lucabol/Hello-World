@@ -41,15 +41,19 @@ export COLLAB_ALLOW_REPO_WRITE=true
 export COLLAB_CONFIRM_REPO_WRITE=true
 ```
 
-**Path Safety Requirements:**
+**Path Security Requirements:**
 - `COLLAB_TARGET_FILE` **must be an absolute path** (no `../`, `./`, or `~`)
+- No shell expansions allowed (`~`, `$`)
 - Relative paths are rejected on startup for security
+- Path normalization is checked to detect traversal attempts
+- Server uses `fs.realpath()` to resolve symlinks and validate repository containment
 - Server validates path and fails with clear error if unsafe
 
 **Repository Write Protection (Two-Step Opt-In):**
 - Writing to repository files requires **both** environment variables set to `true`
 - `COLLAB_ALLOW_REPO_WRITE=true` alone is **not sufficient**
 - `COLLAB_CONFIRM_REPO_WRITE=true` must also be explicitly set
+- Values are case-insensitive: 'true', 'TRUE', 'True' all work
 - This prevents accidental repository modifications in CI or development environments
 - Server will refuse to start without both confirmations if target is in repository
 
@@ -92,6 +96,13 @@ export COLLAB_PORT=3000
 - 24-hour expiration
 - Server-side session store (in-memory - use Redis/database for production)
 - Logout invalidates session on server and clears cookie
+
+**Token Security:**
+- Tokens compared using `crypto.timingSafeEqual()` (constant-time comparison)
+- Prevents timing attacks that could leak token information
+- Token length checked before comparison to avoid exceptions
+- Tokens never logged (only token length in debug mode)
+- UTF-8 encoding explicitly specified for consistency
 
 ### Performance Configuration
 

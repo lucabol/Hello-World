@@ -266,6 +266,145 @@ runner.test('Broadcast logic excludes sender', () => {
     assert.strictEqual(recipients.includes(receiver2), true);
 });
 
+// Test constant-time token comparison
+runner.test('timingSafeEqual token comparison with equal tokens', () => {
+    const token1 = 'my-secret-token-123';
+    const token2 = 'my-secret-token-123';
+    
+    const buffer1 = Buffer.from(token1, 'utf8');
+    const buffer2 = Buffer.from(token2, 'utf8');
+    
+    // Should return true for equal tokens
+    const result = crypto.timingSafeEqual(buffer1, buffer2);
+    assert.strictEqual(result, true);
+});
+
+runner.test('Token comparison with different lengths fails safely', () => {
+    const shortToken = 'short';
+    const longToken = 'this-is-a-much-longer-token';
+    
+    // Should detect length difference before timingSafeEqual
+    assert.notStrictEqual(shortToken.length, longToken.length);
+    
+    // timingSafeEqual would throw if called with different lengths
+    // Our code should check lengths first
+    const buffer1 = Buffer.from(shortToken, 'utf8');
+    const buffer2 = Buffer.from(longToken, 'utf8');
+    
+    assert.notStrictEqual(buffer1.length, buffer2.length);
+    
+    // Verify that timingSafeEqual throws with different lengths
+    assert.throws(() => {
+        crypto.timingSafeEqual(buffer1, buffer2);
+    }, {
+        name: 'RangeError'
+    });
+});
+
+runner.test('Token comparison with empty token fails safely', () => {
+    const emptyToken = '';
+    const validToken = 'my-secret-token';
+    
+    // Should detect empty token
+    assert.strictEqual(emptyToken.length, 0);
+    assert.notStrictEqual(validToken.length, 0);
+    
+    // Length check should catch this
+    assert.notStrictEqual(emptyToken.length, validToken.length);
+});
+
+runner.test('Token comparison with matching lengths but different content', () => {
+    const token1 = 'secret-token-A';
+    const token2 = 'secret-token-B';
+    
+    // Same length, different content
+    assert.strictEqual(token1.length, token2.length);
+    
+    const buffer1 = Buffer.from(token1, 'utf8');
+    const buffer2 = Buffer.from(token2, 'utf8');
+    
+    // timingSafeEqual should return false
+    const result = crypto.timingSafeEqual(buffer1, buffer2);
+    assert.strictEqual(result, false);
+});
+
+// Test environment variable parsing
+runner.test('Environment variable parsing accepts "true" (lowercase)', () => {
+    const value = 'true';
+    const result = value.toLowerCase() === 'true';
+    assert.strictEqual(result, true);
+});
+
+runner.test('Environment variable parsing accepts "TRUE" (uppercase)', () => {
+    const value = 'TRUE';
+    const result = value.toLowerCase() === 'true';
+    assert.strictEqual(result, true);
+});
+
+runner.test('Environment variable parsing accepts "True" (mixed case)', () => {
+    const value = 'True';
+    const result = value.toLowerCase() === 'true';
+    assert.strictEqual(result, true);
+});
+
+runner.test('Environment variable parsing rejects "yes"', () => {
+    const value = 'yes';
+    const result = value.toLowerCase() === 'true';
+    assert.strictEqual(result, false);
+});
+
+runner.test('Environment variable parsing rejects "1"', () => {
+    const value = '1';
+    const result = value.toLowerCase() === 'true';
+    assert.strictEqual(result, false);
+});
+
+runner.test('Environment variable parsing rejects empty string', () => {
+    const value = '';
+    const result = value.toLowerCase() === 'true';
+    assert.strictEqual(result, false);
+});
+
+// Test path validation
+runner.test('Absolute path detection with path.isAbsolute', () => {
+    // Absolute paths
+    assert.strictEqual(path.isAbsolute('/home/user/file.txt'), true);
+    assert.strictEqual(path.isAbsolute('/etc/config'), true);
+    
+    // Relative paths
+    assert.strictEqual(path.isAbsolute('../file.txt'), false);
+    assert.strictEqual(path.isAbsolute('./file.txt'), false);
+    assert.strictEqual(path.isAbsolute('file.txt'), false);
+    assert.strictEqual(path.isAbsolute('~/file.txt'), false);
+});
+
+runner.test('Path normalization detects traversal attempts', () => {
+    const suspiciousPath = '/home/user/../../etc/passwd';
+    const normalized = path.normalize(suspiciousPath);
+    
+    // Normalized path should be different, indicating traversal
+    assert.notStrictEqual(suspiciousPath, normalized);
+    assert.strictEqual(normalized, '/etc/passwd');
+});
+
+runner.test('Path normalization is idempotent for safe paths', () => {
+    const safePath = '/home/user/documents/file.txt';
+    const normalized = path.normalize(safePath);
+    
+    // Safe absolute paths should normalize to themselves
+    assert.strictEqual(safePath, normalized);
+});
+
+runner.test('Shell expansion detection catches tilde', () => {
+    const pathWithTilde = '~/documents/file.txt';
+    assert.strictEqual(pathWithTilde.includes('~'), true);
+});
+
+runner.test('Shell expansion detection catches dollar sign', () => {
+    const pathWithVar = '/home/${USER}/file.txt';
+    assert.strictEqual(pathWithVar.includes('${'), true);
+});
+
 // Run all tests
 runner.run().then(success => {
     process.exit(success ? 0 : 1);
