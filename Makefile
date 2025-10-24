@@ -24,4 +24,3 @@ test:
 # Clean up compiled binaries
 clean:
 	rm -f hello hello_strict hello_debug hello_clang *.o test_hello_runner
-
