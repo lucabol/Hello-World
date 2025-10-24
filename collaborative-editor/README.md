@@ -177,6 +177,33 @@ Tests cover:
 - Configuration validation
 - XSS prevention
 
+### Concurrent Editing Tests
+
+Run integration tests with multiple simultaneous clients:
+
+```bash
+npm run test:concurrent
+```
+
+Tests cover:
+- Multiple client connections
+- Edit broadcasting to all clients
+- Version number incrementing
+- Concurrent edit handling (last-write-wins)
+- Rate limiting under load
+- Large message rejection
+- Invalid message format handling
+- Client disconnection cleanup
+- XSS prevention in usernames
+
+### Run All Tests
+
+```bash
+npm run test:all
+```
+
+This runs both unit tests and concurrent editing tests.
+
 ### Integration Tests
 
 Run integration tests (requires server to be stopped):

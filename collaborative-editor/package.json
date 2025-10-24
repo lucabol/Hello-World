@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node test/unit-tests.js",
+    "test:concurrent": "node test/concurrent-tests.js",
+    "test:all": "npm test && npm run test:concurrent",
     "lint": "eslint server.js public/*.js test/*.js || true"
   },
   "keywords": ["collaborative", "editor", "real-time"],
