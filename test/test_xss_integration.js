@@ -14,7 +14,7 @@ const path = require('path');
 console.log("🧪 Running XSS integration test...\n");
 
 // Read the editor.html file
-const editorPath = path.join(__dirname, '..', 'editor.html');
+const editorPath = path.join(__dirname, '..', 'tools', 'editor', 'editor.html');
 const editorContent = fs.readFileSync(editorPath, 'utf8');
 
 let passed = 0;

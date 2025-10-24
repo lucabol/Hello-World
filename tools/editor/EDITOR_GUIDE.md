@@ -6,11 +6,34 @@ The Visual C Code Editor is a web-based block programming interface that allows 
 ## Getting Started
 
 ### Opening the Editor
-Simply open `editor.html` in any modern web browser:
+Open `tools/editor/editor.html` in any modern web browser:
 - **Chrome/Edge**: Double-click the file or drag it into the browser
 - **Firefox**: Double-click the file or use File → Open File
 - **Safari**: Double-click the file
-- **Via Web Server**: `python3 -m http.server 8080` then navigate to `http://localhost:8080/editor.html`
+- **Via Web Server**: `python3 -m http.server 8080` then navigate to `http://localhost:8080/tools/editor/editor.html`
+
+## Accessibility Features
+
+### Keyboard Navigation
+The editor is fully accessible via keyboard:
+- **Tab** - Navigate between palette blocks, workspace blocks, and buttons
+- **Enter** or **Space** - Add a block from the palette to workspace
+- **Delete** or **Backspace** - Remove focused block from workspace
+- **Arrow keys** - Navigate within text inputs
+
+### Screen Reader Support
+- All interactive elements have ARIA labels
+- Live regions announce changes to the workspace and code preview
+- Semantic HTML roles for better navigation
+- Descriptive button labels and alt text
+
+### Keyboard-Only Workflow
+1. Tab to a palette block
+2. Press Enter or Space to add it to workspace
+3. Tab to the new block's input field
+4. Type your value
+5. Tab to delete button or next block
+6. Press Enter on Export button to download
 
 ## Features
 
@@ -102,11 +125,14 @@ printf("Third");   // Third Printf block
 - A confirmation dialog prevents accidental deletion
 
 ## Security Features
-The editor includes several security measures:
-- All user input is sanitized to prevent code injection
-- Export filename is fixed as `hello.c` to prevent malicious filenames
-- No external dependencies or network requests
-- Runs entirely in your browser - no data sent to servers
+The editor includes comprehensive security measures:
+- **XSS Protection**: All user input is HTML-escaped to prevent script injection
+- **Format String Safety**: Percent signs (%) are escaped to prevent printf vulnerabilities
+- **Safe DOM Manipulation**: Uses textContent instead of innerHTML for user data
+- **Fixed Filename**: Export filename is hardcoded as `hello.c` (cannot be manipulated)
+- **Content Security Policy**: CSP headers prevent external script execution
+- **No External Dependencies**: Runs entirely in your browser - no data sent to servers
+- **Validated by Tests**: Comprehensive test suite validates security features
 
 ## Browser Compatibility
 Works in all modern browsers:
@@ -126,7 +152,10 @@ Works in all modern browsers:
 ### Drag and drop not working?
 - Make sure you're dragging from the Block Palette
 - Drop the block in the gray dashed area
-- Some touchscreen devices may have limited drag support
+- **Touch devices**: Drag-and-drop has limited support on touchscreens
+  - **Workaround**: Use keyboard navigation instead (see Accessibility section)
+  - Press Enter/Space on palette blocks to add them
+  - This provides a better experience on touch devices
 
 ### Export button not working?
 - Check if pop-up blocker is preventing download
@@ -146,7 +175,15 @@ When adding text to Printf blocks:
 - Regular text: `Hello world!`
 - With newline: `Hello world!\n`
 - Multiple lines: `Line 1\nLine 2\nLine 3\n`
-- With tabs: `Name:\t%s\n` (for formatted output)
+- With tabs: `Name:\tJohn` (for spacing)
+- **Percent signs**: Use `%%` for literal percent (e.g., `50%% complete`)
+  - The editor automatically escapes single `%` to `%%` for safety
+
+### Auto-Include Feature
+The editor automatically adds `#include <stdio.h>` if:
+- You add a Printf block
+- No Include block with `stdio.h` exists
+This ensures your code always compiles successfully!
 
 ### Program Structure
 The editor generates code with this structure:

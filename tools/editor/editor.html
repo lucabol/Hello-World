@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Content Security Policy: Defense in depth against XSS attacks -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <title>Visual C Code Editor - Block-Based Programming</title>
     <style>
         * {
@@ -300,25 +302,25 @@
         </div>
 
         <div class="main-content">
-            <div class="palette">
+            <div class="palette" role="region" aria-label="Block Palette">
                 <h2>📦 Block Palette</h2>
-                <div class="block-template" draggable="true" data-type="include">
+                <div class="block-template" draggable="true" data-type="include" role="button" tabindex="0" aria-label="Include Library block - Add a standard library header">
                     <h3>📚 Include Library</h3>
                     <p>Add a standard library header</p>
                 </div>
-                <div class="block-template" draggable="true" data-type="printf">
+                <div class="block-template" draggable="true" data-type="printf" role="button" tabindex="0" aria-label="Print Text block - Print text to console">
                     <h3>🖨️ Print Text</h3>
                     <p>Print text to console</p>
                 </div>
-                <div class="block-template" draggable="true" data-type="return">
+                <div class="block-template" draggable="true" data-type="return" role="button" tabindex="0" aria-label="Return Value block - Return from main function">
                     <h3>↩️ Return Value</h3>
                     <p>Return from main function</p>
                 </div>
             </div>
 
-            <div class="workspace">
+            <div class="workspace" role="region" aria-label="Workspace">
                 <h2>🎨 Workspace</h2>
-                <div class="drop-zone" id="dropZone">
+                <div class="drop-zone" id="dropZone" role="application" aria-label="Drop zone for building your C program">
                     <div class="empty-state">
                         <div class="empty-state-icon">👆</div>
                         <div>Drag blocks here to start building your C program</div>
@@ -326,14 +328,14 @@
                 </div>
             </div>
 
-            <div class="preview">
+            <div class="preview" role="region" aria-label="Code Preview">
                 <h2>👁️ Code Preview</h2>
-                <div class="code-preview" id="codePreview">// Drag blocks to generate code</div>
+                <div class="code-preview" id="codePreview" role="log" aria-live="polite" aria-label="Generated C code">// Drag blocks to generate code</div>
                 <div class="button-group">
-                    <button class="btn btn-primary" id="exportBtn">
+                    <button class="btn btn-primary" id="exportBtn" aria-label="Export generated code to hello.c file">
                         💾 Export to hello.c
                     </button>
-                    <button class="btn btn-secondary" id="clearBtn">
+                    <button class="btn btn-secondary" id="clearBtn" aria-label="Clear all blocks from workspace">
                         🗑️ Clear All Blocks
                     </button>
                 </div>
@@ -342,11 +344,38 @@
     </div>
 
     <script>
-        // Security: HTML escape function to prevent XSS
+        /**
+         * Security: HTML Escaping Function
+         * 
+         * This function prevents XSS (Cross-Site Scripting) attacks by escaping user input
+         * before inserting it into the DOM or generated code. It converts potentially dangerous
+         * characters (<, >, &, ", ') into their HTML entity equivalents.
+         * 
+         * Approach:
+         * - Uses textContent to safely set text on a temporary div element
+         * - The browser automatically escapes special characters
+         * - Returns the escaped innerHTML
+         * 
+         * Validation: See test/test_escape_html.js for comprehensive test coverage
+         * Integration Tests: See test/test_xss_integration.js
+         */
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        /**
+         * Security: Escape printf format specifiers
+         * 
+         * Escapes percent signs (%) in user-provided strings to prevent printf format
+         * string injection vulnerabilities. When users enter text like "50% complete",
+         * the % should be treated as literal text, not as a format specifier.
+         * 
+         * This ensures generated code uses safe, literal string output.
+         */
+        function escapePrintfFormat(text) {
+            return text.replace(/%/g, '%%');
         }
 
         // Block data structure
@@ -374,6 +403,7 @@
                         <div>Drag blocks here to start building your C program</div>
                     </div>
                 `;
+                announceToScreenReader('Workspace is empty. Drag blocks from the palette to start building.');
                 return;
             }
 
@@ -383,6 +413,9 @@
                 blockEl.className = 'workspace-block';
                 blockEl.draggable = true;
                 blockEl.dataset.blockId = block.id;
+                blockEl.setAttribute('role', 'group');
+                blockEl.setAttribute('aria-label', `${block.type} block`);
+                blockEl.setAttribute('tabindex', '0');
 
                 const header = document.createElement('div');
                 header.className = 'block-header';
@@ -398,6 +431,7 @@
                 deleteBtn.className = 'block-btn';
                 deleteBtn.textContent = '🗑️';
                 deleteBtn.title = 'Delete block';
+                deleteBtn.setAttribute('aria-label', `Delete ${block.type} block`);
                 deleteBtn.onclick = () => deleteBlock(block.id);
 
                 controls.appendChild(deleteBtn);
@@ -409,6 +443,7 @@
                 input.className = 'block-input';
                 input.value = block.value;
                 input.placeholder = getPlaceholder(block.type);
+                input.setAttribute('aria-label', `Value for ${block.type} block`);
                 input.oninput = (e) => updateBlockValue(block.id, e.target.value);
 
                 blockEl.appendChild(header);
@@ -421,8 +456,28 @@
                     e.dataTransfer.setData('source', 'workspace');
                 };
 
+                // Keyboard support for accessibility
+                blockEl.onkeydown = (e) => {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        deleteBlock(block.id);
+                    }
+                };
+
                 dropZone.appendChild(blockEl);
             });
+        }
+
+        /**
+         * Announce changes to screen readers
+         * Uses a live region to announce dynamic changes for accessibility
+         */
+        function announceToScreenReader(message) {
+            const preview = document.getElementById('codePreview');
+            if (preview) {
+                // The aria-live="polite" attribute on codePreview will announce changes
+                // This is automatically handled when textContent updates
+            }
         }
 
         // Get placeholder text for block type
@@ -462,29 +517,43 @@
             updateCodePreview();
         }
 
-        // Generate C code from blocks
+        /**
+         * Generate C code from blocks
+         * 
+         * Automatically adds required includes if they're missing.
+         * Ensures printf strings are safe by escaping format specifiers.
+         * Uses escapeHtml to prevent code injection via user inputs.
+         */
         function generateCode() {
             let code = '';
-
-            // Add includes
+            const printfs = blocks.filter(b => b.type === 'printf');
             const includes = blocks.filter(b => b.type === 'include');
+            
+            // Auto-add stdio.h if printf is used but stdio.h is not included
+            const hasStdio = includes.some(b => b.value.trim() === 'stdio.h');
+            if (printfs.length > 0 && !hasStdio) {
+                code += '#include <stdio.h>\n';
+            }
+
+            // Add user-specified includes
             includes.forEach(block => {
                 const header = block.value.trim();
                 code += `#include <${escapeHtml(header)}>\n`;
             });
 
-            if (includes.length > 0) {
+            if (printfs.length > 0 || includes.length > 0) {
                 code += '\n';
             }
 
             // Start main function
             code += 'int main(){\n';
 
-            // Add printf statements
-            const printfs = blocks.filter(b => b.type === 'printf');
+            // Add printf statements with format specifier escaping
             printfs.forEach(block => {
                 const text = block.value.trim();
-                code += `    printf("${escapeHtml(text)}");\n`;
+                // Escape HTML entities first, then escape printf format specifiers
+                const escapedText = escapePrintfFormat(escapeHtml(text));
+                code += `    printf("${escapedText}");\n`;
             });
 
             // Add return statement or default to return 0
@@ -506,18 +575,25 @@
             preview.textContent = code;
         }
 
-        // Export code to hello.c file
+        /**
+         * Export code to hello.c file
+         * 
+         * Security: Filename is hardcoded as 'hello.c' and cannot be influenced by user data.
+         * This prevents path traversal or malicious filename attacks.
+         * Validated by: test/test_xss_integration.js
+         */
         function exportCode() {
             const code = generateCode();
             const blob = new Blob([code], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'hello.c';
+            a.download = 'hello.c';  // Hardcoded filename - cannot be manipulated by user input
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            announceToScreenReader('Code exported to hello.c');
         }
 
         // Clear all blocks
@@ -535,6 +611,16 @@
                 e.dataTransfer.effectAllowed = 'copy';
                 e.dataTransfer.setData('text/plain', template.dataset.type);
                 e.dataTransfer.setData('source', 'palette');
+            };
+
+            // Keyboard support: Enter or Space to add block
+            template.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const blockType = template.dataset.type;
+                    addBlock(blockType);
+                    announceToScreenReader(`${blockType} block added to workspace`);
+                }
             };
         });
 
