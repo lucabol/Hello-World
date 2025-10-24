@@ -34,6 +34,39 @@ function assert(condition, testName, expected, actual) {
     }
 }
 
+// Test 0: Validate exported API shape
+console.log("Test Suite 0: Module API Shape");
+assert(
+    typeof generator === 'object',
+    'Module exports an object',
+    'object',
+    typeof generator
+);
+assert(
+    typeof generator.escapeHtml === 'function',
+    'Exports escapeHtml function',
+    'function',
+    typeof generator.escapeHtml
+);
+assert(
+    typeof generator.escapePrintfFormat === 'function',
+    'Exports escapePrintfFormat function',
+    'function',
+    typeof generator.escapePrintfFormat
+);
+assert(
+    typeof generator.getPlaceholder === 'function',
+    'Exports getPlaceholder function',
+    'function',
+    typeof generator.getPlaceholder
+);
+assert(
+    typeof generator.generateCode === 'function',
+    'Exports generateCode function',
+    'function',
+    typeof generator.generateCode
+);
+
 // Test 1: escapeHtml - Basic HTML escaping
 console.log("Test Suite 1: HTML Escaping");
 assert(

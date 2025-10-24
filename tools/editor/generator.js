@@ -127,6 +127,27 @@
     }
 
     // Export for Node.js and browser
+    /**
+     * Module Exports - Universal Module Definition (UMD) Pattern
+     * 
+     * This module is designed to work in both Node.js and browser environments:
+     * 
+     * Node.js Usage (CommonJS):
+     *   const generator = require('./generator.js');
+     *   const code = generator.generateCode(blocks);
+     *   const escaped = generator.escapeHtml(userInput);
+     * 
+     * Browser Usage (global object):
+     *   <script src="generator.js"></script>
+     *   const code = CCodeGenerator.generateCode(blocks);
+     *   const escaped = CCodeGenerator.escapeHtml(userInput);
+     * 
+     * Exported API:
+     *   - escapeHtml(text): Escapes HTML entities for XSS protection
+     *   - escapePrintfFormat(text): Escapes % signs for printf safety
+     *   - getPlaceholder(type): Returns default placeholder for block type
+     *   - generateCode(blocks): Generates C code from block array
+     */
     const CCodeGenerator = {
         escapeHtml: escapeHtml,
         escapePrintfFormat: escapePrintfFormat,
@@ -134,12 +155,12 @@
         generateCode: generateCode
     };
 
-    // Node.js export
+    // Node.js export (CommonJS)
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = CCodeGenerator;
     }
 
-    // Browser global
+    // Browser global export
     if (typeof global !== 'undefined') {
         global.CCodeGenerator = CCodeGenerator;
     }
