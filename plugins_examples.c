@@ -8,6 +8,8 @@
  * - reverse_plugin: Reverses the message
  * - exclaim_plugin: Adds extra exclamation marks
  * - prefix_plugin: Adds a prefix to the message
+ * 
+ * All examples use safe string operations and proper error handling.
  */
 
 #include "plugin.h"
@@ -16,23 +18,21 @@
 
 /* Uppercase Plugin - Converts message to uppercase */
 static int uppercase_transform(const char* input, char* output, size_t output_size) {
-    if (input == NULL || output == NULL) {
-        return -1;
-    }
-    
     size_t i;
     size_t len = strlen(input);
     
+    /* Check buffer size */
     if (len >= output_size) {
-        return -1;
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
+    /* Transform each character */
     for (i = 0; i < len; i++) {
         output[i] = (char)toupper((unsigned char)input[i]);
     }
     output[len] = '\0';
     
-    return 0;
+    return PLUGIN_SUCCESS;
 }
 
 plugin_t uppercase_plugin = {
@@ -42,23 +42,21 @@ plugin_t uppercase_plugin = {
 
 /* Reverse Plugin - Reverses the message */
 static int reverse_transform(const char* input, char* output, size_t output_size) {
-    if (input == NULL || output == NULL) {
-        return -1;
-    }
-    
     size_t len = strlen(input);
+    size_t i;
     
+    /* Check buffer size */
     if (len >= output_size) {
-        return -1;
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
-    size_t i;
+    /* Reverse the string */
     for (i = 0; i < len; i++) {
         output[i] = input[len - 1 - i];
     }
     output[len] = '\0';
     
-    return 0;
+    return PLUGIN_SUCCESS;
 }
 
 plugin_t reverse_plugin = {
@@ -68,22 +66,25 @@ plugin_t reverse_plugin = {
 
 /* Exclaim Plugin - Adds extra exclamation marks */
 static int exclaim_transform(const char* input, char* output, size_t output_size) {
-    if (input == NULL || output == NULL) {
-        return -1;
-    }
-    
     size_t len = strlen(input);
     const char* suffix = "!!!";
     size_t suffix_len = strlen(suffix);
     
+    /* Check buffer size */
     if (len + suffix_len >= output_size) {
-        return -1;
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
-    strcpy(output, input);
-    strcat(output, suffix);
+    /* Use safe string operations */
+    strncpy(output, input, output_size - 1);
+    output[output_size - 1] = '\0';
     
-    return 0;
+    /* Append suffix if there's room */
+    if (len + suffix_len < output_size) {
+        strncat(output, suffix, output_size - len - 1);
+    }
+    
+    return PLUGIN_SUCCESS;
 }
 
 plugin_t exclaim_plugin = {
@@ -93,22 +94,25 @@ plugin_t exclaim_plugin = {
 
 /* Prefix Plugin - Adds a prefix to the message */
 static int prefix_transform(const char* input, char* output, size_t output_size) {
-    if (input == NULL || output == NULL) {
-        return -1;
-    }
-    
     const char* prefix = "[Plugin] ";
     size_t prefix_len = strlen(prefix);
     size_t input_len = strlen(input);
     
+    /* Check buffer size */
     if (prefix_len + input_len >= output_size) {
-        return -1;
+        return PLUGIN_ERR_BUFFER_TOO_SMALL;
     }
     
-    strcpy(output, prefix);
-    strcat(output, input);
+    /* Use safe string operations */
+    strncpy(output, prefix, output_size - 1);
+    output[output_size - 1] = '\0';
     
-    return 0;
+    /* Append input if there's room */
+    if (prefix_len < output_size) {
+        strncat(output, input, output_size - prefix_len - 1);
+    }
+    
+    return PLUGIN_SUCCESS;
 }
 
 plugin_t prefix_plugin = {

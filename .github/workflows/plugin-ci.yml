@@ -1,0 +1,88 @@
+name: Plugin System CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build-and-test:
+    name: Build and Test Plugin System
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc clang
+
+    - name: Build with strict flags (GCC)
+      run: |
+        make clean
+        make strict
+        ./hello_strict
+    
+    - name: Run unit tests
+      run: |
+        make unit-test
+    
+    - name: Run validation tests
+      run: |
+        if [ -f test/validate.sh ]; then
+          ./test/validate.sh
+        fi
+    
+    - name: Build all demo programs
+      run: |
+        make clean
+        make plugin_demo
+        make hello-plugins
+        make custom_plugin_example
+    
+    - name: Test plugin demo
+      run: |
+        ./plugin_demo
+    
+    - name: Test hello with plugins
+      run: |
+        ./hello_with_plugins
+    
+    - name: Test custom plugin example
+      run: |
+        ./custom_plugin_example
+  
+  sanitizers:
+    name: Memory Safety Tests (ASAN/UBSAN)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run tests with ASAN/UBSAN
+      run: |
+        make asan
+  
+  clang-build:
+    name: Build with Clang
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Clang
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang
+    
+    - name: Build with Clang
+      run: |
+        make clean
+        CC=clang make strict
+        ./hello_strict
+    
+    - name: Run unit tests with Clang
+      run: |
+        CC=clang make unit-test
