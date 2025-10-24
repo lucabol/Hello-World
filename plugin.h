@@ -4,10 +4,23 @@
  * without modifying the core file directly.
  * 
  * Thread Safety:
- * - ⚠️ NOT THREAD-SAFE: All plugin operations must be performed from a single
- *   thread or protected by external synchronization (e.g., mutex).
- * - Recommended pattern for multi-threaded use: wrap all plugin_* calls with
- *   pthread_mutex_lock(&your_mutex) / pthread_mutex_unlock(&your_mutex).
+ * - ⚠️ NOT THREAD-SAFE: This API is NOT thread-safe. All plugin operations
+ *   (register, unregister, apply, clear) must be performed from a single thread
+ *   or protected by external synchronization.
+ * - Rationale: Static registry without locking for simplicity and performance in
+ *   single-threaded use cases (the most common scenario).
+ * - Multi-threaded use: Callers must provide external synchronization:
+ *     pthread_mutex_lock(&your_mutex);
+ *     plugin_register(&my_plugin);  // or any other plugin_* call
+ *     pthread_mutex_unlock(&your_mutex);
+ * - ⚠️ WARNING: Calling plugin_apply_all() while another thread is modifying the
+ *   registry (register/unregister/clear) results in undefined behavior.
+ * - ⚠️ WARNING: Unregistering a plugin during plugin_apply_all() is undefined.
+ * 
+ * Registry Capacity:
+ * - Maximum plugins: PLUGIN_MAX_COUNT (default 10, configurable at compile time)
+ * - Query capacity: Use plugin_get_count() to check current count
+ * - plugin_register() returns PLUGIN_ERR_REGISTRY_FULL when capacity is reached
  * 
  * Plugin Contract:
  * - Plugins implement a transform function that processes a message
@@ -15,25 +28,34 @@
  * - Plugins can be chained together
  * - Multiple plugins can be registered and executed in sequence
  * - Plugins are applied in the order they were registered
+ * - Plugin indices are NOT stable across unregister/register operations
  * 
  * Memory/Ownership:
+ * - Caller owns plugin_t structures: The plugin system does NOT copy or free them
  * - plugin_t instances must remain valid for the lifetime of their registration
- * - Typically plugins should be declared as static/global variables
- * - The plugin system does not copy or free plugin structures
- * - Plugin names must remain valid (string literals or static storage)
+ * - Typically declare plugins as static/global variables
+ * - Plugin names must remain valid (use string literals or static storage)
+ * - Before freeing/unloading plugin code, call plugin_unregister() first
+ * - Undefined behavior if a registered plugin's memory is freed/unmapped
  * 
  * Error Handling:
- * - If a plugin returns non-zero, apply_plugins() stops immediately and returns
- *   PLUGIN_ERR_TRANSFORM_FAILED
- * - The output buffer will contain the result of the last successful plugin
+ * - If a plugin returns non-zero, plugin_apply_all() stops immediately
+ * - Returns PLUGIN_ERR_TRANSFORM_FAILED to caller
+ * - Output buffer contains result of last successful transformation
  * - Callers should check return values and handle errors appropriately
+ * 
+ * Buffer Handling:
+ * - Output is always NUL-terminated when buffer size >= 1
+ * - If output would overflow, returns PLUGIN_ERR_BUFFER_TOO_SMALL
+ * - No out-of-bounds writes are ever performed
  * 
  * Usage:
  *   1. Implement a plugin by defining a transform function
  *   2. Create a plugin_t structure with name and function pointer
  *   3. Register the plugin using plugin_register()
  *   4. The plugin system will apply all registered plugins in order
- *   5. Use plugin_clear() to reset the registry when needed
+ *   5. Use plugin_unregister() to remove specific plugins
+ *   6. Use plugin_clear() to reset the entire registry
  */
 
 #ifndef PLUGIN_H
@@ -131,18 +153,25 @@ int plugin_unregister(const char* name);
  * returns non-zero, processing stops immediately and the error is returned.
  * The output will contain the result of the last successful transformation.
  * 
+ * Buffer Guarantees:
+ * - Output is always NUL-terminated when output_size >= 1
+ * - No out-of-bounds writes are ever performed
+ * - If buffer is too small, returns PLUGIN_ERR_BUFFER_TOO_SMALL
+ * 
  * Parameters:
  *   input: The input message (must be non-NULL, null-terminated)
  *   output: Buffer to write the final transformed message (must be non-NULL)
  *   output_size: Size of the output buffer (must be > 0)
  * 
  * Returns:
- *   Number of plugins successfully applied (>= 0) on success
- *   PLUGIN_ERR_NULL_POINTER if input or output is NULL
- *   PLUGIN_ERR_BUFFER_TOO_SMALL if output_size is 0 or input doesn't fit
- *   PLUGIN_ERR_TRANSFORM_FAILED if a plugin transformation fails
+ *   >= 0: Number of plugins successfully applied (0 if no plugins registered)
+ *   PLUGIN_ERR_NULL_POINTER (-1): input or output is NULL
+ *   PLUGIN_ERR_BUFFER_TOO_SMALL (-4): output_size is 0 or buffer too small
+ *   PLUGIN_ERR_TRANSFORM_FAILED (-5): a plugin transformation failed
  * 
  * Thread Safety: Not thread-safe
+ * ⚠️ WARNING: Calling plugin_unregister() or plugin_clear() during this
+ * function's execution from another thread results in undefined behavior.
  */
 int plugin_apply_all(const char* input, char* output, size_t output_size);
 
@@ -154,6 +183,15 @@ int plugin_apply_all(const char* input, char* output, size_t output_size);
  * Thread Safety: Not thread-safe (read-only but no synchronization)
  */
 int plugin_get_count(void);
+
+/* Get the maximum plugin capacity
+ * 
+ * Returns:
+ *   Maximum number of plugins that can be registered (PLUGIN_MAX_COUNT)
+ * 
+ * Thread Safety: Thread-safe (returns compile-time constant)
+ */
+int plugin_get_capacity(void);
 
 /* Clear all registered plugins
  * 

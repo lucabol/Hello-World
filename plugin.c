@@ -5,6 +5,12 @@
  * 
  * Thread Safety: This implementation is NOT thread-safe. All operations
  * must be performed from a single thread or protected by external locking.
+ * 
+ * Symbol Visibility:
+ * - Public API functions: plugin_register, plugin_unregister, plugin_apply_all,
+ *   plugin_get_count, plugin_get_capacity, plugin_clear
+ * - Internal symbols: All helper functions and static variables are marked
+ *   static to prevent namespace pollution
  */
 
 #include "plugin.h"
@@ -184,6 +190,11 @@ int plugin_apply_all(const char* input, char* output, size_t output_size) {
 /* Get the number of registered plugins */
 int plugin_get_count(void) {
     return plugin_count;
+}
+
+/* Get the maximum plugin capacity */
+int plugin_get_capacity(void) {
+    return PLUGIN_MAX_COUNT;
 }
 
 /* Clear all registered plugins */

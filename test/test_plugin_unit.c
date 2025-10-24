@@ -10,21 +10,30 @@
  * - Error propagation
  * - NUL termination guarantees
  * - Double unregister protection
+ * - Buffer boundary cases
+ * - Return value semantics
+ * - Capacity APIs
+ * - Long plugin chains
  * 
  * Test Categories:
- * 1. test_null_pointers()         - NULL pointer handling (7 tests)
- * 2. test_registration_limits()   - Plugin count limits (3 tests)
- * 3. test_unregistration()        - Plugin removal (7 tests)
- * 4. test_failing_plugin()        - Error propagation (4 tests)
- * 5. test_buffer_sizes()          - Buffer overflow protection (2 tests)
- * 6. test_plugin_ordering()       - Deterministic ordering (3 tests)
- * 7. test_clear_plugins()         - Registry reset (5 tests)
- * 8. test_no_plugins()            - No plugins registered (2 tests)
- * 9. test_duplicate_registration() - Duplicate plugins (3 tests)
- * 10. test_nul_termination()      - NUL termination (5 tests)
- * 11. test_double_unregister()    - Double unregister protection (4 tests)
+ * 1. test_null_pointers()            - NULL pointer handling (7 tests)
+ * 2. test_registration_limits()      - Plugin count limits (3 tests)
+ * 3. test_unregistration()           - Plugin removal (7 tests)
+ * 4. test_failing_plugin()           - Error propagation (4 tests)
+ * 5. test_buffer_sizes()             - Buffer overflow protection (2 tests)
+ * 6. test_plugin_ordering()          - Deterministic ordering (3 tests)
+ * 7. test_clear_plugins()            - Registry reset (5 tests)
+ * 8. test_no_plugins()               - No plugins registered (2 tests)
+ * 9. test_duplicate_registration()   - Duplicate plugins (3 tests)
+ * 10. test_nul_termination()         - NUL termination (5 tests)
+ * 11. test_double_unregister()       - Double unregister protection (4 tests)
+ * 12. test_buffer_boundaries()       - Buffer size 0, 1, exact, -1 (4 tests)
+ * 13. test_return_values()           - Return value semantics (3 tests)
+ * 14. test_capacity_apis()           - Capacity query functions (5 tests)
+ * 15. test_long_chains()             - Maximum plugin chains (2 tests)
+ * 16. test_error_propagation_chain() - Error in chain (3 tests)
  * 
- * Total: 52 tests covering all edge cases
+ * Total: 73 tests covering all edge cases
  */
 
 #include "plugin.h"
@@ -446,6 +455,154 @@ void test_double_unregister(void) {
     plugin_clear();
 }
 
+/* Test: Buffer boundary cases */
+void test_buffer_boundaries(void) {
+    char output[10];
+    int result;
+    
+    printf(COLOR_YELLOW "\nTesting buffer boundary cases...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* Test with buffer size 0 */
+    result = plugin_apply_all("test", output, 0);
+    TEST_ASSERT(result == PLUGIN_ERR_BUFFER_TOO_SMALL,
+                "Buffer size 0 returns PLUGIN_ERR_BUFFER_TOO_SMALL");
+    
+    /* Test with buffer size 1 (only room for NUL) */
+    result = plugin_apply_all("", output, 1);
+    TEST_ASSERT(result == 0, "Empty string with size 1 succeeds");
+    TEST_ASSERT(output[0] == '\0', "Output is NUL-terminated");
+    
+    /* Test with exact fit */
+    result = plugin_apply_all("test", output, 5);
+    TEST_ASSERT(result == 0, "Exact fit succeeds");
+    TEST_ASSERT(strcmp(output, "test") == 0, "Output matches input");
+    TEST_ASSERT(output[4] == '\0', "Output is NUL-terminated");
+    
+    /* Test with one less than required */
+    result = plugin_apply_all("test", output, 4);
+    TEST_ASSERT(result == PLUGIN_ERR_BUFFER_TOO_SMALL,
+                "One less than required returns PLUGIN_ERR_BUFFER_TOO_SMALL");
+    
+    plugin_clear();
+}
+
+/* Test: Return value semantics */
+void test_return_values(void) {
+    char output[256];
+    int result;
+    
+    printf(COLOR_YELLOW "\nTesting return value semantics...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* No plugins - should return 0 */
+    result = plugin_apply_all("test", output, sizeof(output));
+    TEST_ASSERT(result == 0, "No plugins returns 0");
+    
+    /* One plugin - should return 1 */
+    extern plugin_t uppercase_plugin;
+    plugin_register(&uppercase_plugin);
+    result = plugin_apply_all("test", output, sizeof(output));
+    TEST_ASSERT(result == 1, "One plugin returns 1");
+    
+    /* Two plugins - should return 2 */
+    extern plugin_t exclaim_plugin;
+    plugin_register(&exclaim_plugin);
+    result = plugin_apply_all("test", output, sizeof(output));
+    TEST_ASSERT(result == 2, "Two plugins returns 2");
+    
+    plugin_clear();
+}
+
+/* Test: Capacity APIs */
+void test_capacity_apis(void) {
+    int count, capacity;
+    
+    printf(COLOR_YELLOW "\nTesting capacity APIs...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* Test capacity function */
+    capacity = plugin_get_capacity();
+    TEST_ASSERT(capacity == PLUGIN_MAX_COUNT,
+                "plugin_get_capacity() returns PLUGIN_MAX_COUNT");
+    TEST_ASSERT(capacity == 10, "Default capacity is 10");
+    
+    /* Test count at various states */
+    count = plugin_get_count();
+    TEST_ASSERT(count == 0, "Initial count is 0");
+    
+    plugin_register(&identity_plugin);
+    count = plugin_get_count();
+    TEST_ASSERT(count == 1, "Count is 1 after registration");
+    
+    plugin_clear();
+    count = plugin_get_count();
+    TEST_ASSERT(count == 0, "Count is 0 after clear");
+    
+    plugin_clear();
+}
+
+/* Test: Long plugin chains */
+void test_long_chains(void) {
+    char output[256];
+    int result;
+    int i;
+    
+    printf(COLOR_YELLOW "\nTesting long plugin chains...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* Register maximum number of plugins */
+    extern plugin_t uppercase_plugin;
+    for (i = 0; i < PLUGIN_MAX_COUNT; i++) {
+        result = plugin_register(&uppercase_plugin);
+        TEST_ASSERT(result == PLUGIN_SUCCESS,
+                    "Can register up to PLUGIN_MAX_COUNT plugins");
+    }
+    
+    /* Apply all plugins */
+    result = plugin_apply_all("test", output, sizeof(output));
+    TEST_ASSERT(result == PLUGIN_MAX_COUNT,
+                "Returns PLUGIN_MAX_COUNT when all applied");
+    TEST_ASSERT(strcmp(output, "TEST") == 0,
+                "Long chain produces correct output");
+    
+    plugin_clear();
+}
+
+/* Test: Error propagation in chain */
+void test_error_propagation_chain(void) {
+    char output[256];
+    int result;
+    
+    printf(COLOR_YELLOW "\nTesting error propagation in chain...\n" COLOR_RESET);
+    
+    plugin_clear();
+    
+    /* Register good plugin, then failing plugin, then another good plugin */
+    extern plugin_t uppercase_plugin;
+    plugin_register(&uppercase_plugin);
+    plugin_register(&failing_plugin);
+    extern plugin_t exclaim_plugin;
+    plugin_register(&exclaim_plugin);
+    
+    /* Should stop at failing plugin */
+    result = plugin_apply_all("test", output, sizeof(output));
+    TEST_ASSERT(result == PLUGIN_ERR_TRANSFORM_FAILED,
+                "Returns PLUGIN_ERR_TRANSFORM_FAILED on failure");
+    TEST_ASSERT(strcmp(output, "TEST") == 0,
+                "Output contains last successful transformation");
+    
+    /* Verify third plugin was NOT applied */
+    TEST_ASSERT(strstr(output, "!") == NULL,
+                "Third plugin not applied after failure");
+    
+    plugin_clear();
+}
+
 /* Main test runner */
 int main(void) {
     printf("\n");
@@ -465,6 +622,11 @@ int main(void) {
     test_duplicate_registration();
     test_nul_termination();
     test_double_unregister();
+    test_buffer_boundaries();
+    test_return_values();
+    test_capacity_apis();
+    test_long_chains();
+    test_error_propagation_chain();
     
     printf("\n");
     printf(COLOR_YELLOW "========================================\n");

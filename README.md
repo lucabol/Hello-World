@@ -18,9 +18,11 @@ make demo
 
 ### Documentation
 
-- **[PLUGIN_README.md](PLUGIN_README.md)** - Quick start guide
-- **[PLUGIN_SYSTEM.md](PLUGIN_SYSTEM.md)** - Complete documentation
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Implementation details
+- **[PLUGIN_QUICKSTART.md](PLUGIN_QUICKSTART.md)** - Quick start for plugin authors (NEW!)
+- **[PLUGIN_README.md](PLUGIN_README.md)** - Overview and examples
+- **[PLUGIN_SYSTEM.md](PLUGIN_SYSTEM.md)** - Complete API documentation
+- **[CODE_DIFFS.md](CODE_DIFFS.md)** - Implementation details and code review
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical summary
 
 ### Features
 
