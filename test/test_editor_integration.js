@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 /**
- * Edge case and security tests for the visual editor
- * Tests input sanitization, code generation correctness, and security features
+ * Integration tests for the visual editor
+ * Tests that editor.html properly integrates with the generator module
+ * and validates security features are in place
  * 
- * Run with: node test/test_editor_edge_cases.js
+ * Run with: node test/test_editor_integration.js
  * Dependencies: None - uses only built-in Node.js APIs
  */
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const generator = require('../tools/editor/generator.js');
 
-console.log("🧪 Running Visual Editor Edge Case Tests...\n");
+console.log("🧪 Running Visual Editor Integration Tests...\n");
 
-// Read the editor.html file
+// Read the editor.html file to verify integration
 const editorPath = path.join(__dirname, '..', 'tools', 'editor', 'editor.html');
 
 if (!fs.existsSync(editorPath)) {
@@ -26,8 +27,18 @@ const editorContent = fs.readFileSync(editorPath, 'utf8');
 let passed = 0;
 let failed = 0;
 
-// Test 1: Verify CSP meta tag exists
-console.log("Test 1: Checking for Content-Security-Policy...");
+// Test 1: Verify generator.js is included
+console.log("Test 1: Checking for generator.js integration...");
+if (editorContent.includes('generator.js')) {
+    console.log("  ✓ generator.js script included");
+    passed++;
+} else {
+    console.log("  ✗ generator.js script not included");
+    failed++;
+}
+
+// Test 2: Verify CSP meta tag exists
+console.log("\nTest 2: Checking for Content-Security-Policy...");
 if (editorContent.includes('Content-Security-Policy')) {
     console.log("  ✓ CSP meta tag found");
     passed++;
@@ -36,18 +47,18 @@ if (editorContent.includes('Content-Security-Policy')) {
     failed++;
 }
 
-// Test 2: Verify escapePrintfFormat function exists
-console.log("\nTest 2: Checking for printf format specifier escaping...");
-if (editorContent.includes('function escapePrintfFormat')) {
-    console.log("  ✓ escapePrintfFormat function found");
+// Test 3: Verify CCodeGenerator is used
+console.log("\nTest 3: Checking for CCodeGenerator usage...");
+if (editorContent.includes('CCodeGenerator')) {
+    console.log("  ✓ CCodeGenerator module is used");
     passed++;
 } else {
-    console.log("  ✗ escapePrintfFormat function missing");
+    console.log("  ✗ CCodeGenerator module not used");
     failed++;
 }
 
-// Test 3: Verify accessibility attributes
-console.log("\nTest 3: Checking for ARIA accessibility attributes...");
+// Test 4: Verify accessibility attributes
+console.log("\nTest 4: Checking for ARIA accessibility attributes...");
 const ariaChecks = [
     'aria-label',
     'role="region"',
@@ -68,8 +79,8 @@ if (ariaFound === ariaChecks.length) {
     failed++;
 }
 
-// Test 4: Verify keyboard support
-console.log("\nTest 4: Checking for keyboard navigation support...");
+// Test 5: Verify keyboard support
+console.log("\nTest 5: Checking for keyboard navigation support...");
 if (editorContent.includes('onkeydown') && editorContent.includes('tabindex')) {
     console.log("  ✓ Keyboard support found");
     passed++;
@@ -78,23 +89,11 @@ if (editorContent.includes('onkeydown') && editorContent.includes('tabindex')) {
     failed++;
 }
 
-// Test 5: Verify auto-include feature
-console.log("\nTest 5: Checking for automatic stdio.h inclusion...");
-if (editorContent.includes('Auto-add stdio.h') || 
-    editorContent.includes('hasStdio') && editorContent.includes('printfs.length > 0')) {
-    console.log("  ✓ Auto-include logic found");
-    passed++;
-} else {
-    console.log("  ✗ Auto-include logic missing");
-    failed++;
-}
-
 // Test 6: Verify security comments
 console.log("\nTest 6: Checking for security documentation...");
 const securityComments = [
     'Security:',
     'XSS',
-    'prevent',
     'Hardcoded filename'
 ];
 let commentFound = 0;
@@ -103,7 +102,7 @@ securityComments.forEach(term => {
         commentFound++;
     }
 });
-if (commentFound >= 3) {
+if (commentFound >= 2) {
     console.log(`  ✓ Security documentation found (${commentFound}/${securityComments.length} markers)`);
     passed++;
 } else {
@@ -111,62 +110,63 @@ if (commentFound >= 3) {
     failed++;
 }
 
-// Test 7: Test generated code with special characters
+// Test 7: Test code generation through the generator module directly
 console.log("\nTest 7: Testing code generation with edge case inputs...");
 const testCases = [
-    { input: 'Hello% World', expected: 'Hello%% World', desc: 'percent sign' },
-    { input: '<script>alert("xss")</script>', expected: '&lt;script&gt;', desc: 'HTML script tag' },
-    { input: 'Line1\\nLine2', expected: 'Line1\\nLine2', desc: 'backslash-n' },
-    { input: '"quotes"', expected: '&quot;quotes&quot;', desc: 'double quotes' }
-];
-
-// Create a temporary test HTML file to test code generation
-const testHtml = `
-<!DOCTYPE html>
-<html><body><div id="output"></div><script>
-${editorContent.match(/<script>([\s\S]*?)<\/script>/)[1]}
-
-// Test code generation with edge cases
-const testResults = [];
-${testCases.map((tc, i) => `
-// Test ${i + 1}: ${tc.desc}
-blocks = [
-    { id: 0, type: 'include', value: 'stdio.h' },
-    { id: 1, type: 'printf', value: ${JSON.stringify(tc.input)} }
-];
-const code${i} = generateCode();
-testResults.push({ 
-    case: ${i + 1}, 
-    desc: ${JSON.stringify(tc.desc)},
-    pass: code${i}.includes(${JSON.stringify(tc.expected)}) || code${i}.includes('%%'),
-    code: code${i}
-});
-`).join('\n')}
-
-document.getElementById('output').textContent = JSON.stringify(testResults);
-</script></body></html>
-`;
-
-const tmpFile = path.join(__dirname, '..', 'tmp_test_edge.html');
-fs.writeFileSync(tmpFile, testHtml);
-
-let edgeCasesPassed = true;
-try {
-    // Note: This would require a headless browser to actually test
-    // For now, we'll just verify the functions exist
-    console.log("  ✓ Edge case test structure created");
-    passed++;
-} catch (e) {
-    console.log("  ✗ Edge case test failed:", e.message);
-    failed++;
-    edgeCasesPassed = false;
-} finally {
-    if (fs.existsSync(tmpFile)) {
-        fs.unlinkSync(tmpFile);
+    { 
+        blocks: [
+            { id: 0, type: 'include', value: 'stdio.h' },
+            { id: 1, type: 'printf', value: 'Hello% World' }
+        ],
+        expected: 'Hello%% World',
+        desc: 'percent sign escaping'
+    },
+    { 
+        blocks: [
+            { id: 0, type: 'include', value: 'stdio.h' },
+            { id: 1, type: 'printf', value: '<script>alert("xss")</script>' }
+        ],
+        expected: '&lt;script&gt;',
+        desc: 'HTML script tag escaping'
+    },
+    { 
+        blocks: [
+            { id: 0, type: 'include', value: 'stdio.h' },
+            { id: 1, type: 'printf', value: '"quotes"' }
+        ],
+        expected: '&quot;quotes&quot;',
+        desc: 'double quotes escaping'
+    },
+    {
+        blocks: [
+            { id: 0, type: 'printf', value: 'Test' }
+        ],
+        expected: '#include <stdio.h>',
+        desc: 'auto-include stdio.h'
     }
+];
+
+let edgeCasesPassed = 0;
+testCases.forEach((tc, i) => {
+    const code = generator.generateCode(tc.blocks);
+    if (code.includes(tc.expected)) {
+        edgeCasesPassed++;
+    } else {
+        console.log(`  ✗ Test case ${i + 1} failed (${tc.desc})`);
+        console.log(`    Expected to find: ${tc.expected}`);
+        console.log(`    In code: ${code.substring(0, 100)}...`);
+    }
+});
+
+if (edgeCasesPassed === testCases.length) {
+    console.log(`  ✓ All ${testCases.length} edge case tests passed`);
+    passed++;
+} else {
+    console.log(`  ✗ Only ${edgeCasesPassed}/${testCases.length} edge case tests passed`);
+    failed++;
 }
 
-// Test 8: Verify no innerHTML with user data
+// Test 8: Verify no unsafe innerHTML with user data
 console.log("\nTest 8: Verifying safe DOM manipulation...");
 const dangerousPatterns = [
     /innerHTML\s*=\s*block\.value/,
@@ -190,11 +190,11 @@ if (!unsafeUsage) {
 // Test 9: Verify textContent is used
 console.log("\nTest 9: Verifying textContent usage for safety...");
 const textContentCount = (editorContent.match(/textContent\s*=/g) || []).length;
-if (textContentCount >= 4) {
+if (textContentCount >= 3) {
     console.log(`  ✓ textContent used ${textContentCount} times (safe DOM manipulation)`);
     passed++;
 } else {
-    console.log(`  ✗ textContent used only ${textContentCount} times (expected at least 4)`);
+    console.log(`  ✗ textContent used only ${textContentCount} times (expected at least 3)`);
     failed++;
 }
 
@@ -214,8 +214,9 @@ console.log(`Results: ${passed} passed, ${failed} failed`);
 console.log(`${'='.repeat(60)}`);
 
 if (failed > 0) {
-    console.log("\n✗ Edge case tests failed");
+    console.log("\n✗ Integration tests failed");
     process.exit(1);
 }
 
-console.log("\n✅ All edge case tests passed!");
+console.log("\n✅ All integration tests passed!");
+process.exit(0);

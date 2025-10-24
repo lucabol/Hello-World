@@ -343,40 +343,14 @@
         </div>
     </div>
 
+    <!-- Core code generation logic - factored out for testability -->
+    <script src="generator.js"></script>
+    
     <script>
-        /**
-         * Security: HTML Escaping Function
-         * 
-         * This function prevents XSS (Cross-Site Scripting) attacks by escaping user input
-         * before inserting it into the DOM or generated code. It converts potentially dangerous
-         * characters (<, >, &, ", ') into their HTML entity equivalents.
-         * 
-         * Approach:
-         * - Uses textContent to safely set text on a temporary div element
-         * - The browser automatically escapes special characters
-         * - Returns the escaped innerHTML
-         * 
-         * Validation: See test/test_escape_html.js for comprehensive test coverage
-         * Integration Tests: See test/test_xss_integration.js
-         */
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        /**
-         * Security: Escape printf format specifiers
-         * 
-         * Escapes percent signs (%) in user-provided strings to prevent printf format
-         * string injection vulnerabilities. When users enter text like "50% complete",
-         * the % should be treated as literal text, not as a format specifier.
-         * 
-         * This ensures generated code uses safe, literal string output.
-         */
-        function escapePrintfFormat(text) {
-            return text.replace(/%/g, '%%');
-        }
+        // Use the generator module functions
+        const escapeHtml = CCodeGenerator.escapeHtml;
+        const escapePrintfFormat = CCodeGenerator.escapePrintfFormat;
+        const getPlaceholderFromGenerator = CCodeGenerator.getPlaceholder;
 
         // Block data structure
         let blocks = [];
@@ -482,12 +456,7 @@
 
         // Get placeholder text for block type
         function getPlaceholder(type) {
-            const placeholders = {
-                'include': 'stdio.h',
-                'printf': 'Hello world!',
-                'return': '0'
-            };
-            return placeholders[type] || '';
+            return getPlaceholderFromGenerator(type);
         }
 
         // Update block value
@@ -520,52 +489,11 @@
         /**
          * Generate C code from blocks
          * 
-         * Automatically adds required includes if they're missing.
-         * Ensures printf strings are safe by escaping format specifiers.
-         * Uses escapeHtml to prevent code injection via user inputs.
+         * Uses the core generator module for code generation logic.
+         * See tools/editor/generator.js for the implementation.
          */
         function generateCode() {
-            let code = '';
-            const printfs = blocks.filter(b => b.type === 'printf');
-            const includes = blocks.filter(b => b.type === 'include');
-            
-            // Auto-add stdio.h if printf is used but stdio.h is not included
-            const hasStdio = includes.some(b => b.value.trim() === 'stdio.h');
-            if (printfs.length > 0 && !hasStdio) {
-                code += '#include <stdio.h>\n';
-            }
-
-            // Add user-specified includes
-            includes.forEach(block => {
-                const header = block.value.trim();
-                code += `#include <${escapeHtml(header)}>\n`;
-            });
-
-            if (printfs.length > 0 || includes.length > 0) {
-                code += '\n';
-            }
-
-            // Start main function
-            code += 'int main(){\n';
-
-            // Add printf statements with format specifier escaping
-            printfs.forEach(block => {
-                const text = block.value.trim();
-                // Escape HTML entities first, then escape printf format specifiers
-                const escapedText = escapePrintfFormat(escapeHtml(text));
-                code += `    printf("${escapedText}");\n`;
-            });
-
-            // Add return statement or default to return 0
-            const returns = blocks.filter(b => b.type === 'return');
-            if (returns.length > 0) {
-                const returnValue = returns[returns.length - 1].value.trim();
-                code += `    return ${escapeHtml(returnValue)};\n`;
-            }
-
-            code += '}\n';
-
-            return code;
+            return CCodeGenerator.generateCode(blocks);
         }
 
         // Update code preview with syntax highlighting

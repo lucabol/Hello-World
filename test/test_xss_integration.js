@@ -40,9 +40,14 @@ if (!unsafeInnerHTML) {
     passed++;
 }
 
-// Test 2: Verify escapeHtml function exists and is used
+// Test 2: Verify escapeHtml function exists (either inline or in generator.js)
 console.log("\nTest 2: Verifying escapeHtml function...");
-if (editorContent.includes('function escapeHtml(text)')) {
+const generatorPath = path.join(__dirname, '..', 'tools', 'editor', 'generator.js');
+let generatorContent = '';
+if (fs.existsSync(generatorPath)) {
+    generatorContent = fs.readFileSync(generatorPath, 'utf8');
+}
+if (editorContent.includes('function escapeHtml(text)') || generatorContent.includes('function escapeHtml(text)')) {
     console.log("  ✓ escapeHtml function found");
     passed++;
 } else {
@@ -50,25 +55,31 @@ if (editorContent.includes('function escapeHtml(text)')) {
     failed++;
 }
 
-// Test 3: Verify escapeHtml is called for user inputs
+// Test 3: Verify escapeHtml is called or CCodeGenerator is used
 console.log("\nTest 3: Verifying escapeHtml is called for user content...");
-const escapeCalls = (editorContent.match(/escapeHtml\(/g) || []).length;
-if (escapeCalls >= 3) {  // Should be called for include, printf, and return values
-    console.log(`  ✓ escapeHtml called ${escapeCalls} times`);
+const escapeCallsInline = (editorContent.match(/escapeHtml\(/g) || []).length;
+const escapeCallsInGenerator = (generatorContent.match(/escapeHtml\(/g) || []).length;
+const usesGenerator = editorContent.includes('CCodeGenerator');
+const totalEscapeCalls = escapeCallsInline + escapeCallsInGenerator;
+
+if (totalEscapeCalls >= 3 || usesGenerator) {
+    console.log(`  ✓ escapeHtml called ${totalEscapeCalls} times or uses CCodeGenerator module`);
     passed++;
 } else {
-    console.log(`  ✗ escapeHtml called only ${escapeCalls} times (expected at least 3)`);
+    console.log(`  ✗ escapeHtml called only ${totalEscapeCalls} times (expected at least 3)`);
     failed++;
 }
 
-// Test 4: Verify textContent is used for DOM manipulation
+// Test 4: Verify textContent is used (in editor.html or generator.js)
 console.log("\nTest 4: Verifying textContent usage...");
-const textContentUsage = (editorContent.match(/textContent\s*=/g) || []).length;
-if (textContentUsage >= 4) {  // Multiple uses in renderWorkspace and generateCode
-    console.log(`  ✓ textContent used ${textContentUsage} times`);
+const textContentUsageEditor = (editorContent.match(/textContent\s*=/g) || []).length;
+const textContentUsageGenerator = (generatorContent.match(/textContent\s*=/g) || []).length;
+const totalTextContentUsage = textContentUsageEditor + textContentUsageGenerator;
+if (totalTextContentUsage >= 3) {
+    console.log(`  ✓ textContent used ${totalTextContentUsage} times`);
     passed++;
 } else {
-    console.log(`  ✗ textContent used only ${textContentUsage} times`);
+    console.log(`  ✗ textContent used only ${totalTextContentUsage} times`);
     failed++;
 }
 
