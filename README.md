@@ -17,8 +17,14 @@ gcc -Wall -Wextra -o code_metrics code_metrics.c
 # Analyze any C file
 ./code_metrics filename.c
 
+# Use ASCII output for compatibility
+./code_metrics --plain filename.c
+
 # View help
 ./code_metrics --help
+
+# Check version
+./code_metrics --version
 ```
 
 ### Features

@@ -189,6 +189,28 @@ else
     exit 1
 fi
 
+# Test 11: Test edge cases file analysis
+print_info "Test 11: Testing edge cases file analysis..."
+if OUTPUT=$(./code_metrics test/test_edge_cases.c 2>&1); then
+    if echo "${OUTPUT}" | grep -q "test_edge_cases.c" && \
+       echo "${OUTPUT}" | grep -q "Total Lines"; then
+        # Verify it detects multiple functions (should be 6)
+        FUNCTIONS=$(echo "${OUTPUT}" | grep "Function Definitions" | grep -o '[0-9]\+' | head -1)
+        if [ "${FUNCTIONS}" -ge 5 ]; then
+            print_success "Edge cases analysis works correctly (${FUNCTIONS} functions detected)"
+        else
+            print_error "Edge cases analysis detected incorrect functions: ${FUNCTIONS}"
+            exit 1
+        fi
+    else
+        print_error "Edge cases output missing expected content"
+        exit 1
+    fi
+else
+    print_error "Failed to analyze edge cases file"
+    exit 1
+fi
+
 echo ""
 print_success "All code_metrics tests passed!"
 echo ""
@@ -203,5 +225,6 @@ printf "  - Self-analysis: PASSED\n"
 printf "  - Version flag: PASSED\n"
 printf "  - ASCII output mode: PASSED\n"
 printf "  - Invalid option handling: PASSED\n"
+printf "  - Edge cases analysis: PASSED\n"
 
 exit 0
