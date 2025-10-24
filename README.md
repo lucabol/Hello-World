@@ -16,13 +16,23 @@ See [tools/editor/EDITOR_GUIDE.md](tools/editor/EDITOR_GUIDE.md) for detailed us
 
 Run the complete test suite:
 ```bash
-make test          # Run all 75 tests
-make test-quick    # Skip GCC compilation test
+make test          # Run all 75 tests (requires GCC for 1 compilation test)
+make test-quick    # Run 74 tests (skips GCC compilation test)
 make help          # Show all test targets
 ```
 
+**Requirements:**
+- Node.js 18+ (required for all tests)
+- GCC (optional, only for compilation smoke test)
+
+**CI Integration:**
+- Fast PR validation: Use `make test-quick` (no GCC needed)
+- Full validation: Use `make test` (requires GCC)
+- See `.github/workflows/test-visual-editor.yml` for workflow configuration
+
 See [TESTING.md](TESTING.md) for detailed testing documentation, including:
 - Test suite overview and organization
+- GCC behavior and requirements
 - HTML validation strategy and trade-offs
 - CI integration guidelines
 - Migration path to parser-based testing

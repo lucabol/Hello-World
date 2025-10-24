@@ -2,8 +2,12 @@
 #
 # This Makefile provides convenient targets for running the test suite.
 # All tests are designed to run with zero external dependencies (except GCC for compilation tests).
+#
+# Shell configuration: Use bash for better error handling
+SHELL := /bin/bash
+.SHELLFLAGS := -e -u -o pipefail -c
 
-.PHONY: all test test-unit test-integration test-escape test-xss test-output test-all help clean
+.PHONY: all test test-unit test-integration test-escape test-xss test-output test-all test-quick help clean
 
 # Default target
 all: test
@@ -66,10 +70,12 @@ test-quick:
 	@echo "✅ Quick tests passed (compilation test skipped)"
 
 # Clean generated files
+# Note: Only removes files we know we generate, avoiding accidental deletion
 clean:
 	@echo "Cleaning generated files..."
-	@rm -f hello hello_debug hello_clang *.exe *.out *.o
-	@rm -f test/*.o test/hello test/hello.c
+	@rm -f hello hello_debug hello_clang
+	@rm -f *.exe *.out *.o
+	@rm -f test/*.o test/hello
 	@echo "✅ Clean complete"
 
 # Help target

@@ -41,13 +41,40 @@ bash test/test_editor_output.sh
 ## Requirements
 
 ### Essential
-- **Node.js** - For running JavaScript tests
+- **Node.js** - For running JavaScript tests (version 18.x or later recommended)
 - All tests use only Node.js built-in modules (fs, path, child_process)
 
 ### Optional
 - **GCC** - Only required for `test_editor_output.sh` compilation smoke test
-  - If GCC is not available, the script will skip gracefully with a warning
-  - Use `make test-quick` to skip compilation tests entirely
+  - **Default behavior**: Unit tests auto-detect GCC and skip compilation if not found
+  - **Exit code**: Tests exit with 0 even when GCC compilation is skipped
+  - **Use `make test-quick`** to explicitly skip compilation tests
+  
+#### GCC Behavior Details
+
+**Which tests use GCC:**
+- `test/test_editor_output.sh` - Always requires GCC (exits with error if not found)
+- `test/test_generator_unit.js` - Auto-detects GCC and skips compilation tests gracefully
+
+**In CI environments:**
+- **PR validation**: Use `make test-quick` (no GCC needed, faster feedback)
+- **Main branch/nightly**: Use `make test` (requires GCC for full validation)
+- **Cross-platform**: Unit/integration tests work on Windows/macOS without compilers
+
+**Installation commands:**
+```bash
+# Ubuntu/Debian
+sudo apt-get update && sudo apt-get install -y gcc
+
+# Alpine Linux
+apk add gcc musl-dev
+
+# macOS
+xcode-select --install
+
+# Windows (via MinGW)
+# Not required - use test-quick on Windows CI
+```
 
 ### No External Dependencies
 This project intentionally avoids external npm packages for:
@@ -191,35 +218,75 @@ make test-integration-dom     # Uses jsdom (if installed)
 
 ## CI Integration
 
-### GitHub Actions Example
+### GitHub Actions Workflow
 
+This repository includes `.github/workflows/test-visual-editor.yml` which provides:
+
+**Pull Request Validation (Fast):**
+- Runs `make test-quick` on every PR
+- No GCC required (unit, integration, security tests only)
+- Tests on ubuntu-latest with Node.js 20.x
+- Typical runtime: < 30 seconds
+
+**Main Branch & Nightly (Comprehensive):**
+- Runs `make test` on main branch and nightly schedule
+- Includes GCC compilation smoke test
+- Validates full end-to-end workflow
+
+**Cross-Platform Testing:**
+- Tests on Ubuntu, macOS, and Windows
+- Tests with Node.js 18.x and 20.x
+- Skips GCC compilation (not available on all platforms)
+
+### Custom CI Setup
+
+#### Fast PR validation (recommended)
 ```yaml
-name: Test Suite
-on: [push, pull_request]
+name: Quick Tests
+on: [pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20.x'
       
-      # GCC is pre-installed on ubuntu-latest
-      - name: Run all tests
-        run: make test
-      
-      # Or skip compilation test if GCC not available
       - name: Run tests without GCC
         run: make test-quick
 ```
 
+#### Full validation with GCC
+```yaml
+name: Full Tests
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      - name: Install GCC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc
+      
+      - name: Run all tests
+        run: make test
+```
+
 ### Environment Requirements
 
-- **Node.js**: v12 or later (uses ES6 features)
-- **GCC**: Any recent version (optional, for compilation test only)
-- **OS**: Linux, macOS, Windows (with appropriate make tool)
+- **Node.js**: v18 or later (uses ES6+ features)
+- **GCC**: Optional (only for `test-output` target)
+- **OS**: Linux (primary), macOS (supported), Windows (unit tests only)
+- **Shell**: bash (required for Makefile, automatically configured)
 
 ## Test Output
 

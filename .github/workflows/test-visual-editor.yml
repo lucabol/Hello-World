@@ -1,0 +1,91 @@
+name: Visual Editor Tests
+
+on:
+  push:
+    branches: [ main, copilot/** ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run nightly at 2 AM UTC with full GCC tests
+    - cron: '0 2 * * *'
+
+jobs:
+  # Quick tests without GCC (runs on every PR)
+  test-quick:
+    name: Quick Tests (No GCC)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+      
+    - name: Print environment info
+      run: |
+        echo "Node.js: $(node --version)"
+        echo "npm: $(npm --version)"
+      
+    - name: Run tests without GCC
+      run: make test-quick
+      
+  # Full tests with GCC (runs on main branch and nightly)
+  test-full:
+    name: Full Tests (With GCC)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+      
+    - name: Install GCC
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc
+      
+    - name: Print environment info
+      run: |
+        echo "Node.js: $(node --version)"
+        echo "GCC: $(gcc --version | head -1)"
+      
+    - name: Run full test suite
+      run: make test
+      
+  # Cross-platform tests without GCC
+  test-cross-platform:
+    name: Cross-Platform Tests (No GCC)
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: ['18.x', '20.x']
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+      
+    - name: Run unit tests
+      run: node test/test_generator_unit.js
+      
+    - name: Run integration tests
+      run: node test/test_editor_integration.js
+      
+    - name: Run HTML escape tests
+      run: node test/test_escape_html.js
+      
+    - name: Run XSS security tests
+      run: node test/test_xss_integration.js
