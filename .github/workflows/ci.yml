@@ -44,6 +44,8 @@ jobs:
       run: node test/test_escape_html.js
       
     - name: Build code_metrics with strict flags
+      # Note: code_metrics uses -std=c11 for stdbool.h and better Unicode support
+      # Plugin system uses -std=c99 for broader compatibility
       run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c11 -o code_metrics code_metrics.c
       
     - name: Run code_metrics test suite
@@ -74,6 +76,8 @@ jobs:
         rm -f hello_lib.o test_hello_runner
     
     - name: Build code_metrics with Clang and strict flags
+      # Note: code_metrics uses -std=c11 for stdbool.h and better Unicode support
+      # Plugin system uses -std=c99 for broader compatibility
       run: clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c11 -o code_metrics code_metrics.c
       
     - name: Run code_metrics test suite with Clang
