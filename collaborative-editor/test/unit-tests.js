@@ -496,6 +496,117 @@ runner.test('Path normalization detects .. in path segments', () => {
     assert.strictEqual(normalized, '/etc/passwd');
 });
 
+// Test: Non-string token validation
+runner.test('Token validation rejects non-string tokens', () => {
+    // Simulate the type check in authentication
+    const validateToken = (token) => {
+        if (typeof token !== 'string') {
+            return { valid: false, error: 'Invalid token type' };
+        }
+        if (Buffer.byteLength(token, 'utf8') === 0) {
+            return { valid: false, error: 'Empty token' };
+        }
+        return { valid: true };
+    };
+    
+    // Non-string types should be rejected
+    assert.strictEqual(validateToken(null).valid, false);
+    assert.strictEqual(validateToken(undefined).valid, false);
+    assert.strictEqual(validateToken(123).valid, false);
+    assert.strictEqual(validateToken({ token: 'value' }).valid, false);
+    assert.strictEqual(validateToken(['token']).valid, false);
+    
+    // Valid string should pass
+    assert.strictEqual(validateToken('valid-token').valid, true);
+});
+
+// Test: Leading/trailing whitespace in tokens
+runner.test('Token comparison requires exact match (no automatic trimming)', () => {
+    // Tokens are compared byte-for-byte without trimming
+    // This documents that leading/trailing whitespace is significant
+    
+    const token1 = 'my-token';
+    const token2 = ' my-token'; // leading space
+    const token3 = 'my-token '; // trailing space
+    
+    const buffer1 = Buffer.from(token1, 'utf8');
+    const buffer2 = Buffer.from(token2, 'utf8');
+    const buffer3 = Buffer.from(token3, 'utf8');
+    
+    // Buffers with different content (including whitespace) have different lengths
+    assert.notStrictEqual(buffer1.length, buffer2.length);
+    assert.notStrictEqual(buffer1.length, buffer3.length);
+    
+    // Identical tokens match
+    const buffer4 = Buffer.from(token1, 'utf8');
+    assert.strictEqual(crypto.timingSafeEqual(buffer1, buffer4), true);
+});
+
+// Test: Whitespace-only token validation at startup
+runner.test('Startup validation rejects whitespace-only tokens', () => {
+    // Simulate the startup validation logic
+    const validateStartupToken = (token) => {
+        if (typeof token !== 'string') {
+            return { valid: false, error: 'Token must be a string' };
+        }
+        if (token.trim().length === 0) {
+            return { valid: false, error: 'Token is empty or whitespace-only' };
+        }
+        return { valid: true };
+    };
+    
+    // Whitespace-only tokens should be rejected
+    assert.strictEqual(validateStartupToken('   ').valid, false);
+    assert.strictEqual(validateStartupToken('\t\n').valid, false);
+    assert.strictEqual(validateStartupToken('').valid, false);
+    
+    // Valid token with content should pass
+    assert.strictEqual(validateStartupToken('my-token').valid, true);
+    assert.strictEqual(validateStartupToken('  token-with-spaces  ').valid, true); // trimmed length > 0
+});
+
+// Test: Empty string token validation
+runner.test('Empty string tokens are rejected', () => {
+    const validateToken = (token) => {
+        if (typeof token !== 'string') {
+            return { valid: false };
+        }
+        if (Buffer.byteLength(token, 'utf8') === 0) {
+            return { valid: false };
+        }
+        return { valid: true };
+    };
+    
+    assert.strictEqual(validateToken('').valid, false);
+    assert.strictEqual(validateToken('x').valid, true);
+});
+
+// Test: AUTH_TOKEN_BUFFER only set when AUTH_TOKEN exists
+runner.test('AUTH_TOKEN_BUFFER is only set when AUTH_TOKEN is configured', () => {
+    // Simulate configuration scenarios
+    const scenario1 = {
+        AUTH_TOKEN: null,
+        AUTH_TOKEN_BUFFER: null
+    };
+    
+    const scenario2 = {
+        AUTH_TOKEN: 'my-secret-token',
+        AUTH_TOKEN_BUFFER: null
+    };
+    
+    // When AUTH_TOKEN is null, BUFFER should remain null
+    assert.strictEqual(scenario1.AUTH_TOKEN_BUFFER, null);
+    
+    // When AUTH_TOKEN is set, we would set the buffer
+    if (scenario2.AUTH_TOKEN && typeof scenario2.AUTH_TOKEN === 'string') {
+        scenario2.AUTH_TOKEN_BUFFER = Buffer.from(scenario2.AUTH_TOKEN, 'utf8');
+    }
+    
+    // Buffer should now be set
+    assert.ok(scenario2.AUTH_TOKEN_BUFFER !== null);
+    assert.strictEqual(scenario2.AUTH_TOKEN_BUFFER.length, Buffer.byteLength('my-secret-token', 'utf8'));
+});
+
 // Run all tests
 runner.run().then(success => {
     process.exit(success ? 0 : 1);

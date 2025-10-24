@@ -101,8 +101,13 @@ export COLLAB_PORT=3000
 
 **Token Security:**
 - Token validation at startup: Empty or whitespace-only tokens rejected immediately
+- **Token type validation**: Tokens must be strings (non-string values rejected at startup and during authentication)
 - Expected token pre-converted to Buffer at startup with explicit UTF-8 encoding
 - Provided tokens converted to Buffer with same encoding for comparison
+- **Exact match required**: Tokens compared byte-for-byte WITHOUT automatic trimming
+- **Whitespace is significant**: Leading/trailing whitespace in tokens is part of the token value
+- Clients must provide exact token match (including any spaces configured in `COLLAB_AUTH_TOKEN`)
+- Startup validation rejects whitespace-only configured tokens to prevent empty authentication
 - Byte length validation using `Buffer.byteLength()` or Buffer instances (handles multi-byte UTF-8 correctly)
 - Tokens compared using `crypto.timingSafeEqual()` (constant-time comparison)
 - Prevents timing attacks that could leak token information

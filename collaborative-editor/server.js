@@ -142,9 +142,16 @@ async function validateConfig() {
     }
     
     if (CONFIG.AUTH_TOKEN) {
-        // SECURITY: Validate token is not empty
+        // SECURITY: Validate token is a non-empty string
+        if (typeof CONFIG.AUTH_TOKEN !== 'string') {
+            logger.error('SECURITY: COLLAB_AUTH_TOKEN must be a string');
+            logger.error(`Received type: ${typeof CONFIG.AUTH_TOKEN}`);
+            process.exit(1);
+        }
+        
+        // Check for whitespace-only tokens
         if (CONFIG.AUTH_TOKEN.trim().length === 0) {
-            logger.error('SECURITY: COLLAB_AUTH_TOKEN is configured but empty');
+            logger.error('SECURITY: COLLAB_AUTH_TOKEN is configured but empty or whitespace-only');
             logger.error('Empty authentication tokens are not allowed');
             process.exit(1);
         }
@@ -649,9 +656,18 @@ app.post('/api/auth', (req, res) => {
     
     const providedToken = parts[1];
     
+    // SECURITY: Validate token type before using Buffer operations
+    // Ensures we have a string to avoid Buffer.byteLength throwing on non-string inputs
+    if (typeof providedToken !== 'string') {
+        logger.warn('Authentication attempt with non-string token');
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
     // SECURITY: Validate token is not empty using byte length
     // Use Buffer.byteLength to avoid UTF-16 vs UTF-8 encoding confusion
-    if (!providedToken || Buffer.byteLength(providedToken, 'utf8') === 0) {
+    // Note: incoming tokens are compared byte-for-byte without trimming
+    // Leading/trailing whitespace is significant and must match exactly
+    if (Buffer.byteLength(providedToken, 'utf8') === 0) {
         logger.warn('Authentication attempt with empty token');
         return res.status(401).json({ error: 'Invalid token' });
     }
@@ -659,6 +675,8 @@ app.post('/api/auth', (req, res) => {
     // SECURITY: Constant-time comparison to prevent timing attacks
     // Pre-convert provided token to Buffer with explicit UTF-8 encoding
     const providedBuffer = Buffer.from(providedToken, 'utf8');
+    // AUTH_TOKEN_BUFFER is guaranteed to exist here because this code path
+    // is only reached when CONFIG.AUTH_TOKEN is set (checked on line 632)
     const expectedBuffer = CONFIG.AUTH_TOKEN_BUFFER;
     
     // SECURITY: Check buffer lengths match (fail early but safely)
