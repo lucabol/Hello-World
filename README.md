@@ -36,3 +36,9 @@ See [TESTING.md](TESTING.md) for detailed testing documentation, including:
 - HTML validation strategy and trade-offs
 - CI integration guidelines
 - Migration path to parser-based testing
+
+See [ACCESSIBILITY.md](ACCESSIBILITY.md) for accessibility testing:
+- WCAG 2.1 compliance checklist
+- ARIA attribute mapping
+- Keyboard navigation testing procedures
+- Screen reader testing guide

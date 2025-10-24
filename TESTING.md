@@ -189,12 +189,53 @@ Similar approach but using parse5's AST traversal.
 Create `test/test_editor_integration_dom.js` that runs only when jsdom is available:
 
 ```bash
-npm install --save-dev jsdom  # Optional
-make test-integration         # Uses regex (always works)
-make test-integration-dom     # Uses jsdom (if installed)
+npm install --save-dev jsdom  # Optional dependency
+make test-integration         # Uses regex (always works, zero deps)
+node test/test_editor_integration_dom.js  # Uses jsdom if available
 ```
 
+**Creating the Optional DOM Test:**
+
+Add this target to the Makefile:
+```makefile
+# Optional: Parser-based test (requires jsdom)
+test-integration-dom:
+	@if node -e "require('jsdom')" 2>/dev/null; then \
+		echo "Running DOM-based integration tests..."; \
+		node test/test_editor_integration_dom.js; \
+	else \
+		echo "⚠️  jsdom not installed - skipping DOM tests"; \
+		echo "   Run 'npm install --save-dev jsdom' to enable"; \
+	fi
+```
+
+**Who Should Use This:**
+- Maintainers making significant HTML structure changes
+- Teams that want stronger validation than regex provides
+- Projects that already have npm dependencies
+
+**Zero-Dependency Philosophy:**
+The default test suite intentionally avoids external dependencies to ensure tests can run anywhere with just Node.js. The optional parser-based tests are provided as an **opt-in** enhancement for teams that prefer DOM-based validation.
+
 ## Test Maintenance Guidelines
+
+### Accessibility Testing
+
+**Automated Coverage:**
+The integration tests verify ARIA structure and keyboard event handlers are present, but **manual testing is required** for full WCAG compliance.
+
+**See ACCESSIBILITY.md** for:
+- Complete accessibility testing checklist
+- ARIA attribute mapping (which elements have which attributes)
+- Keyboard navigation testing procedures
+- Screen reader testing guide
+- Manual testing workflows
+
+**Quick Accessibility Checks:**
+1. Keyboard-only navigation works (Tab, Enter, Delete)
+2. Screen reader announces interactive elements correctly
+3. Focus indicators visible on all elements
+4. Color contrast meets WCAG AA standards
 
 ### When HTML Changes
 
@@ -225,17 +266,19 @@ This repository includes `.github/workflows/test-visual-editor.yml` which provid
 **Pull Request Validation (Fast):**
 - Runs `make test-quick` on every PR
 - No GCC required (unit, integration, security tests only)
-- Tests on ubuntu-latest with Node.js 20.x
+- Tests on ubuntu-latest with Node.js 18.x and 20.x
 - Typical runtime: < 30 seconds
 
 **Main Branch & Nightly (Comprehensive):**
 - Runs `make test` on main branch and nightly schedule
 - Includes GCC compilation smoke test
+- Auto-detects GCC and skips gracefully if not found
 - Validates full end-to-end workflow
 
 **Cross-Platform Testing:**
 - Tests on Ubuntu, macOS, and Windows
 - Tests with Node.js 18.x and 20.x
+- Individual test files run directly (no Makefile dependency)
 - Skips GCC compilation (not available on all platforms)
 
 ### Custom CI Setup
