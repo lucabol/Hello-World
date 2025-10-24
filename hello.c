@@ -1,5 +1,5 @@
-# include <stdio.h>
 #include "hello.h"
+#include <stdio.h>
 
 /* Get the default greeting message */
 const char* get_greeting(void) {

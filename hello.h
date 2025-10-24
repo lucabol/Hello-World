@@ -21,6 +21,7 @@ const char* get_greeting(void);
  * Contract:
  * - If message is NULL, prints a default message
  * - Does not add a trailing newline
+ * - Uses standard I/O; callers should not assume reentrancy
  */
 void print_custom_message(const char* message);
 
