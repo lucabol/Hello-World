@@ -177,9 +177,9 @@ void display_metrics_table(const char *filename, CodeMetrics *metrics) {
     
     /* Calculate some derived metrics */
     float code_ratio = metrics->total_lines > 0 ? 
-        (float)metrics->code_lines / metrics->total_lines * 100.0f : 0.0f;
+        (float)metrics->code_lines / (float)metrics->total_lines * 100.0f : 0.0f;
     float comment_ratio = metrics->total_lines > 0 ? 
-        (float)metrics->comment_lines / metrics->total_lines * 100.0f : 0.0f;
+        (float)metrics->comment_lines / (float)metrics->total_lines * 100.0f : 0.0f;
     
     printf("║ DERIVED METRICS:                                               ║\n");
     printf("║ Code-to-Total Ratio                    ║ %.2f%%%-17s║\n", code_ratio, "");
