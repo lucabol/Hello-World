@@ -38,8 +38,10 @@ const CONFIG = {
     MAX_USERNAME_LENGTH: 50,
     
     // Optional authentication token
-    // SECURITY: Store as string for now, will convert to Buffer during validation
-    AUTH_TOKEN: process.env.COLLAB_AUTH_TOKEN || null,
+    // SECURITY: We check if the env var is explicitly set (even if empty string)
+    // Empty strings will be caught and rejected during validation
+    // Use ?? instead of || to only default to null when undefined (not when empty string)
+    AUTH_TOKEN: process.env.COLLAB_AUTH_TOKEN ?? null,
     
     // This will be set during validation to a Buffer for constant-time comparison
     AUTH_TOKEN_BUFFER: null,
@@ -141,7 +143,12 @@ async function validateConfig() {
         logger.warn('');
     }
     
-    if (CONFIG.AUTH_TOKEN) {
+    // SECURITY: Check if AUTH_TOKEN environment variable was explicitly set
+    // We need to detect presence vs. absence, not just check truthiness
+    // Empty string ('') is falsy but should be rejected as invalid, not treated as "no auth"
+    const authTokenProvided = typeof process.env.COLLAB_AUTH_TOKEN !== 'undefined';
+    
+    if (authTokenProvided) {
         // SECURITY: Validate token is a non-empty string
         if (typeof CONFIG.AUTH_TOKEN !== 'string') {
             logger.error('SECURITY: COLLAB_AUTH_TOKEN must be a string');
@@ -149,10 +156,18 @@ async function validateConfig() {
             process.exit(1);
         }
         
+        // Check for empty string explicitly (before trim check)
+        if (CONFIG.AUTH_TOKEN.length === 0) {
+            logger.error('SECURITY: COLLAB_AUTH_TOKEN is set to empty string');
+            logger.error('Empty authentication tokens are not allowed');
+            logger.error('If you want to disable authentication, unset the environment variable');
+            process.exit(1);
+        }
+        
         // Check for whitespace-only tokens
         if (CONFIG.AUTH_TOKEN.trim().length === 0) {
-            logger.error('SECURITY: COLLAB_AUTH_TOKEN is configured but empty or whitespace-only');
-            logger.error('Empty authentication tokens are not allowed');
+            logger.error('SECURITY: COLLAB_AUTH_TOKEN is configured but contains only whitespace');
+            logger.error('Whitespace-only authentication tokens are not allowed');
             process.exit(1);
         }
         

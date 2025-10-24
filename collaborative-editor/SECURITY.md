@@ -107,7 +107,10 @@ export COLLAB_PORT=3000
 - **Exact match required**: Tokens compared byte-for-byte WITHOUT automatic trimming
 - **Whitespace is significant**: Leading/trailing whitespace in tokens is part of the token value
 - Clients must provide exact token match (including any spaces configured in `COLLAB_AUTH_TOKEN`)
-- Startup validation rejects whitespace-only configured tokens to prevent empty authentication
+- Startup validation checks if `COLLAB_AUTH_TOKEN` environment variable is explicitly set
+- Empty string (`''`) tokens are rejected immediately with clear error message
+- Whitespace-only tokens are rejected to prevent empty authentication
+- If authentication is desired to be disabled, the environment variable should be unset (not set to empty string)
 - Byte length validation using `Buffer.byteLength()` or Buffer instances (handles multi-byte UTF-8 correctly)
 - Tokens compared using `crypto.timingSafeEqual()` (constant-time comparison)
 - Prevents timing attacks that could leak token information

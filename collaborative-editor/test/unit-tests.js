@@ -543,22 +543,32 @@ runner.test('Token comparison requires exact match (no automatic trimming)', () 
 });
 
 // Test: Whitespace-only token validation at startup
-runner.test('Startup validation rejects whitespace-only tokens', () => {
-    // Simulate the startup validation logic
+runner.test('Startup validation rejects empty and whitespace-only tokens', () => {
+    // Simulate the startup validation logic (now checks empty string explicitly before trim)
     const validateStartupToken = (token) => {
         if (typeof token !== 'string') {
             return { valid: false, error: 'Token must be a string' };
         }
+        // Check for empty string explicitly (before trim)
+        if (token.length === 0) {
+            return { valid: false, error: 'Token is empty string' };
+        }
+        // Check for whitespace-only tokens
         if (token.trim().length === 0) {
-            return { valid: false, error: 'Token is empty or whitespace-only' };
+            return { valid: false, error: 'Token is whitespace-only' };
         }
         return { valid: true };
     };
     
+    // Empty string should be rejected (explicit check)
+    assert.strictEqual(validateStartupToken('').valid, false);
+    assert.strictEqual(validateStartupToken('').error, 'Token is empty string');
+    
     // Whitespace-only tokens should be rejected
     assert.strictEqual(validateStartupToken('   ').valid, false);
+    assert.strictEqual(validateStartupToken('   ').error, 'Token is whitespace-only');
     assert.strictEqual(validateStartupToken('\t\n').valid, false);
-    assert.strictEqual(validateStartupToken('').valid, false);
+    assert.strictEqual(validateStartupToken('\t\n').error, 'Token is whitespace-only');
     
     // Valid token with content should pass
     assert.strictEqual(validateStartupToken('my-token').valid, true);
