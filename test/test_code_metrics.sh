@@ -145,6 +145,50 @@ else
     exit 1
 fi
 
+# Test 8: Test --version flag
+print_info "Test 8: Testing --version flag..."
+if OUTPUT=$(./code_metrics --version 2>&1); then
+    if echo "${OUTPUT}" | grep -q "version" && \
+       echo "${OUTPUT}" | grep -q "1.0.0"; then
+        print_success "Version flag works correctly"
+    else
+        print_error "Version output missing expected content"
+        exit 1
+    fi
+else
+    print_error "Failed to run code_metrics --version"
+    exit 1
+fi
+
+# Test 9: Test --plain/ASCII output mode
+print_info "Test 9: Testing --plain/ASCII output mode..."
+if OUTPUT=$(./code_metrics --plain hello.c 2>&1); then
+    if echo "${OUTPUT}" | grep -q "CODE METRICS ANALYZER" && \
+       echo "${OUTPUT}" | grep -q "+" && \
+       ! echo "${OUTPUT}" | grep -q "║"; then
+        print_success "ASCII output mode works correctly"
+    else
+        print_error "ASCII output missing expected format"
+        exit 1
+    fi
+else
+    print_error "Failed to run code_metrics with --plain"
+    exit 1
+fi
+
+# Test 10: Test invalid option handling
+print_info "Test 10: Testing invalid option handling..."
+set +e
+OUTPUT=$(./code_metrics --invalid-option 2>&1)
+EXIT_CODE=$?
+set -e
+if [ ${EXIT_CODE} -ne 0 ] && echo "${OUTPUT}" | grep -q "Unknown option"; then
+    print_success "Invalid option handling works correctly"
+else
+    print_error "Invalid option handling failed"
+    exit 1
+fi
+
 echo ""
 print_success "All code_metrics tests passed!"
 echo ""
@@ -156,5 +200,8 @@ printf "  - Help option: PASSED\n"
 printf "  - Metrics accuracy: PASSED\n"
 printf "  - Error handling: PASSED\n"
 printf "  - Self-analysis: PASSED\n"
+printf "  - Version flag: PASSED\n"
+printf "  - ASCII output mode: PASSED\n"
+printf "  - Invalid option handling: PASSED\n"
 
 exit 0
