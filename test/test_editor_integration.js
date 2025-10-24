@@ -29,6 +29,52 @@ const generator = require('../tools/editor/generator.js');
 
 console.log("🧪 Running Visual Editor Integration Tests...\n");
 
+// Test 0: Verify generator.js exports API shape for Node.js
+console.log("=== Module Compatibility Tests ===\n");
+console.log("Test 0: Verifying generator.js module exports...");
+let moduleTestsPassed = 0;
+let moduleTestsFailed = 0;
+
+const expectedExports = ['generateCode', 'escapeHtml', 'escapePrintfFormat'];
+const actualExports = Object.keys(generator);
+
+const missingExports = expectedExports.filter(exp => !actualExports.includes(exp));
+if (missingExports.length === 0 && typeof generator.generateCode === 'function') {
+    console.log(`  ✓ All expected exports present: ${expectedExports.join(', ')}`);
+    console.log(`  ✓ generator.generateCode is a function`);
+    moduleTestsPassed++;
+} else {
+    console.log(`  ✗ Module exports incomplete`);
+    if (missingExports.length > 0) {
+        console.log(`    Missing: ${missingExports.join(', ')}`);
+    }
+    console.log(`    Found: ${actualExports.join(', ')}`);
+    moduleTestsFailed++;
+}
+
+// Test that the module works in Node.js
+console.log("\nTest 0b: Testing generator.generateCode() in Node.js...");
+try {
+    const testBlocks = [
+        { id: 0, type: 'include', value: 'stdio.h' },
+        { id: 1, type: 'printf', value: 'Test' }
+    ];
+    const code = generator.generateCode(testBlocks);
+    if (code && code.includes('stdio.h') && code.includes('Test')) {
+        console.log('  ✓ generator.generateCode() works correctly in Node.js');
+        moduleTestsPassed++;
+    } else {
+        console.log('  ✗ generator.generateCode() produced unexpected output');
+        console.log(`    Output: ${code.substring(0, 100)}...`);
+        moduleTestsFailed++;
+    }
+} catch (err) {
+    console.log('  ✗ generator.generateCode() threw an error:', err.message);
+    moduleTestsFailed++;
+}
+
+console.log(`\n  Module Tests: ${moduleTestsPassed} passed, ${moduleTestsFailed} failed\n`);
+
 // Read the editor.html file to verify integration
 const editorPath = path.join(__dirname, '..', 'tools', 'editor', 'editor.html');
 
@@ -46,26 +92,40 @@ let failed = 0;
  * Helper function to validate HTML elements with attributes
  * Tolerates common variations: whitespace, attribute order, quote styles
  * 
+ * Uses lookaheads to make attribute matching order-insensitive, avoiding false
+ * negatives when attributes appear in different orders in the HTML.
+ * 
  * @param {string} html - The HTML content to search
  * @param {string} tagName - Tag name to find (e.g., 'script', 'meta')
  * @param {Object} attributes - Attributes to validate {name: value}
  * @returns {boolean} - True if element with attributes is found
  */
 function parseHtmlForElement(html, tagName, attributes = {}) {
-    // Build a flexible pattern that accepts attribute variations
-    const attrPatterns = Object.entries(attributes).map(([key, value]) => {
+    // Escape the tag name to prevent regex injection
+    const escapedTagName = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Build lookahead patterns for each attribute (order-insensitive)
+    const attrLookaheads = Object.entries(attributes).map(([key, value]) => {
+        // Escape attribute name to prevent regex injection
+        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
         if (value === true) {
-            // Just check if attribute exists (boolean attribute or any value)
-            return `${key}(?:=|\\s|>)`;
+            // Boolean attribute: match presence with or without value
+            // Accepts: attr, attr="", attr="value", attr='value', attr=value
+            return `(?=(?:[^>]*\\b${escapedKey}(?:\\s*=\\s*(?:["'][^"']*["']|[^\\s>]+)|(?=\\s|>))))`;
         }
-        // Accept single or double quotes, and escape special regex chars in value
-        const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return `${key}\\s*=\\s*["']${escapedValue}["']`;
+        
+        // Escape special regex chars in value
+        const escapedValue = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Match attribute with specific value (single or double quotes)
+        return `(?=(?:[^>]*\\b${escapedKey}\\s*=\\s*["']${escapedValue}["']))`;
     });
     
-    // Allow any attributes before, between, and after our required attributes
-    const attrPattern = attrPatterns.length > 0 ? attrPatterns.join('[^>]*') : '';
-    const pattern = new RegExp(`<${tagName}[^>]*${attrPattern}[^>]*>`, 'i');
+    // Build final pattern: opening tag + all attribute lookaheads + anything until closing >
+    const lookaheadPattern = attrLookaheads.join('');
+    const pattern = new RegExp(`<${escapedTagName}${lookaheadPattern}[^>]*>`, 'i');
+    
     return pattern.test(html);
 }
 
@@ -79,6 +139,100 @@ function countOccurrences(html, pattern) {
     const matches = html.match(pattern);
     return matches ? matches.length : 0;
 }
+
+// Unit tests for parseHtmlForElement helper
+console.log("=== Unit Tests for parseHtmlForElement Helper ===\n");
+let helperTestsPassed = 0;
+let helperTestsFailed = 0;
+
+const helperTests = [
+    {
+        name: 'Attributes in different order',
+        html: '<meta content="test" http-equiv="X-Test">',
+        tag: 'meta',
+        attrs: { 'http-equiv': 'X-Test', content: 'test' },
+        expected: true
+    },
+    {
+        name: 'Single quotes vs double quotes',
+        html: `<script src='test.js'></script>`,
+        tag: 'script',
+        attrs: { src: 'test.js' },
+        expected: true
+    },
+    {
+        name: 'Extra whitespace around attributes',
+        html: '<div   role  =  "button"   aria-label = "Test"   >',
+        tag: 'div',
+        attrs: { role: 'button', 'aria-label': 'Test' },
+        expected: true
+    },
+    {
+        name: 'Boolean attribute present',
+        html: '<input disabled>',
+        tag: 'input',
+        attrs: { disabled: true },
+        expected: true
+    },
+    {
+        name: 'Boolean attribute with value',
+        html: '<input disabled="disabled">',
+        tag: 'input',
+        attrs: { disabled: true },
+        expected: true
+    },
+    {
+        name: 'Missing required attribute',
+        html: '<div role="button">',
+        tag: 'div',
+        attrs: { role: 'button', 'aria-label': 'Test' },
+        expected: false
+    },
+    {
+        name: 'Attribute value mismatch',
+        html: '<meta http-equiv="wrong-value">',
+        tag: 'meta',
+        attrs: { 'http-equiv': 'correct-value' },
+        expected: false
+    },
+    {
+        name: 'Special characters in attribute value',
+        html: '<div data-test="value-with-dashes_and.dots">',
+        tag: 'div',
+        attrs: { 'data-test': 'value-with-dashes_and.dots' },
+        expected: true
+    },
+    {
+        name: 'Case-insensitive tag matching',
+        html: '<SCRIPT SRC="test.js"></SCRIPT>',
+        tag: 'script',
+        attrs: { src: 'test.js' },
+        expected: true
+    },
+    {
+        name: 'Attributes in reverse order from test',
+        html: '<meta name="viewport" content="width=device-width">',
+        tag: 'meta',
+        attrs: { content: 'width=device-width', name: 'viewport' },
+        expected: true
+    }
+];
+
+helperTests.forEach((test, idx) => {
+    const result = parseHtmlForElement(test.html, test.tag, test.attrs);
+    if (result === test.expected) {
+        console.log(`  ✓ Helper test ${idx + 1}: ${test.name}`);
+        helperTestsPassed++;
+    } else {
+        console.log(`  ✗ Helper test ${idx + 1}: ${test.name}`);
+        console.log(`    Expected: ${test.expected}, Got: ${result}`);
+        console.log(`    HTML: ${test.html}`);
+        helperTestsFailed++;
+    }
+});
+
+console.log(`\n  Helper Tests: ${helperTestsPassed} passed, ${helperTestsFailed} failed\n`);
+console.log("=== Main Integration Tests ===\n");
 
 // Test 1: Verify generator.js script tag is properly included
 // Accepts variations: 'generator.js', './generator.js', relative paths
@@ -314,13 +468,19 @@ if (hasAriaLive || hasScreenReaderFunc) {
 
 // Summary
 console.log(`\n${'='.repeat(60)}`);
-console.log(`Results: ${passed} passed, ${failed} failed`);
+const totalPassed = moduleTestsPassed + helperTestsPassed + passed;
+const totalFailed = moduleTestsFailed + helperTestsFailed + failed;
+const totalTests = totalPassed + totalFailed;
+console.log(`Results: ${totalPassed}/${totalTests} tests passed`);
+console.log(`  - Module compatibility: ${moduleTestsPassed}/2`);
+console.log(`  - Helper functions: ${helperTestsPassed}/10`);
+console.log(`  - Integration tests: ${passed}/10`);
 console.log(`${'='.repeat(60)}`);
 
-if (failed > 0) {
-    console.log("\n✗ Integration tests failed");
+if (totalFailed > 0) {
+    console.log(`\n✗ ${totalFailed} test(s) failed`);
     process.exit(1);
 }
 
-console.log("\n✅ All integration tests passed!");
+console.log("\n✅ All tests passed!");
 process.exit(0);
