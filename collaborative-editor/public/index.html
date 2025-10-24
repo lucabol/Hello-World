@@ -7,6 +7,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Login Modal (shown when authentication required) -->
+    <div id="login-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Authentication Required</h2>
+            <p>Please enter your authentication token:</p>
+            <div class="form-group">
+                <label for="auth-token">Token:</label>
+                <input type="password" id="auth-token" class="form-control" placeholder="Enter token" />
+            </div>
+            <div class="form-actions">
+                <button id="login-btn" class="btn btn-primary">Login</button>
+            </div>
+            <div id="login-error" class="error-message" style="display: none;"></div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>Collaborative Editor: hello.c</h1>

@@ -42,12 +42,23 @@ npm install
 
 3. Configure environment (optional but recommended):
 ```bash
-# For local testing (safe defaults)
+# For local testing (safe defaults - no authentication)
 npm start
 
-# For production or network access
+# For production with authentication (RECOMMENDED)
 export COLLAB_AUTH_TOKEN=$(openssl rand -hex 32)
 export COLLAB_TARGET_FILE=/path/to/your/file.c
+npm start
+```
+
+**Authentication Flow (when COLLAB_AUTH_TOKEN is set):**
+1. Open the editor in your browser
+2. A login modal will appear
+3. Enter the token value set in `COLLAB_AUTH_TOKEN`
+4. The server will create a secure session cookie
+5. WebSocket connection uses the session cookie (tokens never in URL)
+
+**Important**: Review [SECURITY.md](SECURITY.md) before deploying to production.
 npm start
 ```
 

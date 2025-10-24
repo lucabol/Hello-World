@@ -9,6 +9,12 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// Middleware
+app.use(express.json());
+
+// Active sessions (in-memory store - for production use Redis/database)
+const sessions = new Map(); // sessionId -> { createdAt, expiresAt }
+
 // Configuration with secure defaults
 const CONFIG = {
     // Server binds to localhost by default for security
@@ -226,16 +232,45 @@ function broadcast(message, excludeClient = null) {
     }
 }
 
+// Simple cookie parser
+function parseCookie(cookieHeader) {
+    if (!cookieHeader) return {};
+    
+    return cookieHeader.split(';').reduce((cookies, cookie) => {
+        const [name, value] = cookie.trim().split('=');
+        cookies[name] = value;
+        return cookies;
+    }, {});
+}
+
 // Verify authentication token if configured
+// SECURITY: Tokens must be sent via Authorization: Bearer header for initial auth
+// WebSocket connections use session cookies (not URL parameters)
 function verifyAuth(request) {
     if (!CONFIG.AUTH_TOKEN) {
         return true; // No auth required
     }
     
-    const urlParams = new URL(request.url, `http://${request.headers.host}`);
-    const token = urlParams.searchParams.get('token') || request.headers['x-auth-token'];
+    // For WebSocket upgrade requests, check session cookie
+    const cookies = parseCookie(request.headers.cookie);
+    const sessionId = cookies.collab_session;
     
-    return token === CONFIG.AUTH_TOKEN;
+    if (!sessionId) {
+        return false;
+    }
+    
+    // Verify session exists and is not expired
+    const session = sessions.get(sessionId);
+    if (!session) {
+        return false;
+    }
+    
+    if (Date.now() > session.expiresAt) {
+        sessions.delete(sessionId);
+        return false;
+    }
+    
+    return true;
 }
 
 // Handle WebSocket connections
@@ -454,6 +489,63 @@ app.use((req, res, next) => {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     
     next();
+});
+
+// Authentication endpoint - must use Authorization: Bearer header
+// SECURITY: Tokens are never passed via URL to prevent leaks
+app.post('/api/auth', (req, res) => {
+    if (!CONFIG.AUTH_TOKEN) {
+        // No authentication required
+        return res.json({ authenticated: true, message: 'No authentication required' });
+    }
+    
+    // Extract token from Authorization: Bearer header
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+        return res.status(401).json({ error: 'Missing Authorization header' });
+    }
+    
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+        return res.status(401).json({ error: 'Invalid Authorization header format. Expected: Bearer <token>' });
+    }
+    
+    const token = parts[1];
+    if (token !== CONFIG.AUTH_TOKEN) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    // Create session
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+    
+    sessions.set(sessionId, {
+        createdAt: Date.now(),
+        expiresAt: expiresAt
+    });
+    
+    // Set secure, httpOnly cookie
+    res.cookie('collab_session', sessionId, {
+        httpOnly: true,
+        secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+    
+    logger.info('Authentication successful, session created');
+    res.json({ authenticated: true, expiresAt: expiresAt });
+});
+
+// Logout endpoint
+app.post('/api/logout', (req, res) => {
+    const sessionId = parseCookie(req.headers.cookie)?.collab_session;
+    if (sessionId) {
+        sessions.delete(sessionId);
+        logger.info('Session logged out');
+    }
+    
+    res.clearCookie('collab_session');
+    res.json({ message: 'Logged out' });
 });
 
 // Serve static files

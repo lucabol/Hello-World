@@ -43,7 +43,7 @@ export COLLAB_ALLOW_REPO_WRITE=true
 ### Security Configuration
 
 ```bash
-# Authentication token (HIGHLY RECOMMENDED)
+# Authentication token (HIGHLY RECOMMENDED for production)
 export COLLAB_AUTH_TOKEN="your-secret-token-here"
 
 # Server binding (default: 127.0.0.1 for localhost-only)
@@ -52,6 +52,23 @@ export COLLAB_HOST=127.0.0.1
 # Port (default: 3000)
 export COLLAB_PORT=3000
 ```
+
+**Authentication Method (Secure by Design):**
+- Tokens must be sent via `Authorization: Bearer <token>` header
+- **Tokens are NEVER passed in URL** (prevents leaks via browser history, logs, Referer headers)
+- Initial authentication creates a secure, HttpOnly session cookie
+- WebSocket connections use the session cookie automatically
+- Sessions expire after 24 hours
+
+**Login Flow:**
+1. User opens the editor
+2. If `COLLAB_AUTH_TOKEN` is set, a login modal appears
+3. User enters the token
+4. Client sends `POST /api/auth` with `Authorization: Bearer <token>` header
+5. Server validates token and creates session
+6. Server sets secure, HttpOnly cookie (`collab_session`)
+7. WebSocket connection automatically uses the cookie
+8. No tokens in URLs at any point
 
 ### Performance Configuration
 
@@ -100,9 +117,9 @@ export COLLAB_AUTH_TOKEN=$(openssl rand -hex 32)
 # Start server
 npm start
 
-# Connect with token
-# In browser: http://127.0.0.1:3000?token=YOUR_TOKEN
-# Or set X-Auth-Token header
+# In browser: Open http://127.0.0.1:3000
+# Enter the token when prompted (from $COLLAB_AUTH_TOKEN)
+# The token is sent via Authorization: Bearer header (never in URL)
 ```
 
 ### Behind Reverse Proxy (Recommended for Network Access)

@@ -8,6 +8,7 @@ class CollaborativeEditor {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.reconnectDelay = 1000;
+        this.authenticated = false;
         
         this.editor = document.getElementById('editor');
         this.statusBadge = document.getElementById('connection-status');
@@ -20,8 +21,72 @@ class CollaborativeEditor {
         this.cursorPosition = document.getElementById('cursor-position');
         this.charCount = document.getElementById('char-count');
         
+        // Login modal elements
+        this.loginModal = document.getElementById('login-modal');
+        this.authTokenInput = document.getElementById('auth-token');
+        this.loginBtn = document.getElementById('login-btn');
+        this.loginError = document.getElementById('login-error');
+        
         this.setupEventListeners();
-        this.connect();
+        this.initialize();
+    }
+    
+    async initialize() {
+        // Check if authentication is required
+        try {
+            const response = await fetch('/api/content');
+            if (response.status === 401) {
+                // Authentication required
+                this.showLoginModal();
+            } else {
+                // No auth or already authenticated
+                this.authenticated = true;
+                this.connect();
+            }
+        } catch (error) {
+            console.error('Initialization error:', error);
+            this.showNotification('Failed to initialize editor', 'error');
+        }
+    }
+    
+    showLoginModal() {
+        this.loginModal.style.display = 'flex';
+        this.authTokenInput.focus();
+    }
+    
+    hideLoginModal() {
+        this.loginModal.style.display = 'none';
+        this.authTokenInput.value = '';
+        this.loginError.style.display = 'none';
+    }
+    
+    async authenticate(token) {
+        try {
+            const response = await fetch('/api/auth', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                this.authenticated = true;
+                this.hideLoginModal();
+                this.connect();
+                return true;
+            } else {
+                const data = await response.json();
+                this.loginError.textContent = data.error || 'Authentication failed';
+                this.loginError.style.display = 'block';
+                return false;
+            }
+        } catch (error) {
+            console.error('Authentication error:', error);
+            this.loginError.textContent = 'Network error during authentication';
+            this.loginError.style.display = 'block';
+            return false;
+        }
     }
     
     connect() {
@@ -145,6 +210,24 @@ class CollaborativeEditor {
     }
     
     setupEventListeners() {
+        // Login button
+        this.loginBtn.addEventListener('click', () => {
+            const token = this.authTokenInput.value.trim();
+            if (token) {
+                this.authenticate(token);
+            }
+        });
+        
+        // Login on Enter key
+        this.authTokenInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const token = this.authTokenInput.value.trim();
+                if (token) {
+                    this.authenticate(token);
+                }
+            }
+        });
+        
         // Editor content changes
         let saveTimeout;
         this.editor.addEventListener('input', () => {
