@@ -82,12 +82,43 @@ int main(void) {
 - **Never write** beyond `output_size` bytes
 
 ### Thread Safety
-- **⚠️ NOT THREAD-SAFE** - Use mutex if calling from multiple threads:
-  ```c
-  pthread_mutex_lock(&my_mutex);
-  plugin_register(&my_plugin);
-  pthread_mutex_unlock(&my_mutex);
-  ```
+- **⚠️ NOT THREAD-SAFE** - The plugin system is not thread-safe. If you need to use plugins from multiple threads, you must provide external synchronization.
+
+**Recommended pattern for multi-threaded use:**
+
+```c
+#include <pthread.h>
+#include "plugin.h"
+
+/* Global mutex to protect plugin operations */
+static pthread_mutex_t plugin_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/* Thread-safe plugin registration */
+int safe_plugin_register(plugin_t* plugin) {
+    pthread_mutex_lock(&plugin_mutex);
+    int result = plugin_register(plugin);
+    pthread_mutex_unlock(&plugin_mutex);
+    return result;
+}
+
+/* Thread-safe plugin application */
+int safe_plugin_apply_all(const char* input, char* output, size_t size) {
+    pthread_mutex_lock(&plugin_mutex);
+    int result = plugin_apply_all(input, output, size);
+    pthread_mutex_unlock(&plugin_mutex);
+    return result;
+}
+
+/* Thread-safe plugin unregistration */
+int safe_plugin_unregister(const char* name) {
+    pthread_mutex_lock(&plugin_mutex);
+    int result = plugin_unregister(name);
+    pthread_mutex_unlock(&plugin_mutex);
+    return result;
+}
+```
+
+**Important:** Never call `plugin_unregister()` or `plugin_clear()` while `plugin_apply_all()` is running - this causes undefined behavior even with external synchronization
 
 ## Error Codes
 

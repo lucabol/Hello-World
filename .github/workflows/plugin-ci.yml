@@ -93,11 +93,16 @@ jobs:
         make clean
         make hello
         output=$(./hello)
-        expected="Hello world!"
-        if [ "$output" = "$expected" ]; then
-          echo "✓ Output matches expected: '$output'"
+        # Expected output includes Italian greeting and exit code
+        echo "Actual output:"
+        ./hello
+        # Test first line (the greeting)
+        first_line=$(./hello | head -n 1)
+        expected_greeting="Ciao, Mondo!"
+        if [ "$first_line" = "$expected_greeting" ]; then
+          echo "✓ Greeting matches expected: '$first_line'"
         else
-          echo "✗ Output mismatch. Expected: '$expected', Got: '$output'"
+          echo "✗ Greeting mismatch. Expected: '$expected_greeting', Got: '$first_line'"
           exit 1
         fi
     

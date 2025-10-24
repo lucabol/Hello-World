@@ -10,6 +10,9 @@
 #   test          - Run all tests (unit + validation)
 #   ci            - Run CI build (strict compilation + all tests)
 
+# Compiler and flags
+# Note: Using -std=c99 consistently for compatibility across all plugin system components
+# The plugin system uses only C99 features to ensure broad compiler support
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
 STRICT_FLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99
