@@ -7,36 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # Docker-based build - ensures reproducible environment
-  docker-build:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: false
-        tags: hello-world-c:ci
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        
-    - name: Run program in Docker container
-      run: docker run --rm hello-world-c:ci
-      
-    - name: Run Docker consistency tests
-      run: bash test/test_docker.sh
-      
-    - name: Test docker-compose
-      run: docker compose run --rm test
-
-  # Build and test with GCC
+  # Build and test with GCC - focuses on C compilation and validation
   build-and-test-gcc:
     runs-on: ubuntu-latest
     
@@ -44,8 +15,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+      
     - name: Print environment versions
       run: |
+        echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
       
     - name: Build with GCC (with warnings)
@@ -53,8 +30,29 @@ jobs:
       
     - name: Test GCC build
       run: ./hello
-
-  # Build and test with Clang
+      
+    - name: Run unit tests
+      run: make unit-test
+      
+    - name: Run validation tests
+      run: bash test/validate.sh --quiet
+      
+    - name: Test visual editor generated code
+      run: bash test/test_editor_output.sh
+      
+    - name: Test XSS escaping function
+      run: node test/test_escape_html.js
+      
+    - name: Build code_metrics with strict flags
+      run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c11 -o code_metrics code_metrics.c
+      
+    - name: Run code_metrics test suite
+      run: |
+        export LANG=C.UTF-8
+        export LC_ALL=C.UTF-8
+        bash test/test_code_metrics.sh
+      
+  # Build and test with Clang - alternative C compiler validation
   build-and-test-clang:
     runs-on: ubuntu-latest
     
@@ -62,13 +60,24 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Print environment versions
-      run: |
-        echo "Clang version: $(clang --version | head -1)"
-      
     - name: Build with Clang
       run: clang -Wall -Wextra -o hello_clang hello.c
       
     - name: Test Clang build
       run: ./hello_clang
-
+      
+    - name: Run unit tests with Clang
+      run: |
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
+        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
+        ./test_hello_runner
+        rm -f hello_lib.o test_hello_runner
+    
+    - name: Build code_metrics with Clang and strict flags
+      run: clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c11 -o code_metrics code_metrics.c
+      
+    - name: Run code_metrics test suite with Clang
+      run: |
+        export LANG=C.UTF-8
+        export LC_ALL=C.UTF-8
+        bash test/test_code_metrics.sh

@@ -147,7 +147,13 @@ Docker containerization provides several benefits:
 
 ## CI/CD Integration
 
-The project's CI workflows can optionally use Docker containers for builds, ensuring that CI runs use the exact same environment as local development. See `.github/workflows/` for implementation details.
+The Docker containerization setup is available for local development and can be integrated into CI/CD pipelines. To add Docker-based builds to your CI workflow, you can:
+
+1. Add a docker-build job that builds and tests the Docker image
+2. Run `docker compose run --rm test` to verify both compilers work
+3. Use `bash test/test_docker.sh` to run Docker consistency tests
+
+The Docker test script (`test/test_docker.sh`) verifies compiler versions, output correctness, and Docker Compose functionality, ensuring reproducible builds across all environments.
 
 ## Architecture Decision Records
 
