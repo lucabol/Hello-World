@@ -85,6 +85,8 @@ jobs:
   # Static analysis with cppcheck - detects C-specific issues
   static-analysis-cppcheck:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
