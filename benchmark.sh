@@ -44,6 +44,8 @@ measure_compilation_time() {
     local output="$4"
     
     # Use /usr/bin/time for accurate measurement (not bash builtin)
+    # Complex redirection: suppress compiler stdout (1>/dev/null), 
+    # capture stderr to stdout (2>&1), then extract last line with time
     local time_output
     time_output=$( { /usr/bin/time -f "%e" "$compiler" "-$opt_level" -o "$output" "$source" 2>&1 1>/dev/null; } 2>&1 | tail -n 1)
     
@@ -89,7 +91,8 @@ run_benchmarks() {
             
             # Run multiple iterations
             for ((i=1; i<=NUM_ITERATIONS; i++)); do
-                local output_binary="/tmp/bench_${compiler}_${opt_level}_${i}"
+                local output_binary
+                output_binary=$(mktemp /tmp/bench_XXXXXX)
                 local time_taken
                 time_taken=$(measure_compilation_time "$compiler" "$opt_level" "$SOURCE_FILE" "$output_binary")
                 times+=("$time_taken")

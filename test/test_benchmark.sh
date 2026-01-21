@@ -33,7 +33,7 @@ echo ""
 
 # Test 3: Run benchmark with minimal iterations
 echo "Test 3: Running benchmark with 2 iterations..."
-TEMP_OUTPUT="/tmp/test_benchmark_$$.json"
+TEMP_OUTPUT=$(mktemp)
 ./benchmark.sh hello.c 2 "$TEMP_OUTPUT" > /dev/null 2>&1
 if [[ ! -f "$TEMP_OUTPUT" ]]; then
     echo "ERROR: Benchmark output file not created"
@@ -149,16 +149,17 @@ echo ""
 
 # Test 12: Test benchmark with different source file
 echo "Test 12: Testing with non-existent source file..."
-if ./benchmark.sh nonexistent.c 2 /tmp/test_fail_$$.json > /dev/null 2>&1; then
+TEMP_FAIL=$(mktemp)
+if ./benchmark.sh nonexistent.c 2 "$TEMP_FAIL" > /dev/null 2>&1; then
     echo "ERROR: Benchmark should fail with non-existent source file"
-    rm -f "$TEMP_OUTPUT"
+    rm -f "$TEMP_OUTPUT" "$TEMP_FAIL"
     exit 1
 fi
+rm -f "$TEMP_FAIL"
 echo "✓ Benchmark properly handles missing source file"
 echo ""
 
 # Clean up
 rm -f "$TEMP_OUTPUT"
-rm -f /tmp/test_fail_$$.json
 
 echo "=== All benchmark tests passed! ==="
