@@ -106,7 +106,7 @@ Analysis failed with error code: 2
 **Error message**:
 ```
 Error: Invalid file format - README.md
-Expected a valid C source file (.c extension).
+Expected a valid C source file (.c or .h extension).
 Analysis failed with error code: 5
 ```
 

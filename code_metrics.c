@@ -54,7 +54,7 @@ void print_error_message(ErrorCode error, const char *context) {
             break;
         case ERROR_INVALID_FORMAT:
             fprintf(stderr, "Error: Invalid file format - %s\n", context);
-            fprintf(stderr, "Expected a valid C source file (.c extension).\n");
+            fprintf(stderr, "Expected a valid C source file (.c or .h extension).\n");
             break;
         case ERROR_DISK_FULL:
             fprintf(stderr, "Error: Disk full or insufficient space - %s\n", context);
@@ -172,7 +172,6 @@ ErrorCode analyze_file(const char *filename, CodeMetrics *metrics) {
  */
 ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
     FILE *file = NULL;
-    int result;
     
     /* Validate inputs */
     if (output_file == NULL || metrics == NULL) {
@@ -196,13 +195,27 @@ ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
     }
     
     /* Write metrics to file */
-    result = fprintf(file, "Code Metrics Report\n");
-    result += fprintf(file, "===================\n");
-    result += fprintf(file, "Lines: %d\n", metrics->line_count);
-    result += fprintf(file, "Characters: %d\n", metrics->char_count);
-    result += fprintf(file, "Words: %d\n", metrics->word_count);
-    
-    if (result < 0) {
+    if (fprintf(file, "Code Metrics Report\n") < 0) {
+        print_error_message(ERROR_WRITE_FAILURE, output_file);
+        fclose(file);
+        return ERROR_WRITE_FAILURE;
+    }
+    if (fprintf(file, "===================\n") < 0) {
+        print_error_message(ERROR_WRITE_FAILURE, output_file);
+        fclose(file);
+        return ERROR_WRITE_FAILURE;
+    }
+    if (fprintf(file, "Lines: %d\n", metrics->line_count) < 0) {
+        print_error_message(ERROR_WRITE_FAILURE, output_file);
+        fclose(file);
+        return ERROR_WRITE_FAILURE;
+    }
+    if (fprintf(file, "Characters: %d\n", metrics->char_count) < 0) {
+        print_error_message(ERROR_WRITE_FAILURE, output_file);
+        fclose(file);
+        return ERROR_WRITE_FAILURE;
+    }
+    if (fprintf(file, "Words: %d\n", metrics->word_count) < 0) {
         print_error_message(ERROR_WRITE_FAILURE, output_file);
         fclose(file);
         return ERROR_WRITE_FAILURE;
