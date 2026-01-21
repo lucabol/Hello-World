@@ -1,0 +1,31 @@
+name: Code Formatting Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  format-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+        clang-format --version
+      
+    - name: Check code formatting
+      run: |
+        echo "Checking code formatting compliance..."
+        bash test/test_formatting.sh
+        
+    - name: Verify make format-check target
+      run: |
+        echo "Running make format-check..."
+        make format-check

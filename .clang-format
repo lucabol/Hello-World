@@ -1,0 +1,51 @@
+---
+# clang-format configuration for C code
+# This defines the coding style for all C source files
+
+BasedOnStyle: LLVM
+Language: Cpp
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+
+# Braces
+BreakBeforeBraces: Linux
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterStruct: false
+  BeforeCatch: false
+  BeforeElse: false
+
+# Line length
+ColumnLimit: 80
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+PointerAlignment: Right
+
+# Alignment
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+
+# Other
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+
+# Include organization
+SortIncludes: true
+IncludeBlocks: Preserve
