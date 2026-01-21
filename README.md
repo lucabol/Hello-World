@@ -31,6 +31,8 @@ make test-sanitizers  # Build and test all sanitizers
 - **UndefinedBehaviorSanitizer (UBSan)**: Integer overflow, null pointer dereference, signed integer overflow
 - **MemorySanitizer (MSan)**: Uninitialized memory reads (requires Clang and instrumented libraries)
 
+**Note about MemorySanitizer**: MSan requires that all code (including standard libraries) be instrumented. On most systems, the standard C library is not instrumented, so MSan may report warnings about uninstrumented code. MSan works best in fully controlled environments where all dependencies are built with MSan instrumentation.
+
 ### Testing
 ```bash
 make test        # Run validation tests

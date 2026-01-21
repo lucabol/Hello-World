@@ -29,7 +29,8 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 # Test 1: Compile with strict flags
 log "Test 1: Compiling with strict flags..."
-if gcc -Wall -Wextra -Wpedantic -Werror -o hello_test hello.c 2>&1 | tee $TEMP_DIR/compile.log; then
+TEST_BIN="$(pwd)/hello_test"
+if gcc -Wall -Wextra -Wpedantic -Werror -o "$TEST_BIN" hello.c 2>&1 | tee $TEMP_DIR/compile.log; then
     log "${GREEN}✓${NC} Compilation successful"
 else
     echo "${RED}✗${NC} Compilation failed"
@@ -40,7 +41,7 @@ fi
 # Test 2: Run program and capture output
 log ""
 log "Test 2: Running program and checking output..."
-OUTPUT=$(./hello_test)
+OUTPUT=$("$TEST_BIN")
 EXPECTED="Hello world!"
 
 if [ "$OUTPUT" = "$EXPECTED" ]; then
@@ -55,7 +56,7 @@ fi
 # Test 3: Check exit code
 log ""
 log "Test 3: Checking exit code..."
-./hello_test > /dev/null
+"$TEST_BIN" > /dev/null
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
@@ -68,7 +69,7 @@ fi
 # Test 4: Verify exact output (no trailing newline)
 log ""
 log "Test 4: Verifying byte-level output..."
-./hello_test | xxd > $TEMP_DIR/output.hex
+"$TEST_BIN" | xxd > $TEMP_DIR/output.hex
 echo -n "Hello world!" | xxd > $TEMP_DIR/expected.hex
 
 if diff -q $TEMP_DIR/output.hex $TEMP_DIR/expected.hex > /dev/null 2>&1; then
@@ -83,7 +84,7 @@ else
 fi
 
 # Cleanup
-rm -f hello_test
+rm -f "$TEST_BIN"
 
 log ""
 log "${GREEN}=== All validation tests passed! ===${NC}"
