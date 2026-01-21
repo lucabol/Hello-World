@@ -73,12 +73,16 @@ coverage: clean-coverage
 	@mkdir -p $(COVERAGE_DIR)
 	@echo ""
 	@echo "Coverage summary:"
-	@$(GCOV) $(TARGET_COVERAGE)-hello.gcda 2>&1 | grep -E "(File '|Lines executed|Creating)"
+	@# Derive gcda filename from output binary and source file
+	@$(GCOV) $(TARGET_COVERAGE)-$(basename $(SOURCES)).gcda 2>&1 | grep -E "(File '|Lines executed|Creating)"
 	@echo ""
 	@if command -v $(LCOV) >/dev/null 2>&1 && command -v $(GENHTML) >/dev/null 2>&1; then \
 		echo "Generating HTML coverage report..."; \
-		$(LCOV) --capture --directory . --output-file $(COVERAGE_INFO) --rc lcov_branch_coverage=1 2>/dev/null || \
-		$(LCOV) --capture --directory . --output-file $(COVERAGE_INFO) 2>/dev/null; \
+		if $(LCOV) --capture --directory . --output-file $(COVERAGE_INFO) --rc lcov_branch_coverage=1 2>/dev/null; then \
+			: ; \
+		else \
+			$(LCOV) --capture --directory . --output-file $(COVERAGE_INFO) 2>/dev/null; \
+		fi; \
 		$(LCOV) --remove $(COVERAGE_INFO) '/usr/*' --output-file $(COVERAGE_INFO) 2>/dev/null; \
 		$(GENHTML) $(COVERAGE_INFO) --output-directory $(COVERAGE_DIR) --title "Hello World Coverage Report" --legend 2>/dev/null; \
 		echo ""; \

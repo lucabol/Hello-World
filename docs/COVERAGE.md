@@ -150,5 +150,5 @@ Solution: Run `make clean-coverage && make coverage`
 ## Further Reading
 
 - [gcov documentation](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html)
-- [lcov documentation](http://ltp.sourceforge.net/coverage/lcov.php)
+- [lcov documentation](https://ltp.sourceforge.net/coverage/lcov.php)
 - [Codecov documentation](https://docs.codecov.com/)

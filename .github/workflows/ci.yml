@@ -63,7 +63,7 @@ jobs:
     - name: Check coverage threshold
       run: |
         # Extract coverage percentage more robustly
-        COVERAGE=$(lcov --summary coverage/coverage.info 2>&1 | grep -o '[0-9.]*%' | head -1 | cut -d'%' -f1)
+        COVERAGE=$(lcov --summary coverage/coverage.info 2>&1 | grep -oE '[0-9]+(\.[0-9]+)?%' | head -1 | cut -d'%' -f1)
         if [[ -z "$COVERAGE" ]]; then
           echo "⚠️  Warning: Could not parse coverage percentage"
           exit 1
