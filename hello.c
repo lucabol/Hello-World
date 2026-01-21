@@ -6,15 +6,43 @@
 
 #define _(String) gettext(String)
 #define PACKAGE "hello"
-#define LOCALEDIR "/home/runner/work/Hello-World/Hello-World/locale"
+
+// LOCALEDIR can be overridden at compile time with -DLOCALEDIR=...
+#ifndef LOCALEDIR
+#define LOCALEDIR "./locale"
+#endif
 
 int main(int argc, char *argv[]) {
     // Parse command-line arguments for language override
     char *lang = NULL;
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--lang") == 0 && i + 1 < argc) {
-            lang = argv[i + 1];
-            i++;
+        if (strcmp(argv[i], "--lang") == 0) {
+            if (i + 1 < argc) {
+                lang = argv[i + 1];
+                i++;
+            } else {
+                fprintf(stderr, "Error: --lang requires a language argument\n");
+                fprintf(stderr, "Usage: %s [--lang LOCALE]\n", argv[0]);
+                fprintf(stderr, "Example: %s --lang es_ES.UTF-8\n", argv[0]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            printf("Usage: %s [--lang LOCALE]\n", argv[0]);
+            printf("Print a greeting message in the specified language.\n\n");
+            printf("Options:\n");
+            printf("  --lang LOCALE  Set the language (e.g., es_ES.UTF-8, fr_FR.UTF-8)\n");
+            printf("  --help, -h     Show this help message\n\n");
+            printf("Supported languages:\n");
+            printf("  en (default)   English\n");
+            printf("  es_ES.UTF-8    Spanish\n");
+            printf("  fr_FR.UTF-8    French\n");
+            printf("  de_DE.UTF-8    German\n");
+            printf("  ja_JP.UTF-8    Japanese\n");
+            return 0;
+        } else {
+            fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
+            fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+            return 1;
         }
     }
     

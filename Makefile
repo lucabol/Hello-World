@@ -10,7 +10,7 @@ LANGUAGES = es fr de ja
 all: hello translations
 
 hello: hello.c
-	$(CC) $(CFLAGS) -o hello hello.c
+	$(CC) $(CFLAGS) -DLOCALEDIR=\"$(LOCALEDIR)\" -o hello hello.c
 
 # Translation targets
 po/$(PACKAGE).pot: hello.c
@@ -50,13 +50,13 @@ unit-test: hello
 
 # Build variants
 strict: hello.c
-	$(CC) $(CFLAGS) -Wpedantic -Werror -o hello hello.c
+	$(CC) $(CFLAGS) -Wpedantic -Werror -DLOCALEDIR=\"$(LOCALEDIR)\" -o hello hello.c
 
 debug: hello.c
-	$(CC) $(CFLAGS) -g -o hello_debug hello.c
+	$(CC) $(CFLAGS) -g -DLOCALEDIR=\"$(LOCALEDIR)\" -o hello_debug hello.c
 
 clang: hello.c
-	clang $(CFLAGS) -o hello_clang hello.c
+	clang $(CFLAGS) -DLOCALEDIR=\"$(LOCALEDIR)\" -o hello_clang hello.c
 
 # Clean targets
 clean:

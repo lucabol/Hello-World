@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-21 16:06+0000\n"
-"PO-Revision-Date: 2026-01-21 16:06+0000\n"
+"POT-Creation-Date: 2026-01-21 16:12+0000\n"
+"PO-Revision-Date: 2026-01-21 16:12+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: es\n"
@@ -18,6 +18,6 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Print the message - gettext will translate if available
-#: hello.c:38
+#: hello.c:66
 msgid "Hello world!"
 msgstr "¡Hola mundo!"

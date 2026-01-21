@@ -78,7 +78,8 @@ log "✓ Command-line language argument works"
 
 # Test 7: UTF-8 encoding validation
 log "Test 7: UTF-8 encoding validation..."
-# Check Spanish special characters (¡)
+# Check Spanish special characters
+# ¡ (inverted exclamation) should be encoded as 0xC2 0xA1 in UTF-8
 SPANISH_HEX=$(LANG=es_ES.UTF-8 ./hello | od -A n -t x1 | tr -d ' \n')
 if [[ ! "$SPANISH_HEX" =~ c2a1 ]]; then
     echo "ERROR: Spanish UTF-8 encoding invalid"
@@ -86,7 +87,8 @@ if [[ ! "$SPANISH_HEX" =~ c2a1 ]]; then
 fi
 log "✓ Spanish UTF-8 encoding valid"
 
-# Check Japanese UTF-8 encoding (こ)
+# Check Japanese UTF-8 encoding
+# こ (hiragana KO) should be encoded as 0xE3 0x81 0x93 in UTF-8
 JAPANESE_HEX=$(LANG=ja_JP.UTF-8 ./hello | od -A n -t x1 | tr -d ' \n')
 if [[ ! "$JAPANESE_HEX" =~ e38193 ]]; then
     echo "ERROR: Japanese UTF-8 encoding invalid"
