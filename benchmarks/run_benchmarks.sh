@@ -148,19 +148,17 @@ EOF
             
             # Add comma if not first entry
             if [ "$first" = false ]; then
-                echo "," >> "$RESULTS_FILE"
+                printf "," >> "$RESULTS_FILE"
             fi
             first=false
             
-            cat >> "$RESULTS_FILE" << EOF
-    "${compiler}_${opt_level}": {
-      "compiler": "$compiler",
-      "optimization": "$opt_level",
-      "compile_time_ms": $compile_time,
-      "binary_size_bytes": $binary_size,
-      "execution_time_us": $exec_time
-    }
-EOF
+            printf '\n    "%s": {\n' "${compiler}_${opt_level}" >> "$RESULTS_FILE"
+            printf '      "compiler": "%s",\n' "$compiler" >> "$RESULTS_FILE"
+            printf '      "optimization": "%s",\n' "$opt_level" >> "$RESULTS_FILE"
+            printf '      "compile_time_ms": %d,\n' "$compile_time" >> "$RESULTS_FILE"
+            printf '      "binary_size_bytes": %d,\n' "$binary_size" >> "$RESULTS_FILE"
+            printf '      "execution_time_us": %d\n' "$exec_time" >> "$RESULTS_FILE"
+            printf '    }' >> "$RESULTS_FILE"
         done
     done
     
