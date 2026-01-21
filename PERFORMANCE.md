@@ -51,7 +51,7 @@ The `perf/benchmark.sh` script measures performance across multiple dimensions:
    - All optimization levels: -O0, -O1, -O2, -O3, -Os
    - Both GCC and Clang compilers
 
-2. **Execution Time** (averaged over 100 runs)
+2. **Execution Time** (averaged over 1000 runs)
    - Measured in microseconds
    - High precision timing
 
@@ -223,23 +223,25 @@ The benchmark suite tests multiple optimization levels to understand trade-offs:
 Based on the established baseline:
 
 #### GCC Performance
-- **Compilation**: ~50ms (< 1 second as documented)
-- **Execution**: ~400-500μs
-- **Binary Size**: ~14.5-16KB depending on optimization
+- **Compilation**: ~34-38ms (well under 1 second)
+- **Execution**: ~820-844μs
+- **Binary Size**: ~15.9-16.0KB depending on optimization
 
 #### Clang Performance
-- **Compilation**: ~4 seconds (as documented)
-- **Execution**: ~400-500μs (similar to GCC)
-- **Binary Size**: ~14.5-16KB depending on optimization
+- **Compilation**: ~62-66ms (faster than some documentation suggests due to system optimizations)
+- **Execution**: ~827-843μs (similar to GCC)
+- **Binary Size**: ~16.0KB depending on optimization
+
+**Note**: Original documentation mentioned ~4 seconds for Clang, but actual measurements show much faster compilation times in modern environments.
 
 ## Performance Regression Thresholds
 
 Performance regressions are detected based on these thresholds:
 
 ### Compilation Time: 20%
-- **Rationale**: Compilation should remain fast (<1s for GCC, ~4s for Clang)
+- **Rationale**: Compilation should remain fast (<100ms for both GCC and Clang)
 - **Impact**: Developer productivity
-- **Example**: GCC should not exceed ~60ms, Clang should not exceed ~4.8s
+- **Example**: GCC should not exceed ~45ms, Clang should not exceed ~80ms
 
 ### Execution Time: 50%
 - **Rationale**: Allows for measurement variance in microsecond-level timing
