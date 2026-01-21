@@ -7,8 +7,12 @@ echo ""
 echo "Creating test programs with intentional bugs..."
 echo ""
 
+# Create secure temporary directory for test files
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
 # Create a test program with a buffer overflow
-cat > /tmp/overflow_test.c << 'EOF'
+cat > $TEMP_DIR/overflow_test.c << 'EOF'
 #include <stdio.h>
 #include <string.h>
 
@@ -22,7 +26,7 @@ int main() {
 EOF
 
 # Create a test program with use-after-free
-cat > /tmp/use_after_free.c << 'EOF'
+cat > $TEMP_DIR/use_after_free.c << 'EOF'
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -37,7 +41,7 @@ int main() {
 EOF
 
 # Create a test program with integer overflow
-cat > /tmp/overflow_int.c << 'EOF'
+cat > $TEMP_DIR/overflow_int.c << 'EOF'
 #include <stdio.h>
 #include <limits.h>
 
@@ -51,9 +55,9 @@ int main() {
 EOF
 
 echo "1. Testing AddressSanitizer (buffer overflow detection)..."
-if gcc -fsanitize=address -g -o /tmp/overflow_test /tmp/overflow_test.c 2>/dev/null; then
+if gcc -fsanitize=address -g -o $TEMP_DIR/overflow_test $TEMP_DIR/overflow_test.c 2>/dev/null; then
     echo "   Build successful. Running (should detect overflow)..."
-    if /tmp/overflow_test 2>&1 | grep -q "buffer-overflow\|stack-buffer-overflow\|heap-buffer-overflow"; then
+    if $TEMP_DIR/overflow_test 2>&1 | grep -q "buffer-overflow\|stack-buffer-overflow\|heap-buffer-overflow"; then
         echo "   ✓ ASan successfully detected buffer overflow!"
     else
         echo "   Note: ASan may detect the overflow (test program would crash in production)"
@@ -64,9 +68,9 @@ fi
 
 echo ""
 echo "2. Testing AddressSanitizer (use-after-free detection)..."
-if gcc -fsanitize=address -g -o /tmp/use_after_free /tmp/use_after_free.c 2>/dev/null; then
+if gcc -fsanitize=address -g -o $TEMP_DIR/use_after_free $TEMP_DIR/use_after_free.c 2>/dev/null; then
     echo "   Build successful. Running (should detect use-after-free)..."
-    if /tmp/use_after_free 2>&1 | grep -q "heap-use-after-free"; then
+    if $TEMP_DIR/use_after_free 2>&1 | grep -q "heap-use-after-free"; then
         echo "   ✓ ASan successfully detected use-after-free!"
     else
         echo "   Note: ASan may detect the issue (test program would crash in production)"
@@ -77,9 +81,9 @@ fi
 
 echo ""
 echo "3. Testing UndefinedBehaviorSanitizer (integer overflow detection)..."
-if gcc -fsanitize=undefined -g -o /tmp/overflow_int /tmp/overflow_int.c 2>/dev/null; then
+if gcc -fsanitize=undefined -g -o $TEMP_DIR/overflow_int $TEMP_DIR/overflow_int.c 2>/dev/null; then
     echo "   Build successful. Running (should detect integer overflow)..."
-    if /tmp/overflow_int 2>&1 | grep -q "overflow\|signed integer overflow"; then
+    if $TEMP_DIR/overflow_int 2>&1 | grep -q "overflow\|signed integer overflow"; then
         echo "   ✓ UBSan successfully detected signed integer overflow!"
     else
         echo "   Note: UBSan may detect the overflow"
@@ -87,10 +91,6 @@ if gcc -fsanitize=undefined -g -o /tmp/overflow_int /tmp/overflow_int.c 2>/dev/n
 else
     echo "   Build failed"
 fi
-
-# Cleanup
-rm -f /tmp/overflow_test /tmp/use_after_free /tmp/overflow_int
-rm -f /tmp/overflow_test.c /tmp/use_after_free.c /tmp/overflow_int.c
 
 echo ""
 echo "=== Demo completed ==="

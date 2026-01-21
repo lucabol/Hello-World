@@ -23,13 +23,17 @@ NC='\033[0m' # No Color
 log "=== Hello World Validation ==="
 log ""
 
+# Create secure temporary directory for test files
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
 # Test 1: Compile with strict flags
 log "Test 1: Compiling with strict flags..."
-if gcc -Wall -Wextra -Wpedantic -Werror -o hello_test hello.c 2>&1 | tee /tmp/compile.log; then
+if gcc -Wall -Wextra -Wpedantic -Werror -o hello_test hello.c 2>&1 | tee $TEMP_DIR/compile.log; then
     log "${GREEN}✓${NC} Compilation successful"
 else
     echo "${RED}✗${NC} Compilation failed"
-    cat /tmp/compile.log
+    cat $TEMP_DIR/compile.log
     exit 1
 fi
 
@@ -64,22 +68,22 @@ fi
 # Test 4: Verify exact output (no trailing newline)
 log ""
 log "Test 4: Verifying byte-level output..."
-./hello_test | xxd > /tmp/output.hex
-echo -n "Hello world!" | xxd > /tmp/expected.hex
+./hello_test | xxd > $TEMP_DIR/output.hex
+echo -n "Hello world!" | xxd > $TEMP_DIR/expected.hex
 
-if diff -q /tmp/output.hex /tmp/expected.hex > /dev/null 2>&1; then
+if diff -q $TEMP_DIR/output.hex $TEMP_DIR/expected.hex > /dev/null 2>&1; then
     log "${GREEN}✓${NC} Byte-level output is correct (no trailing newline)"
 else
     echo "${RED}✗${NC} Byte-level output mismatch"
     echo "Expected hex:"
-    cat /tmp/expected.hex
+    cat $TEMP_DIR/expected.hex
     echo "Got hex:"
-    cat /tmp/output.hex
+    cat $TEMP_DIR/output.hex
     exit 1
 fi
 
 # Cleanup
-rm -f hello_test /tmp/compile.log /tmp/output.hex /tmp/expected.hex
+rm -f hello_test
 
 log ""
 log "${GREEN}=== All validation tests passed! ===${NC}"
