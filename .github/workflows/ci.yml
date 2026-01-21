@@ -15,7 +15,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Print environment versions
+    - name: Print GCC version
       run: |
         echo "GCC version: $(gcc --version | head -1)"
       
@@ -62,11 +62,16 @@ jobs:
       
     - name: Check coverage threshold
       run: |
-        COVERAGE=$(lcov --summary coverage/coverage.info 2>&1 | grep "lines\.\.\." | awk '{print $2}' | cut -d'%' -f1)
+        # Extract coverage percentage more robustly
+        COVERAGE=$(lcov --summary coverage/coverage.info 2>&1 | grep -o '[0-9.]*%' | head -1 | cut -d'%' -f1)
+        if [[ -z "$COVERAGE" ]]; then
+          echo "⚠️  Warning: Could not parse coverage percentage"
+          exit 1
+        fi
         echo "Line coverage: $COVERAGE%"
         # Convert coverage to integer for comparison (handles decimal)
         COVERAGE_INT=${COVERAGE%.*}
-        if [[ -n "$COVERAGE_INT" ]] && [[ "$COVERAGE_INT" -lt 80 ]]; then
+        if [[ "$COVERAGE_INT" -lt 80 ]]; then
           echo "⚠️  Warning: Coverage is below 80% threshold"
         else
           echo "✓ Coverage meets 80% threshold"
