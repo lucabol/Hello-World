@@ -95,26 +95,26 @@ for key in $benchmark_keys; do
     
     # Check compilation time
     if (( $(echo "$compile_change > $COMPILE_TIME_THRESHOLD" | bc -l) )); then
-        echo -e "  ${RED}✗ Compile time: ${current_compile}s (${compile_change:0:6}% increase, threshold: ${COMPILE_TIME_THRESHOLD}%)${NC}"
+        echo -e "  ${RED}✗ Compile time: ${current_compile}s (${compile_change}% increase, threshold: ${COMPILE_TIME_THRESHOLD}%)${NC}"
         local_regression=1
     else
-        echo -e "  ${GREEN}✓ Compile time: ${current_compile}s (${compile_change:0:6}% change)${NC}"
+        echo -e "  ${GREEN}✓ Compile time: ${current_compile}s (${compile_change}% change)${NC}"
     fi
     
     # Check execution time
     if (( $(echo "$exec_change > $EXECUTION_TIME_THRESHOLD" | bc -l) )); then
-        echo -e "  ${RED}✗ Execution time: ${current_exec}μs (${exec_change:0:6}% increase, threshold: ${EXECUTION_TIME_THRESHOLD}%)${NC}"
+        echo -e "  ${RED}✗ Execution time: ${current_exec}μs (${exec_change}% increase, threshold: ${EXECUTION_TIME_THRESHOLD}%)${NC}"
         local_regression=1
     else
-        echo -e "  ${GREEN}✓ Execution time: ${current_exec}μs (${exec_change:0:6}% change)${NC}"
+        echo -e "  ${GREEN}✓ Execution time: ${current_exec}μs (${exec_change}% change)${NC}"
     fi
     
     # Check binary size
     if (( $(echo "$size_change > $BINARY_SIZE_THRESHOLD" | bc -l) )); then
-        echo -e "  ${RED}✗ Binary size: ${current_size} bytes (${size_change:0:6}% increase, threshold: ${BINARY_SIZE_THRESHOLD}%)${NC}"
+        echo -e "  ${RED}✗ Binary size: ${current_size} bytes (${size_change}% increase, threshold: ${BINARY_SIZE_THRESHOLD}%)${NC}"
         local_regression=1
     else
-        echo -e "  ${GREEN}✓ Binary size: ${current_size} bytes (${size_change:0:6}% change)${NC}"
+        echo -e "  ${GREEN}✓ Binary size: ${current_size} bytes (${size_change}% change)${NC}"
     fi
     
     if [ $local_regression -eq 1 ]; then

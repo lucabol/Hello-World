@@ -68,7 +68,14 @@ measure_execution_time() {
 # Function to measure binary size
 measure_binary_size() {
     local binary=$1
-    local size=$(stat -c%s "$binary" 2>/dev/null || stat -f%z "$binary" 2>/dev/null)
+    
+    if [ ! -f "$binary" ]; then
+        echo "0"
+        return 1
+    fi
+    
+    # Try Linux stat first, then macOS stat
+    local size=$(stat -c%s "$binary" 2>/dev/null || stat -f%z "$binary" 2>/dev/null || echo "0")
     echo "$size"
 }
 
@@ -150,7 +157,9 @@ main() {
     fi
     
     # Close JSON (remove trailing comma from last entry)
-    sed -i '$ s/,$//' "$RESULTS_FILE"
+    # Use temp file for portability across different sed implementations
+    sed '$ s/,$//' "$RESULTS_FILE" > "${RESULTS_FILE}.tmp"
+    mv "${RESULTS_FILE}.tmp" "$RESULTS_FILE"
     echo "  }" >> "$RESULTS_FILE"
     echo "}" >> "$RESULTS_FILE"
     

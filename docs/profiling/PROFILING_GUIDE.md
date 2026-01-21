@@ -211,6 +211,27 @@ ms_print massif.out.*
 sudo apt-get install linux-tools-common linux-tools-generic
 ```
 
+### Permissions Requirements
+
+**Important**: Many `perf` features require elevated privileges or specific kernel settings. If you encounter permission errors:
+
+```bash
+# Check current setting
+cat /proc/sys/kernel/perf_event_paranoid
+
+# Temporarily allow perf for all users (requires root)
+sudo sysctl -w kernel.perf_event_paranoid=-1
+
+# Or make it permanent by adding to /etc/sysctl.conf
+echo "kernel.perf_event_paranoid = -1" | sudo tee -a /etc/sysctl.conf
+```
+
+**Permission levels:**
+- `-1`: Allow use of (almost) all events by all users
+- `0`: Disallow raw and ftrace function tracepoint access
+- `1`: Disallow CPU event access
+- `2`: Disallow kernel profiling (default on many systems)
+
 ### Basic Performance Statistics
 
 ```bash
