@@ -22,9 +22,9 @@ log() {
 
 log "Starting validation tests for hello.c..."
 
-# Build the program
+# Build the program with consistent flags matching Makefile
 log "Building hello.c..."
-gcc -Wall -Wextra -o hello hello.c
+gcc -Wall -Wextra -Wpedantic -Wformat=2 -std=c99 -o hello hello.c
 
 # Test 1: Check basic output
 log "Test 1: Checking basic output..."

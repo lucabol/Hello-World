@@ -11,6 +11,9 @@ int hello_main(){
         fprintf(stderr, "Error: Failed to write output\n");
         return EXIT_FAILURE;
     }
-    fflush(stdout);
+    if (fflush(stdout) != 0) {
+        fprintf(stderr, "Error: Failed to flush output\n");
+        return EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }

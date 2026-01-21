@@ -39,10 +39,10 @@ TEST(test_normal_operation) {
     /* Call hello_main - should succeed */
     int result = hello_main();
     
-    /* Restore stdout */
+    /* Restore stdout and cleanup in consistent order */
     dup2(stdout_backup, STDOUT_FILENO);
-    close(pipe_fds[0]);
     close(stdout_backup);
+    close(pipe_fds[0]);
     
     ASSERT(result == EXIT_SUCCESS);
 }
@@ -103,11 +103,11 @@ TEST(test_error_handling_exists) {
     /* Call hello_main - should succeed with valid stdout */
     int result = hello_main();
     
-    /* Restore stdout */
+    /* Restore stdout and cleanup in consistent order */
     close(pipe_fds[1]);
     dup2(stdout_backup, STDOUT_FILENO);
-    close(pipe_fds[0]);
     close(stdout_backup);
+    close(pipe_fds[0]);
     
     ASSERT(result == EXIT_SUCCESS);
 }
