@@ -43,3 +43,19 @@ test-helpers/
 
 # CodeQL artifacts
 _codeql_detected_source_root
+
+# Performance benchmark artifacts
+perf/benchmark_results.json
+hello_bench_*
+hello_prof
+gmon.out
+perf.data
+perf.data.old
+*.profdata
+callgrind.out.*
+cachegrind.out.*
+massif.out.*
+*_analysis.txt
+*_report.txt
+*_stats.txt
+valgrind*.txt

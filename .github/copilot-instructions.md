@@ -53,6 +53,11 @@ For detailed documentation on key architectural decisions, see our [Architecture
    - Checks for buffer overflows and uninitialized variables
    - Identifies code quality and portability issues
    - Fails build on any detected issues
+4. Run performance benchmarks and regression testing (in parallel job):
+   - Measures compilation times for GCC and Clang
+   - Measures execution times with high precision
+   - Measures binary sizes across optimization levels
+   - Compares against baseline and fails on regressions
 
 ### Manual Testing Scenarios
 **ALWAYS run these validation steps after making any changes:**
@@ -66,6 +71,8 @@ For detailed documentation on key architectural decisions, see our [Architecture
 - **Test alternative compiler:** `make clang` -- should produce identical output
 - **Debug build test:** `make debug` -- should work identically
 - **Run CI validation:** `make test` or `./test/validate.sh` -- reproduces CI checks locally
+- **Run performance benchmarks:** `./perf/benchmark.sh` -- measures compilation, execution, and binary size
+- **Check performance regressions:** `./perf/compare_performance.sh` -- validates against baseline
 
 ## Static Analysis
 
@@ -136,6 +143,58 @@ If the static-analysis-cppcheck CI job fails:
 3. Fix legitimate bugs and code quality issues
 4. Only suppress false positives after confirming they are not real issues
 5. Re-run the analysis to verify all issues are resolved
+
+## Performance Testing
+
+### Performance Benchmarking
+The project includes comprehensive performance benchmarking to track compilation times, execution times, and binary sizes across different compiler configurations.
+
+**Run performance benchmarks:**
+```bash
+# Run all benchmarks (compilation, execution, binary size)
+./perf/benchmark.sh
+
+# Compare current performance with baseline
+./perf/compare_performance.sh
+
+# Set current performance as baseline (after validating results)
+./perf/set_baseline.sh
+```
+
+**What is measured:**
+- **Compilation time**: Averaged over 5 runs for GCC and Clang with all optimization levels (-O0, -O1, -O2, -O3, -Os)
+- **Execution time**: Averaged over 1000 runs, measured in microseconds
+- **Binary size**: Measured in bytes for each optimization level
+
+**Performance regression thresholds:**
+- Compilation time: 20% increase allowed
+- Execution time: 50% increase allowed
+- Binary size: 10% increase allowed
+
+The CI pipeline automatically runs performance benchmarks and fails if metrics exceed these thresholds.
+
+### Profiling Tools
+Comprehensive profiling documentation is available in [docs/profiling/PROFILING_GUIDE.md](../docs/profiling/PROFILING_GUIDE.md) and [PERFORMANCE.md](../PERFORMANCE.md).
+
+**Quick profiling examples:**
+
+```bash
+# Memory analysis with valgrind
+gcc -g -o hello_debug hello.c
+valgrind --leak-check=full ./hello_debug
+
+# CPU profiling with gprof
+gcc -pg -o hello_prof hello.c
+./hello_prof
+gprof hello_prof gmon.out
+
+# Performance counters with perf
+perf stat ./hello
+perf record -g ./hello_debug
+perf report
+```
+
+See [PERFORMANCE.md](../PERFORMANCE.md) for detailed performance testing documentation and [docs/profiling/PROFILING_GUIDE.md](../docs/profiling/PROFILING_GUIDE.md) for comprehensive profiling guides.
 
 ## Common Tasks
 
