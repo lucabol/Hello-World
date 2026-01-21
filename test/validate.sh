@@ -29,8 +29,7 @@ log "${YELLOW}Running validation tests for hello.c...${NC}"
 
 # Test 1: Compile with strict warnings
 log "\n${YELLOW}Test 1: Compiling with strict warnings...${NC}"
-gcc -Wall -Wextra -Wpedantic -Werror -o hello hello.c
-if [[ $? -eq 0 ]]; then
+if gcc -Wall -Wextra -Wpedantic -Werror -o hello hello.c; then
     log "${GREEN}✓ Compilation successful${NC}"
 else
     log "${RED}✗ Compilation failed${NC}"
@@ -65,12 +64,13 @@ fi
 # Test 4: Verify newline character is present
 log "\n${YELLOW}Test 4: Verifying newline character in output...${NC}"
 # Use hexdump to check for newline at the end
-OUTPUT_HEX=$(./hello | od -An -tx1)
-# Expected hex: "Hello world!\n" = 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 0a
-if echo "$OUTPUT_HEX" | grep -q "0a"; then
-    log "${GREEN}✓ Newline character (0x0a) found in output${NC}"
+OUTPUT_HEX=$(./hello | od -An -tx1 | tr -d ' \n')
+# Expected hex ends with "0a" (newline character)
+# "Hello world!\n" = 48656c6c6f20776f726c64210a
+if [[ "$OUTPUT_HEX" =~ 0a$ ]]; then
+    log "${GREEN}✓ Newline character (0x0a) found at end of output${NC}"
 else
-    log "${RED}✗ Newline character not found in output${NC}"
+    log "${RED}✗ Newline character not found at end of output${NC}"
     log "${RED}  Hex dump: $OUTPUT_HEX${NC}"
     exit 1
 fi
