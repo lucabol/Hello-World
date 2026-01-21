@@ -4,12 +4,22 @@
 
 set -e
 
+# Check for verbose flag
+VERBOSE=0
+if [[ "$1" == "-v" || "$1" == "--verbose" ]]; then
+    VERBOSE=1
+fi
+
 echo "=== Docker Build Consistency Test ==="
 echo ""
 
 # Test 1: Verify Docker image builds successfully
 echo "Test 1: Building Docker image..."
-docker build -t hello-world-c:test . > /dev/null 2>&1
+if [ $VERBOSE -eq 1 ]; then
+    docker build -t hello-world-c:test .
+else
+    docker build -t hello-world-c:test . > /dev/null 2>&1
+fi
 echo "✓ Docker image built successfully"
 echo ""
 
