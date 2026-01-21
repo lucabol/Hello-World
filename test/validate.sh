@@ -1,0 +1,85 @@
+#!/bin/bash
+# Validation script for Hello World program
+# Validates compilation, output, and exit code
+
+set -e
+
+QUIET=0
+if [ "$1" = "--quiet" ]; then
+    QUIET=1
+fi
+
+log() {
+    if [ $QUIET -eq 0 ]; then
+        echo "$@"
+    fi
+}
+
+# Colors for output (only if not quiet)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+log "=== Hello World Validation ==="
+log ""
+
+# Test 1: Compile with strict flags
+log "Test 1: Compiling with strict flags..."
+if gcc -Wall -Wextra -Wpedantic -Werror -o hello_test hello.c 2>&1 | tee /tmp/compile.log; then
+    log "${GREEN}✓${NC} Compilation successful"
+else
+    echo "${RED}✗${NC} Compilation failed"
+    cat /tmp/compile.log
+    exit 1
+fi
+
+# Test 2: Run program and capture output
+log ""
+log "Test 2: Running program and checking output..."
+OUTPUT=$(./hello_test)
+EXPECTED="Hello world!"
+
+if [ "$OUTPUT" = "$EXPECTED" ]; then
+    log "${GREEN}✓${NC} Output matches expected: '$EXPECTED'"
+else
+    echo "${RED}✗${NC} Output mismatch"
+    echo "  Expected: '$EXPECTED'"
+    echo "  Got:      '$OUTPUT'"
+    exit 1
+fi
+
+# Test 3: Check exit code
+log ""
+log "Test 3: Checking exit code..."
+./hello_test > /dev/null
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    log "${GREEN}✓${NC} Exit code is 0"
+else
+    echo "${RED}✗${NC} Exit code is $EXIT_CODE (expected 0)"
+    exit 1
+fi
+
+# Test 4: Verify exact output (no trailing newline)
+log ""
+log "Test 4: Verifying byte-level output..."
+./hello_test | xxd > /tmp/output.hex
+echo -n "Hello world!" | xxd > /tmp/expected.hex
+
+if diff -q /tmp/output.hex /tmp/expected.hex > /dev/null 2>&1; then
+    log "${GREEN}✓${NC} Byte-level output is correct (no trailing newline)"
+else
+    echo "${RED}✗${NC} Byte-level output mismatch"
+    echo "Expected hex:"
+    cat /tmp/expected.hex
+    echo "Got hex:"
+    cat /tmp/output.hex
+    exit 1
+fi
+
+# Cleanup
+rm -f hello_test /tmp/compile.log /tmp/output.hex /tmp/expected.hex
+
+log ""
+log "${GREEN}=== All validation tests passed! ===${NC}"

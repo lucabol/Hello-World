@@ -17,12 +17,20 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 - **Debug build:** `gcc -g -Wall -Wextra -o hello_debug hello.c`
 - **Optimized build:** `gcc -O2 -Wall -Wextra -o hello hello.c`
 
+### Sanitizer Builds (Runtime Error Detection)
+- **AddressSanitizer:** `make asan` -- detects memory errors (use-after-free, buffer overflows, leaks)
+- **UndefinedBehaviorSanitizer:** `make ubsan` -- detects undefined behavior (integer overflow, null pointer dereference)
+- **MemorySanitizer:** `make msan` -- detects uninitialized memory reads (requires Clang and instrumented libraries)
+- **Test all sanitizers:** `make test-sanitizers` -- builds and tests all sanitizers
+- **Run sanitizer test suite:** `./test/test_sanitizers.sh` -- comprehensive sanitizer validation
+
 ### Alternative Compilers
 - **Clang:** `clang -o hello hello.c` -- takes ~4 seconds, produces identical output
 - **Both GCC and Clang are available** and work correctly with this codebase
 
 ### Timing Expectations
 - **Compilation time:** Under 1 second with GCC, ~4 seconds with Clang
+- **Sanitizer builds:** 1-2 seconds (slightly slower due to instrumentation)
 - **NEVER CANCEL:** Not applicable - all builds complete in under 5 seconds
 - **No timeouts needed** - builds are instantaneous
 
@@ -54,6 +62,8 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 - **Test alternative compiler:** `make clang` -- should produce identical output
 - **Debug build test:** `make debug` -- should work identically
 - **Run CI validation:** `make test` or `./test/validate.sh` -- reproduces CI checks locally
+- **Test sanitizer builds:** `make test-sanitizers` -- verifies all sanitizer builds work correctly
+- **Sanitizer suite:** `./test/test_sanitizers.sh` -- runs comprehensive sanitizer validation
 
 ## Common Tasks
 
@@ -69,10 +79,31 @@ gcc -Wall -Wextra -o hello hello.c
 gcc -O2 -Wall -Wextra -o hello hello.c
 ```
 
+### Sanitizer Builds
+```bash
+# Build with AddressSanitizer (memory error detection)
+make asan
+./hello_asan
+
+# Build with UndefinedBehaviorSanitizer (UB detection)
+make ubsan
+./hello_ubsan
+
+# Build with MemorySanitizer (uninitialized memory detection)
+make msan
+./hello_msan
+
+# Test all sanitizers
+make test-sanitizers
+```
+
 ### Cleaning
 ```bash
 # Remove compiled binaries
 rm -f hello hello_debug hello_clang *.exe *.out
+
+# Remove all build artifacts including sanitizer builds
+make clean
 ```
 
 ### Testing Changes

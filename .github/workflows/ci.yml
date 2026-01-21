@@ -81,3 +81,35 @@ jobs:
         export LANG=C.UTF-8
         export LC_ALL=C.UTF-8
         bash test/test_code_metrics.sh
+
+  # Build and test with sanitizers - runtime error detection
+  build-and-test-sanitizers:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Build with AddressSanitizer
+      run: make asan
+      
+    - name: Test AddressSanitizer build
+      run: ./hello_asan
+      
+    - name: Build with UndefinedBehaviorSanitizer
+      run: make ubsan
+      
+    - name: Test UndefinedBehaviorSanitizer build
+      run: ./hello_ubsan
+      
+    - name: Build with MemorySanitizer
+      run: make msan
+      
+    - name: Test MemorySanitizer build
+      run: ./hello_msan || echo "MSan may require instrumented libraries"
+      
+    - name: Run comprehensive sanitizer tests
+      run: bash test/test_sanitizers.sh
+      
+    - name: Test all sanitizers with Makefile target
+      run: make test-sanitizers

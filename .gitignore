@@ -6,6 +6,9 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+hello_asan
+hello_ubsan
+hello_msan
 voice_demo
 voice_demo_test
 test_hello_runner
