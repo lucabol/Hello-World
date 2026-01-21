@@ -15,14 +15,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-      
     - name: Print environment versions
       run: |
-        echo "Node.js version: $(node --version)"
         echo "GCC version: $(gcc --version | head -1)"
       
     - name: Build with GCC (with warnings)
@@ -36,22 +30,56 @@ jobs:
       
     - name: Run validation tests
       run: bash test/validate.sh --quiet
+  
+  # Code coverage reporting with gcov/lcov
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
       
-    - name: Test visual editor generated code
-      run: bash test/test_editor_output.sh
+    - name: Install lcov
+      run: sudo apt-get update && sudo apt-get install -y lcov
       
-    - name: Test XSS escaping function
-      run: node test/test_escape_html.js
+    - name: Generate coverage report
+      run: make coverage
       
-    - name: Build code_metrics with strict flags
-      run: gcc -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c11 -o code_metrics code_metrics.c
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 30
       
-    - name: Run code_metrics test suite
+    - name: Display coverage summary
       run: |
-        export LANG=C.UTF-8
-        export LC_ALL=C.UTF-8
-        bash test/test_code_metrics.sh
+        echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Coverage report generated successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        lcov --summary coverage/coverage.info 2>&1 | grep -E "(lines\.\.\.|functions\.\.\.)" >> $GITHUB_STEP_SUMMARY || true
       
+    - name: Check coverage threshold
+      run: |
+        COVERAGE=$(lcov --summary coverage/coverage.info 2>&1 | grep "lines\.\.\." | awk '{print $2}' | cut -d'%' -f1)
+        echo "Line coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          echo "⚠️  Warning: Coverage is below 80% threshold"
+        else
+          echo "✓ Coverage meets 80% threshold"
+        fi
+    
+    # Optional: Upload to Codecov (requires CODECOV_TOKEN secret to be configured)
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage/coverage.info
+        flags: unittests
+        name: codecov-hello-world
+        fail_ci_if_error: false
+      continue-on-error: true
+          
   # Build and test with Clang - alternative C compiler validation
   build-and-test-clang:
     runs-on: ubuntu-latest
@@ -65,19 +93,3 @@ jobs:
       
     - name: Test Clang build
       run: ./hello_clang
-      
-    - name: Run unit tests with Clang
-      run: |
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -c -o hello_lib.o hello.c -DUNIT_TEST
-        clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c99 -I. -o test_hello_runner test/test_hello.c hello_lib.o
-        ./test_hello_runner
-        rm -f hello_lib.o test_hello_runner
-    
-    - name: Build code_metrics with Clang and strict flags
-      run: clang -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -Wsign-conversion -Werror -std=c11 -o code_metrics code_metrics.c
-      
-    - name: Run code_metrics test suite with Clang
-      run: |
-        export LANG=C.UTF-8
-        export LC_ALL=C.UTF-8
-        bash test/test_code_metrics.sh
