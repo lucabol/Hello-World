@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test script to validate documentation completeness
 # Ensures all ADR files exist and are properly linked
 
@@ -45,8 +45,10 @@ done
 REQUIRED_SECTIONS=("Status" "Context" "Decision" "Consequences")
 
 for adr_file in "${ADR_FILES[@]}"; do
+    # Read file content once and check all sections
+    file_content=$(cat "$adr_file")
     for section in "${REQUIRED_SECTIONS[@]}"; do
-        if ! grep -q "## $section" "$adr_file"; then
+        if ! echo "$file_content" | grep -q "## $section"; then
             echo "ERROR: $adr_file missing '## $section' section"
             exit 1
         fi
