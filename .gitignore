@@ -41,6 +41,11 @@ test-helpers/
 *.tmp
 *.temp
 
+<<<<<<< HEAD
 # Benchmark results
 benchmark_results.json
 benchmark_results_*.json
+=======
+# CodeQL artifacts
+_codeql_detected_source_root
+>>>>>>> main
