@@ -1,0 +1,51 @@
+# Git files
+.git
+.github
+.gitignore
+
+# Documentation
+README.md
+
+# Test artifacts
+test/*.o
+test/*.exe
+test/*.out
+
+# Compiled binaries (will be built in container)
+hello
+hello_debug
+hello_optimized
+hello_strict
+hello_clang
+hello_warnings
+hello_test*
+voice_demo
+voice_demo_test
+test_hello_runner
+code_metrics
+*.exe
+*.out
+
+# Object files
+*.o
+*.obj
+
+# Debug files
+*.dSYM/
+*.pdb
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+test-helpers/
+*.tmp
+*.temp
+
+# Docker files (no need to copy into container)
+Dockerfile
+docker-compose.yml
+.dockerignore

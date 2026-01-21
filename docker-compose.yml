@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Main build service
+  hello-world:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hello-world-c:latest
+    container_name: hello-world
+    volumes:
+      - .:/app
+    command: ./hello
+
+  # Development service with interactive shell
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hello-world-c:latest
+    container_name: hello-world-dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
+
+  # Test service for running builds
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hello-world-c:latest
+    container_name: hello-world-test
+    volumes:
+      - .:/app
+    working_dir: /app
+    entrypoint: /bin/bash
+    command: -c "gcc -Wall -Wextra -o hello hello.c && ./hello && clang -Wall -Wextra -o hello_clang hello.c && ./hello_clang"
