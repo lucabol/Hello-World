@@ -51,6 +51,35 @@ jobs:
         export LANG=C.UTF-8
         export LC_ALL=C.UTF-8
         bash test/test_code_metrics.sh
+  
+  # Performance benchmarking and regression testing
+  performance-testing:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install bc (calculator for benchmarking)
+      run: sudo apt-get update && sudo apt-get install -y bc
+      
+    - name: Run performance benchmarks
+      run: |
+        echo "Running performance benchmarks..."
+        ./perf/benchmark.sh
+        
+    - name: Check for performance regressions
+      run: |
+        echo "Checking for performance regressions..."
+        ./perf/compare_performance.sh
+        
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-benchmarks
+        path: perf/benchmark_results.json
+        retention-days: 30
       
   # Build and test with Clang - alternative C compiler validation
   build-and-test-clang:
