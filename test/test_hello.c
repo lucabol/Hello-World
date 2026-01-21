@@ -41,8 +41,8 @@ TEST(test_normal_operation) {
     
     /* Restore stdout */
     dup2(stdout_backup, STDOUT_FILENO);
-    close(stdout_backup);
     close(pipe_fds[0]);
+    close(stdout_backup);
     
     ASSERT(result == EXIT_SUCCESS);
 }
@@ -106,8 +106,8 @@ TEST(test_error_handling_exists) {
     /* Restore stdout */
     close(pipe_fds[1]);
     dup2(stdout_backup, STDOUT_FILENO);
-    close(stdout_backup);
     close(pipe_fds[0]);
+    close(stdout_backup);
     
     ASSERT(result == EXIT_SUCCESS);
 }
