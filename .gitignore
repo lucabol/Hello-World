@@ -40,7 +40,13 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+<<<<<<< HEAD
 test_output.txt
 output.txt
 stdout.txt
 stderr.txt
+=======
+
+# CodeQL artifacts
+_codeql_detected_source_root
+>>>>>>> main
