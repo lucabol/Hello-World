@@ -81,3 +81,26 @@ jobs:
         export LANG=C.UTF-8
         export LC_ALL=C.UTF-8
         bash test/test_code_metrics.sh
+
+  # Static analysis with cppcheck - detects C-specific issues
+  static-analysis-cppcheck:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
+      
+    - name: Run cppcheck static analysis
+      run: |
+        echo "Running cppcheck static analysis..."
+        cppcheck --version
+        cppcheck --enable=all \
+                 --error-exitcode=1 \
+                 --suppress=missingIncludeSystem \
+                 --inline-suppr \
+                 --quiet \
+                 hello.c
+        echo "Static analysis passed - no issues found"
