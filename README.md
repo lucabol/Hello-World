@@ -72,6 +72,10 @@ bash test/validate.sh   # Run validation tests with output
 - gettext tools (for building translations)
 - UTF-8 locale support
 
+## CI Setup
+
+For CI/CD environments, additional setup may be required. See [CI_SETUP.md](CI_SETUP.md) for detailed instructions on configuring the CI workflow to support internationalization testing.
+
 ## Directory Structure
 
 ```
