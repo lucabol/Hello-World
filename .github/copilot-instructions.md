@@ -4,6 +4,13 @@ This is a simple C "Hello World" program. The repository contains a single C sou
 
 **ALWAYS follow these instructions first** and only fall back to additional search or bash commands if the information here is incomplete or found to be in error.
 
+## Architecture Decision Records
+
+For detailed documentation on key architectural decisions, see our [Architecture Decision Records (ADRs)](../docs/adr/README.md):
+- [ADR-001: No Trailing Newline in Output](../docs/adr/ADR-001-no-trailing-newline.md)
+- [ADR-002: Byte-Level Validation](../docs/adr/ADR-002-byte-level-validation.md)
+- [ADR-003: Dual Compiler Support](../docs/adr/ADR-003-dual-compiler-support.md)
+
 ## Working Effectively
 
 ### Quick Start - Build and Run
