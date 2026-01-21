@@ -93,7 +93,7 @@ help:
 	@echo "  make          - Build standard executable"
 	@echo "  make strict   - Build with strict warnings (CI mode)"
 	@echo "  make debug    - Build with debug symbols"
-	@echo "  make optimized- Build with optimizations"
+	@echo "  make optimized - Build with optimizations"
 	@echo "  make clang    - Build with Clang compiler"
 	@echo ""
 	@echo "Sanitizer builds (for error detection):"
