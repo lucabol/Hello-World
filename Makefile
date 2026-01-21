@@ -55,7 +55,7 @@ test-benchmarks:
 
 # Clean compiled binaries
 clean:
-	rm -f hello hello_debug hello_clang hello_optimized hello_strict hello_warnings hello_test* hello_bench_*
+	rm -f hello hello_debug hello_clang hello_optimized hello_strict hello_warnings hello_test* hello_bench_* code_metrics
 	rm -f *.o *.exe *.out
 	rm -f benchmarks/benchmark_results.json
 
