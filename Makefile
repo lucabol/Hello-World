@@ -91,7 +91,7 @@ coverage: clean-coverage
 		echo "Install with: sudo apt-get install lcov"; \
 	fi
 	@echo ""
-	@mv *.gcov $(COVERAGE_DIR)/ 2>/dev/null || true
+	@find . -maxdepth 1 -name '*.gcov' -exec mv {} $(COVERAGE_DIR)/ \; 2>/dev/null || true
 
 # Clean coverage artifacts
 .PHONY: clean-coverage

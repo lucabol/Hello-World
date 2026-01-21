@@ -64,7 +64,9 @@ jobs:
       run: |
         COVERAGE=$(lcov --summary coverage/coverage.info 2>&1 | grep "lines\.\.\." | awk '{print $2}' | cut -d'%' -f1)
         echo "Line coverage: $COVERAGE%"
-        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+        # Convert coverage to integer for comparison (handles decimal)
+        COVERAGE_INT=${COVERAGE%.*}
+        if [[ -n "$COVERAGE_INT" ]] && [[ "$COVERAGE_INT" -lt 80 ]]; then
           echo "⚠️  Warning: Coverage is below 80% threshold"
         else
           echo "✓ Coverage meets 80% threshold"
