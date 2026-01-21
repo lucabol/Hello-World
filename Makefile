@@ -1,37 +1,58 @@
-# Makefile for Hello World C program
+# Makefile for Hello World and Code Metrics with Performance Benchmarking
 
-.PHONY: all clean test benchmark benchmark-update-baseline validate unit-test strict debug clang help
+CC = gcc
+CFLAGS = -Wall -Wextra -Wpedantic
+CLANG = clang
 
-# Default target
-all: hello
+# Targets
+.PHONY: all clean test test-hello test-metrics test-benchmarks strict debug clang benchmark benchmark-update-baseline benchmark-compare validate unit-test help
 
-# Build the program
+# Default target - build both programs
+all: hello code_metrics
+
+# Build hello program
 hello: hello.c
-	gcc -Wall -Wextra -o hello hello.c
+	$(CC) $(CFLAGS) -o hello hello.c
+
+# Build code_metrics program
+code_metrics: code_metrics.c
+	$(CC) $(CFLAGS) -o code_metrics code_metrics.c
 
 # Build with strict flags (CI-like)
-strict: hello.c
-	gcc -Wall -Wextra -Wpedantic -Werror -o hello hello.c
+strict:
+	$(CC) -Wall -Wextra -Wpedantic -Werror -o hello hello.c
+	$(CC) -Wall -Wextra -Wpedantic -Werror -o code_metrics code_metrics.c
 
 # Build with debug symbols
-debug: hello.c
-	gcc -g -Wall -Wextra -o hello_debug hello.c
+debug:
+	$(CC) -Wall -Wextra -Wpedantic -g -o hello hello.c
+	$(CC) -Wall -Wextra -Wpedantic -g -o code_metrics code_metrics.c
 
 # Build with Clang
-clang: hello.c
-	clang -Wall -Wextra -o hello_clang hello.c
+clang:
+	$(CLANG) $(CFLAGS) -o hello hello.c
+	$(CLANG) $(CFLAGS) -o code_metrics code_metrics.c
 
-# Run validation tests
-validate:
-	bash test/validate.sh
+# Run all tests
+test: test-hello test-metrics
+
+# Run hello.c validation tests
+test-hello:
+	@echo "Running hello.c validation tests..."
+	@bash test/validate.sh
+
+# Run code_metrics.c validation tests
+test-metrics:
+	@echo "Running code_metrics.c validation tests..."
+	@bash test/validate_code_metrics.sh
 
 # Run validation tests (quiet mode)
 test-quiet:
-	bash test/validate.sh --quiet
+	@bash test/validate.sh --quiet
 
-# Run all tests
-test: validate
-	@echo "All tests passed!"
+# Run validation tests (alias)
+validate:
+	bash test/validate.sh
 
 # Run unit tests (stub for compatibility)
 unit-test:
@@ -62,16 +83,21 @@ clean:
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  make              - Build the program (default)"
-	@echo "  make strict       - Build with strict warnings (-Werror)"
-	@echo "  make debug        - Build with debug symbols"
-	@echo "  make clang        - Build with Clang compiler"
-	@echo "  make test         - Run validation tests"
-	@echo "  make test-quiet   - Run validation tests (quiet mode)"
-	@echo "  make validate     - Run validation tests"
-	@echo "  make benchmark    - Run performance benchmarks"
-	@echo "  make benchmark-update-baseline - Update benchmark baseline"
-	@echo "  make benchmark-compare - Compare benchmarks with baseline"
-	@echo "  make test-benchmarks - Run benchmark accuracy tests"
-	@echo "  make clean        - Remove compiled binaries"
-	@echo "  make help         - Show this help message"
+	@echo "  all                - Build hello and code_metrics (default)"
+	@echo "  hello              - Build hello program only"
+	@echo "  code_metrics       - Build code_metrics program only"
+	@echo "  strict             - Build with -Werror flag"
+	@echo "  debug              - Build with debug symbols"
+	@echo "  clang              - Build using clang compiler"
+	@echo "  test               - Run all test suites"
+	@echo "  test-hello         - Run hello.c tests only"
+	@echo "  test-metrics       - Run code_metrics.c tests only"
+	@echo "  test-quiet         - Run tests with minimal output"
+	@echo "  validate           - Run validation tests"
+	@echo "  unit-test          - Run unit tests (stub)"
+	@echo "  benchmark          - Run performance benchmarks"
+	@echo "  benchmark-update-baseline - Update benchmark baseline"
+	@echo "  benchmark-compare  - Compare benchmarks with baseline"
+	@echo "  test-benchmarks    - Run benchmark accuracy tests"
+	@echo "  clean              - Remove all build artifacts"
+	@echo "  help               - Show this help message"

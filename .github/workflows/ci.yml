@@ -148,3 +148,28 @@ jobs:
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "📊 Full results available in the benchmark-results artifact" >> $GITHUB_STEP_SUMMARY
+
+  # Static analysis with cppcheck - detects C-specific issues
+  static-analysis-cppcheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
+      
+    - name: Run cppcheck static analysis
+      run: |
+        echo "Running cppcheck static analysis..."
+        cppcheck --version
+        cppcheck --enable=all \
+                 --error-exitcode=1 \
+                 --suppress=missingIncludeSystem \
+                 --inline-suppr \
+                 --quiet \
+                 .
+        echo "Static analysis passed - no issues found"
