@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-<<<<<<< HEAD
 #include <string.h>
 #include <locale.h>
 #include <libintl.h>
@@ -64,25 +63,16 @@ int main(int argc, char *argv[]) {
     textdomain(PACKAGE);
     
     // Print the message - gettext will translate if available
-    printf("%s", _("Hello world!"));
-    
-    return 0;
-=======
-
-/* Main function to print greeting */
-#ifndef UNIT_TEST
-int main(){
-#else
-int hello_main(){
-#endif
-    if (printf("Hello world!") < 0) {
+    if (printf("%s", _("Hello world!")) < 0) {
         fprintf(stderr, "Error: Failed to write output\n");
         return EXIT_FAILURE;
     }
+    
+    // Flush output to ensure it's written
     if (fflush(stdout) != 0) {
         fprintf(stderr, "Error: Failed to flush output\n");
         return EXIT_FAILURE;
     }
+    
     return EXIT_SUCCESS;
->>>>>>> main
 }
