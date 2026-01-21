@@ -81,3 +81,70 @@ jobs:
         export LANG=C.UTF-8
         export LC_ALL=C.UTF-8
         bash test/test_code_metrics.sh
+
+  # Performance benchmarks - tracks compilation time, binary size, and execution time
+  performance-benchmarks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    
+    - name: Print environment versions
+      run: |
+        echo "GCC version: $(gcc --version | head -1)"
+        echo "Clang version: $(clang --version | head -1)"
+        echo "Python version: $(python3 --version)"
+    
+    - name: Run performance benchmarks
+      run: |
+        chmod +x benchmarks/run_benchmarks.sh
+        bash benchmarks/run_benchmarks.sh --skip-comparison
+    
+    - name: Run benchmark accuracy tests
+      run: |
+        chmod +x test/test_benchmarks.sh
+        bash test/test_benchmarks.sh
+    
+    - name: Compare with baseline (if exists)
+      run: |
+        if [ -f benchmarks/baseline.json ]; then
+          echo "Baseline found, comparing results..."
+          chmod +x benchmarks/compare_benchmarks.py
+          python3 benchmarks/compare_benchmarks.py
+        else
+          echo "No baseline found, skipping comparison"
+          echo "To create a baseline, run: make benchmark-update-baseline"
+        fi
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: |
+          benchmarks/benchmark_results.json
+          benchmarks/baseline.json
+        retention-days: 90
+    
+    - name: Display benchmark summary
+      if: always()
+      run: |
+        echo "## Benchmark Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Quick Stats" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f benchmarks/benchmark_results.json ]; then
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          python3 -m json.tool benchmarks/benchmark_results.json >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📊 Full results available in the benchmark-results artifact" >> $GITHUB_STEP_SUMMARY

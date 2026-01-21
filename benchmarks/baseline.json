@@ -1,0 +1,86 @@
+{
+  "timestamp": "2026-01-21T08:22:59Z",
+  "git_commit": "febda693166cd18f8a0523780f8363add043fb17",
+  "benchmarks": {
+    "gcc_O0": {
+      "compiler": "gcc",
+      "optimization": "O0",
+      "compile_time_ms": 31,
+      "binary_size_bytes": 15960,
+      "execution_time_us": 813
+    }
+,
+    "gcc_O1": {
+      "compiler": "gcc",
+      "optimization": "O1",
+      "compile_time_ms": 36,
+      "binary_size_bytes": 15968,
+      "execution_time_us": 821
+    }
+,
+    "gcc_O2": {
+      "compiler": "gcc",
+      "optimization": "O2",
+      "compile_time_ms": 35,
+      "binary_size_bytes": 15968,
+      "execution_time_us": 807
+    }
+,
+    "gcc_O3": {
+      "compiler": "gcc",
+      "optimization": "O3",
+      "compile_time_ms": 33,
+      "binary_size_bytes": 15968,
+      "execution_time_us": 799
+    }
+,
+    "gcc_Os": {
+      "compiler": "gcc",
+      "optimization": "Os",
+      "compile_time_ms": 34,
+      "binary_size_bytes": 15968,
+      "execution_time_us": 812
+    }
+,
+    "clang_O0": {
+      "compiler": "clang",
+      "optimization": "O0",
+      "compile_time_ms": 58,
+      "binary_size_bytes": 16008,
+      "execution_time_us": 810
+    }
+,
+    "clang_O1": {
+      "compiler": "clang",
+      "optimization": "O1",
+      "compile_time_ms": 62,
+      "binary_size_bytes": 16008,
+      "execution_time_us": 801
+    }
+,
+    "clang_O2": {
+      "compiler": "clang",
+      "optimization": "O2",
+      "compile_time_ms": 61,
+      "binary_size_bytes": 16008,
+      "execution_time_us": 810
+    }
+,
+    "clang_O3": {
+      "compiler": "clang",
+      "optimization": "O3",
+      "compile_time_ms": 61,
+      "binary_size_bytes": 16008,
+      "execution_time_us": 809
+    }
+,
+    "clang_Os": {
+      "compiler": "clang",
+      "optimization": "Os",
+      "compile_time_ms": 62,
+      "binary_size_bytes": 16008,
+      "execution_time_us": 816
+    }
+
+  }
+}

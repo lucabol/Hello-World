@@ -6,6 +6,7 @@ hello_strict
 hello_clang
 hello_warnings
 hello_test*
+hello_bench_*
 voice_demo
 voice_demo_test
 test_hello_runner
@@ -40,3 +41,7 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Benchmark artifacts
+benchmarks/benchmark_results.json
+benchmarks/*.tmp
