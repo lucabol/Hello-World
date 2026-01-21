@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-01-21T16:00:05Z",
+  "benchmarks": {
+  "gcc_default": {
+    "compiler": "gcc",
+    "optimization": "default",
+    "compile_time_seconds": .034030,
+    "execution_time_microseconds": 844.00,
+    "binary_size_bytes": 15960
+  },
+  "gcc_O0": {
+    "compiler": "gcc",
+    "optimization": "O0",
+    "compile_time_seconds": .034027,
+    "execution_time_microseconds": 834.00,
+    "binary_size_bytes": 15960
+  },
+  "gcc_O1": {
+    "compiler": "gcc",
+    "optimization": "O1",
+    "compile_time_seconds": .036720,
+    "execution_time_microseconds": 831.00,
+    "binary_size_bytes": 15968
+  },
+  "gcc_O2": {
+    "compiler": "gcc",
+    "optimization": "O2",
+    "compile_time_seconds": .036935,
+    "execution_time_microseconds": 820.00,
+    "binary_size_bytes": 15968
+  },
+  "gcc_O3": {
+    "compiler": "gcc",
+    "optimization": "O3",
+    "compile_time_seconds": .037599,
+    "execution_time_microseconds": 832.00,
+    "binary_size_bytes": 15968
+  },
+  "gcc_Os": {
+    "compiler": "gcc",
+    "optimization": "Os",
+    "compile_time_seconds": .036878,
+    "execution_time_microseconds": 833.00,
+    "binary_size_bytes": 15968
+  },
+  "clang_default": {
+    "compiler": "clang",
+    "optimization": "default",
+    "compile_time_seconds": .063039,
+    "execution_time_microseconds": 843.00,
+    "binary_size_bytes": 16008
+  },
+  "clang_O0": {
+    "compiler": "clang",
+    "optimization": "O0",
+    "compile_time_seconds": .062614,
+    "execution_time_microseconds": 840.00,
+    "binary_size_bytes": 16008
+  },
+  "clang_O1": {
+    "compiler": "clang",
+    "optimization": "O1",
+    "compile_time_seconds": .065987,
+    "execution_time_microseconds": 834.00,
+    "binary_size_bytes": 16008
+  },
+  "clang_O2": {
+    "compiler": "clang",
+    "optimization": "O2",
+    "compile_time_seconds": .066054,
+    "execution_time_microseconds": 841.00,
+    "binary_size_bytes": 16008
+  },
+  "clang_O3": {
+    "compiler": "clang",
+    "optimization": "O3",
+    "compile_time_seconds": .065789,
+    "execution_time_microseconds": 827.00,
+    "binary_size_bytes": 16008
+  },
+  "clang_Os": {
+    "compiler": "clang",
+    "optimization": "Os",
+    "compile_time_seconds": .064816,
+    "execution_time_microseconds": 836.00,
+    "binary_size_bytes": 16008
+  }
+  }
+}
