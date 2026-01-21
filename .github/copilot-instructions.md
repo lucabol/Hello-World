@@ -48,6 +48,11 @@ For detailed documentation on key architectural decisions, see our [Architecture
    - Program outputs exactly "Hello world!" (no trailing newline)
    - Program exits with code 0
    - Byte-level output verification using hex dumps
+3. Run static analysis with cppcheck (in parallel job):
+   - Detects memory leaks, undefined behavior, and null pointer dereferences
+   - Checks for buffer overflows and uninitialized variables
+   - Identifies code quality and portability issues
+   - Fails build on any detected issues
 
 ### Manual Testing Scenarios
 **ALWAYS run these validation steps after making any changes:**
@@ -61,6 +66,76 @@ For detailed documentation on key architectural decisions, see our [Architecture
 - **Test alternative compiler:** `make clang` -- should produce identical output
 - **Debug build test:** `make debug` -- should work identically
 - **Run CI validation:** `make test` or `./test/validate.sh` -- reproduces CI checks locally
+
+## Static Analysis
+
+### Cppcheck Integration
+The project uses **cppcheck** for C-specific static analysis to detect potential bugs, memory issues, and undefined behavior that compilers may not catch.
+
+**What cppcheck detects:**
+- Memory leaks and resource leaks
+- Null pointer dereferences
+- Buffer overflows and out-of-bounds access
+- Uninitialized variables
+- Unused variables and functions
+- Suspicious expressions and logic errors
+- Performance issues
+- Portability issues
+
+### Running Static Analysis Locally
+```bash
+# Install cppcheck (if not already installed)
+sudo apt-get install -y cppcheck
+
+# Run basic static analysis
+cppcheck hello.c
+
+# Run comprehensive static analysis (matches CI configuration)
+cppcheck --enable=all \
+         --error-exitcode=1 \
+         --suppress=missingIncludeSystem \
+         --inline-suppr \
+         --quiet \
+         .
+```
+
+### CI Static Analysis Configuration
+The CI pipeline includes a dedicated `static-analysis-cppcheck` job that:
+1. Installs cppcheck on Ubuntu
+2. Runs comprehensive analysis with `--enable=all` flag
+3. Suppresses false positives for system includes (`--suppress=missingIncludeSystem`)
+4. Fails the build on any detected issues (`--error-exitcode=1`)
+5. Allows inline suppressions for false positives (`--inline-suppr`)
+
+**Key flags explained:**
+- `--enable=all`: Enables all available checks (warning, style, performance, portability, information)
+- `--error-exitcode=1`: Makes cppcheck exit with code 1 if issues are found (fails CI)
+- `--suppress=missingIncludeSystem`: Suppresses warnings about missing system headers
+- `--inline-suppr`: Allows suppressing specific warnings using inline comments
+- `--quiet`: Reduces output verbosity to only show issues
+
+### Suppressing False Positives
+If cppcheck reports a false positive, you can suppress it inline:
+```c
+// cppcheck-suppress warningId
+int x = getValue();
+```
+
+Or suppress for a specific scope:
+```c
+// cppcheck-suppress[warningId]
+{
+    // code with suppressed warning
+}
+```
+
+### When Static Analysis Fails
+If the static-analysis-cppcheck CI job fails:
+1. Run cppcheck locally with the same flags shown above
+2. Review the reported issues carefully
+3. Fix legitimate bugs and code quality issues
+4. Only suppress false positives after confirming they are not real issues
+5. Re-run the analysis to verify all issues are resolved
 
 ## Common Tasks
 
