@@ -25,13 +25,8 @@ LOCALES=("C" "C.UTF-8" "en_US.UTF-8" "POSIX")
 for LOCALE in "${LOCALES[@]}"; do
     echo "Testing with locale: $LOCALE"
     
-    # Set locale environment variables
-    export LANG=$LOCALE
-    export LC_ALL=$LOCALE
-    export LC_CTYPE=$LOCALE
-    
-    # Test output
-    OUTPUT=$(./hello_test)
+    # Test output with locale set for this test only
+    OUTPUT=$(LANG=$LOCALE LC_ALL=$LOCALE LC_CTYPE=$LOCALE ./hello_test)
     if [[ "$OUTPUT" != "$EXPECTED_OUTPUT" ]]; then
         echo "  ✗ ERROR: Output mismatch with locale $LOCALE"
         echo "    Expected: '$EXPECTED_OUTPUT'"
@@ -41,8 +36,8 @@ for LOCALE in "${LOCALES[@]}"; do
     fi
     echo "  ✓ Output correct with locale $LOCALE"
     
-    # Test exit code
-    ./hello_test > /dev/null
+    # Test exit code with locale set
+    LANG=$LOCALE LC_ALL=$LOCALE LC_CTYPE=$LOCALE ./hello_test > /dev/null
     EXIT_CODE=$?
     if [[ $EXIT_CODE -ne 0 ]]; then
         echo "  ✗ ERROR: Exit code with locale $LOCALE is $EXIT_CODE, expected 0"
@@ -52,7 +47,7 @@ for LOCALE in "${LOCALES[@]}"; do
     echo "  ✓ Exit code correct with locale $LOCALE"
     
     # Verify output encoding (should be ASCII, unaffected by locale)
-    OUTPUT_HEX=$(./hello_test | od -A n -t x1 | tr -d ' \n')
+    OUTPUT_HEX=$(LANG=$LOCALE LC_ALL=$LOCALE LC_CTYPE=$LOCALE ./hello_test | od -A n -t x1 | tr -d ' \n')
     EXPECTED_HEX="48656c6c6f20776f726c6421"
     if [[ "$OUTPUT_HEX" != "$EXPECTED_HEX" ]]; then
         echo "  ✗ ERROR: Byte output affected by locale $LOCALE"
@@ -65,7 +60,6 @@ done
 
 # Clean up
 rm -f hello_test
-unset LANG LC_ALL LC_CTYPE
 
 echo "=== All locale tests passed ==="
 exit 0

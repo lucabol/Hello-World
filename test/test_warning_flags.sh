@@ -71,7 +71,7 @@ for STD in "${C_STANDARDS[@]}"; do
     rm -f hello_test
     
     # Compile with standard flag (warnings allowed for older standards)
-    if ! gcc -std=$STD -Wall -Wextra -Wpedantic -o hello_test hello.c 2>&1 | tee /tmp/compile_output.txt; then
+    if ! gcc -std=$STD -Wall -Wextra -Wpedantic -o hello_test hello.c 2>&1; then
         echo "  ✗ ERROR: Compilation failed with -std=$STD"
         exit 1
     fi
@@ -97,8 +97,6 @@ for STD in "${C_STANDARDS[@]}"; do
     rm -f hello_test
     echo ""
 done
-
-rm -f /tmp/compile_output.txt
 
 echo "=== Testing with pedantic-errors ==="
 echo ""

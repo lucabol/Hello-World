@@ -116,8 +116,8 @@ echo ""
 # Test 8: Test with ulimit restrictions
 echo "Test 8: Testing with file descriptor limits..."
 # Set a reasonable limit that shouldn't affect the program
-(ulimit -n 32 && OUTPUT=$(./hello_test) && [[ "$OUTPUT" == "$EXPECTED_OUTPUT" ]])
-if [[ $? -ne 0 ]]; then
+# Run in subshell and capture exit status properly
+if ! (ulimit -n 32 && ./hello_test > /dev/null && [[ "$(./hello_test)" == "$EXPECTED_OUTPUT" ]]); then
     echo "✗ ERROR: Program failed with file descriptor limits"
     rm -f hello_test
     exit 1
