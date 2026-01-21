@@ -1,5 +1,16 @@
 # include <stdio.h>
+# include <stdlib.h>
 
+/* Main function to print greeting */
+#ifndef UNIT_TEST
 int main(){
-    printf("Hello world!");
+#else
+int hello_main(){
+#endif
+    if (printf("Hello world!") < 0) {
+        fprintf(stderr, "Error: Failed to write output\n");
+        return EXIT_FAILURE;
+    }
+    fflush(stdout);
+    return EXIT_SUCCESS;
 }
