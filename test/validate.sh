@@ -29,7 +29,7 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 # Test 1: Compile with strict flags
 log "Test 1: Compiling with strict flags..."
-TEST_BIN="$(pwd)/hello_test"
+TEST_BIN="$(realpath .)/hello_test"
 if gcc -Wall -Wextra -Wpedantic -Werror -o "$TEST_BIN" hello.c 2>&1 | tee $TEMP_DIR/compile.log; then
     log "${GREEN}✓${NC} Compilation successful"
 else
