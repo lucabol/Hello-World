@@ -5,6 +5,13 @@ set -e
 
 echo "=== Testing Code Formatting Compliance ==="
 
+# Check if clang-format is installed
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "ERROR: clang-format is not installed"
+    echo "Please install clang-format to run formatting checks"
+    exit 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
