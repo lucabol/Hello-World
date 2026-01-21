@@ -47,7 +47,7 @@ for OPT_LEVEL in "${OPTIMIZATION_LEVELS[@]}"; do
     
     # Test byte-level output (no trailing newline)
     OUTPUT_HEX=$(./hello_test | od -A n -t x1 | tr -d ' \n')
-    EXPECTED_HEX="48656c6c6f20776f726c6421"
+    EXPECTED_HEX="48656c6c6f20776f726c64210a"  # "Hello world!\n" in hex
     if [[ "$OUTPUT_HEX" != "$EXPECTED_HEX" ]]; then
         echo "  ✗ ERROR: Byte output mismatch with $OPT_LEVEL"
         rm -f hello_test

@@ -48,7 +48,7 @@ for LOCALE in "${LOCALES[@]}"; do
     
     # Verify output encoding (should be ASCII, unaffected by locale)
     OUTPUT_HEX=$(LANG=$LOCALE LC_ALL=$LOCALE LC_CTYPE=$LOCALE ./hello_test | od -A n -t x1 | tr -d ' \n')
-    EXPECTED_HEX="48656c6c6f20776f726c6421"
+    EXPECTED_HEX="48656c6c6f20776f726c64210a"  # "Hello world!\n" in hex
     if [[ "$OUTPUT_HEX" != "$EXPECTED_HEX" ]]; then
         echo "  ✗ ERROR: Byte output affected by locale $LOCALE"
         rm -f hello_test
