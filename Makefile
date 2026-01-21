@@ -7,24 +7,29 @@ LOCALEDIR = $(PWD)/locale
 LANGUAGES = es fr de ja
 
 # Main targets
-all: hello translations
+all: hello
+	@$(MAKE) translations 2>/dev/null || echo "Note: Skipping translations (gettext tools not available)"
 
 hello: hello.c
 	$(CC) $(CFLAGS) -DLOCALEDIR=\"$(LOCALEDIR)\" -o hello hello.c
 
 # Translation targets
 po/$(PACKAGE).pot: hello.c
+	@command -v xgettext >/dev/null 2>&1 || { echo "Error: xgettext not found. Install gettext to build translations."; exit 1; }
 	mkdir -p po
 	xgettext --keyword=_ --language=C --add-comments --sort-output \
 		-o po/$(PACKAGE).pot hello.c
 
 translations: po/$(PACKAGE).pot
+	@command -v msgfmt >/dev/null 2>&1 || { echo "Error: msgfmt not found. Install gettext to build translations."; exit 1; }
 	@for lang in $(LANGUAGES); do \
 		mkdir -p po/$$lang; \
 		if [ ! -f po/$$lang/$(PACKAGE).po ]; then \
+			command -v msginit >/dev/null 2>&1 || { echo "Error: msginit not found. Install gettext to build translations."; exit 1; }; \
 			msginit --input=po/$(PACKAGE).pot --locale=$$lang \
 				--output=po/$$lang/$(PACKAGE).po --no-translator; \
 		else \
+			command -v msgmerge >/dev/null 2>&1 || { echo "Error: msgmerge not found. Install gettext to build translations."; exit 1; }; \
 			msgmerge --update po/$$lang/$(PACKAGE).po po/$(PACKAGE).pot; \
 		fi; \
 		mkdir -p locale/$$lang/LC_MESSAGES; \

@@ -69,8 +69,15 @@ bash test/validate.sh   # Run validation tests with output
 ## Requirements
 
 - GCC or Clang compiler
-- gettext tools (for building translations)
-- UTF-8 locale support
+- **gettext tools** (optional - required only for building/updating translations):
+  - `xgettext` - for extracting translatable strings
+  - `msgfmt` - for compiling translation catalogs
+  - `msginit`, `msgmerge` - for managing translation files
+  - On Ubuntu/Debian: `sudo apt-get install gettext`
+  - On macOS: `brew install gettext`
+- UTF-8 locale support (for testing translations)
+
+**Note**: The program will compile and run without gettext installed. Gettext is only needed if you want to build or update translations from source. Pre-compiled translation files (`.mo` files) are included in the repository.
 
 ## CI Setup
 
