@@ -1,6 +1,13 @@
 # Hello World
-<<<<<<< HEAD
+
 Test repo for JediMaster
+
+## Projects
+
+This repository contains two C programs:
+
+1. **hello.c** - A simple "Hello World" program
+2. **code_metrics.c** - A robust file analysis tool with comprehensive error handling
 
 ## Code Formatting
 
@@ -49,35 +56,6 @@ The repository includes automated formatting checks in CI:
 3. **Pre-commit Hook**: Consider setting up a git pre-commit hook to auto-format
 4. **Code Reviews**: Formatting issues are automatically detected in CI
 
-## Building
-
-Compile the program:
-```bash
-make
-```
-
-Or compile with strict warnings:
-```bash
-make strict
-```
-
-## Testing
-
-Run all tests:
-```bash
-make test
-```
-=======
-
-Test repo for JediMaster
-
-## Projects
-
-This repository contains two C programs:
-
-1. **hello.c** - A simple "Hello World" program
-2. **code_metrics.c** - A robust file analysis tool with comprehensive error handling
-
 ## Quick Start
 
 ### Building
@@ -85,6 +63,11 @@ This repository contains two C programs:
 make          # Build both programs
 make hello    # Build hello only
 make code_metrics  # Build code_metrics only
+```
+
+Or compile with strict warnings:
+```bash
+make strict
 ```
 
 ### Testing
@@ -105,4 +88,3 @@ For detailed documentation on key architectural decisions, see our [Architecture
 - [ADR-001: No Trailing Newline in Output](docs/adr/ADR-001-no-trailing-newline.md) - Why the program outputs without a trailing newline
 - [ADR-002: Byte-Level Validation](docs/adr/ADR-002-byte-level-validation.md) - Our validation methodology using hex dumps
 - [ADR-003: Dual Compiler Support](docs/adr/ADR-003-dual-compiler-support.md) - Why we support both GCC and Clang
->>>>>>> main

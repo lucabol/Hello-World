@@ -1,7 +1,7 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <sys/stat.h>
 
 #define MAX_LINE_LENGTH 1024
@@ -35,7 +35,8 @@ int is_valid_c_file(const char *filename);
 /**
  * Print detailed error messages based on error code
  */
-void print_error_message(ErrorCode error, const char *context) {
+void print_error_message(ErrorCode error, const char *context)
+{
     switch (error) {
         case ERROR_FILE_NOT_FOUND:
             fprintf(stderr, "Error: File not found - %s\n", context);
@@ -54,10 +55,12 @@ void print_error_message(ErrorCode error, const char *context) {
             break;
         case ERROR_INVALID_FORMAT:
             fprintf(stderr, "Error: Invalid file format - %s\n", context);
-            fprintf(stderr, "Expected a valid C source file (.c or .h extension).\n");
+            fprintf(stderr,
+                    "Expected a valid C source file (.c or .h extension).\n");
             break;
         case ERROR_DISK_FULL:
-            fprintf(stderr, "Error: Disk full or insufficient space - %s\n", context);
+            fprintf(stderr, "Error: Disk full or insufficient space - %s\n",
+                    context);
             fprintf(stderr, "Free up disk space and try again.\n");
             break;
         case ERROR_MEMORY_ALLOCATION:
@@ -72,7 +75,8 @@ void print_error_message(ErrorCode error, const char *context) {
 /**
  * Validate if the file has a valid C source file extension
  */
-int is_valid_c_file(const char *filename) {
+int is_valid_c_file(const char *filename)
+{
     size_t len = strlen(filename);
     if (len < 3) {
         return 0;
@@ -85,33 +89,34 @@ int is_valid_c_file(const char *filename) {
  * Analyze a file and compute basic code metrics
  * Returns error code indicating success or type of failure
  */
-ErrorCode analyze_file(const char *filename, CodeMetrics *metrics) {
+ErrorCode analyze_file(const char *filename, CodeMetrics *metrics)
+{
     FILE *file = NULL;
     char buffer[BUFFER_SIZE];
     size_t bytes_read;
     int in_word = 0;
-    
+
     /* Initialize metrics */
     if (metrics == NULL) {
         return ERROR_MEMORY_ALLOCATION;
     }
-    
+
     metrics->line_count = 0;
     metrics->char_count = 0;
     metrics->word_count = 0;
-    
+
     /* Validate filename */
     if (filename == NULL || strlen(filename) == 0) {
         print_error_message(ERROR_FILE_NOT_FOUND, "No filename provided");
         return ERROR_FILE_NOT_FOUND;
     }
-    
+
     /* Validate file extension */
     if (!is_valid_c_file(filename)) {
         print_error_message(ERROR_INVALID_FORMAT, filename);
         return ERROR_INVALID_FORMAT;
     }
-    
+
     /* Attempt to open the file */
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -127,19 +132,19 @@ ErrorCode analyze_file(const char *filename, CodeMetrics *metrics) {
             return ERROR_READ_FAILURE;
         }
     }
-    
+
     /* Read and analyze the file */
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
         for (size_t i = 0; i < bytes_read; i++) {
             char c = buffer[i];
             metrics->char_count++;
-            
+
             /* Count lines */
             if (c == '\n') {
                 metrics->line_count++;
                 in_word = 0;
             }
-            
+
             /* Count words (simple space-delimited) */
             if (c == ' ' || c == '\t' || c == '\n') {
                 in_word = 0;
@@ -149,20 +154,20 @@ ErrorCode analyze_file(const char *filename, CodeMetrics *metrics) {
             }
         }
     }
-    
+
     /* Check for read errors */
     if (ferror(file)) {
         print_error_message(ERROR_READ_FAILURE, filename);
         fclose(file);
         return ERROR_READ_FAILURE;
     }
-    
+
     /* Close the file */
     if (fclose(file) != 0) {
         print_error_message(ERROR_READ_FAILURE, filename);
         return ERROR_READ_FAILURE;
     }
-    
+
     return SUCCESS;
 }
 
@@ -170,14 +175,15 @@ ErrorCode analyze_file(const char *filename, CodeMetrics *metrics) {
  * Write metrics to an output file
  * Returns error code indicating success or type of failure
  */
-ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
+ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics)
+{
     FILE *file = NULL;
-    
+
     /* Validate inputs */
     if (output_file == NULL || metrics == NULL) {
         return ERROR_WRITE_FAILURE;
     }
-    
+
     /* Attempt to open output file for writing */
     file = fopen(output_file, "w");
     if (file == NULL) {
@@ -193,7 +199,7 @@ ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
             return ERROR_WRITE_FAILURE;
         }
     }
-    
+
     /* Write metrics to file */
     if (fprintf(file, "Code Metrics Report\n") < 0) {
         print_error_message(ERROR_WRITE_FAILURE, output_file);
@@ -220,7 +226,7 @@ ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
         fclose(file);
         return ERROR_WRITE_FAILURE;
     }
-    
+
     /* Flush to ensure data is written */
     if (fflush(file) != 0) {
         if (errno == ENOSPC) {
@@ -233,7 +239,7 @@ ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
             return ERROR_WRITE_FAILURE;
         }
     }
-    
+
     /* Close the file and check for errors */
     if (fclose(file) != 0) {
         if (errno == ENOSPC) {
@@ -244,39 +250,41 @@ ErrorCode write_metrics(const char *output_file, const CodeMetrics *metrics) {
             return ERROR_WRITE_FAILURE;
         }
     }
-    
+
     return SUCCESS;
 }
 
 /**
  * Main function - demonstrates usage of the metrics analyzer
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     CodeMetrics metrics;
     ErrorCode result;
-    
+
     /* Check command line arguments */
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <input_file> [output_file]\n", argv[0]);
         fprintf(stderr, "  input_file:  C source file to analyze (.c or .h)\n");
-        fprintf(stderr, "  output_file: Optional output file for metrics report\n");
+        fprintf(stderr,
+                "  output_file: Optional output file for metrics report\n");
         return EXIT_FAILURE;
     }
-    
+
     /* Analyze the input file */
     result = analyze_file(argv[1], &metrics);
-    
+
     if (result != SUCCESS) {
         fprintf(stderr, "Analysis failed with error code: %d\n", result);
         return EXIT_FAILURE;
     }
-    
+
     /* Print metrics to stdout */
     printf("Code Metrics for: %s\n", argv[1]);
     printf("Lines: %d\n", metrics.line_count);
     printf("Characters: %d\n", metrics.char_count);
     printf("Words: %d\n", metrics.word_count);
-    
+
     /* Write to output file if specified */
     if (argc >= 3) {
         result = write_metrics(argv[2], &metrics);
@@ -286,6 +294,6 @@ int main(int argc, char *argv[]) {
         }
         printf("Metrics written to: %s\n", argv[2]);
     }
-    
+
     return EXIT_SUCCESS;
 }
