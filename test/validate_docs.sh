@@ -4,6 +4,9 @@
 
 set -e
 
+# Configuration
+MIN_ADR_SIZE=500  # Minimum character count for ADR content
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
@@ -38,25 +41,16 @@ for adr_file in "${ADR_FILES[@]}"; do
     echo "✓ $adr_file exists"
 done
 
-# Check if ADR files have minimum content
+# Check if ADR files have required sections
+REQUIRED_SECTIONS=("Status" "Context" "Decision" "Consequences")
+
 for adr_file in "${ADR_FILES[@]}"; do
-    # Check for required sections
-    if ! grep -q "## Status" "$adr_file"; then
-        echo "ERROR: $adr_file missing '## Status' section"
-        exit 1
-    fi
-    if ! grep -q "## Context" "$adr_file"; then
-        echo "ERROR: $adr_file missing '## Context' section"
-        exit 1
-    fi
-    if ! grep -q "## Decision" "$adr_file"; then
-        echo "ERROR: $adr_file missing '## Decision' section"
-        exit 1
-    fi
-    if ! grep -q "## Consequences" "$adr_file"; then
-        echo "ERROR: $adr_file missing '## Consequences' section"
-        exit 1
-    fi
+    for section in "${REQUIRED_SECTIONS[@]}"; do
+        if ! grep -q "## $section" "$adr_file"; then
+            echo "ERROR: $adr_file missing '## $section' section"
+            exit 1
+        fi
+    done
     echo "✓ $adr_file has required sections"
 done
 
@@ -84,11 +78,11 @@ for adr_file in "${ADR_FILES[@]}"; do
 done
 echo "✓ docs/adr/README.md links to all ADRs"
 
-# Check if ADR files have meaningful content (more than 500 characters each)
+# Check if ADR files have meaningful content
 for adr_file in "${ADR_FILES[@]}"; do
     file_size=$(wc -c < "$adr_file")
-    if [ "$file_size" -lt 500 ]; then
-        echo "ERROR: $adr_file has insufficient content (less than 500 characters)"
+    if [ "$file_size" -lt "$MIN_ADR_SIZE" ]; then
+        echo "ERROR: $adr_file has insufficient content (less than $MIN_ADR_SIZE characters)"
         exit 1
     fi
     echo "✓ $adr_file has meaningful content ($file_size characters)"
