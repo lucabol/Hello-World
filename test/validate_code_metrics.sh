@@ -151,12 +151,14 @@ rm -f /tmp/test.h
 # Test 12: Multiple successful analyses
 log "\n${YELLOW}Test: Multiple analyses in sequence${NC}"
 ./code_metrics hello.c > /dev/null 2>&1
+result1=$?
 ./code_metrics code_metrics.c > /dev/null 2>&1
-if [ $? -eq 0 ]; then
+result2=$?
+if [ $result1 -eq 0 ] && [ $result2 -eq 0 ]; then
     log "${GREEN}✓ PASSED: Multiple analyses completed successfully${NC}"
     TEST_PASSED=$((TEST_PASSED + 1))
 else
-    log "${RED}✗ FAILED: Multiple analyses failed${NC}"
+    log "${RED}✗ FAILED: Multiple analyses failed (exit codes: $result1, $result2)${NC}"
     TEST_FAILED=$((TEST_FAILED + 1))
 fi
 
