@@ -89,7 +89,7 @@ cppcheck --enable=all \
          --suppress=missingIncludeSystem \
          --inline-suppr \
          --quiet \
-         *.c
+         .
 ```
 
 ### CI Static Analysis Configuration

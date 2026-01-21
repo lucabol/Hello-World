@@ -102,5 +102,5 @@ jobs:
                  --suppress=missingIncludeSystem \
                  --inline-suppr \
                  --quiet \
-                 *.c
+                 .
         echo "Static analysis passed - no issues found"
