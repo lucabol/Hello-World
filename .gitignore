@@ -43,3 +43,10 @@ test-helpers/
 
 # CodeQL artifacts
 _codeql_detected_source_root
+
+# Code coverage artifacts
+*.gcda
+*.gcno
+*.gcov
+coverage/
+hello_coverage
