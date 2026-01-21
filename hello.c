@@ -1,7 +1,5 @@
-#include <stdio.h>
+# include <stdio.h>
 
-int main(void){
-    puts("Ciao, Mondo!");
-    puts("Exit code: 0");
-    return 0;
+int main(){
+    printf("Hello world!");
 }
