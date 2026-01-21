@@ -40,3 +40,7 @@ yarn-error.log*
 test-helpers/
 *.tmp
 *.temp
+
+# Benchmark results
+benchmark_results.json
+benchmark_results_*.json
