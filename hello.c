@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 void print_message(const char *msg) {
-    printf("%s\n", msg);
+    puts(msg);
 }
 
 int main(void) {
