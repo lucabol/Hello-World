@@ -1,0 +1,17 @@
+{
+  "history_version": "1.0",
+  "assignments": [
+    {
+      "assignment_id": "hello-world-init-001",
+      "universe": "Alien",
+      "created_at": "2025-07-15T00:00:00Z",
+      "agents": [
+        { "name": "Dallas", "role": "Lead" },
+        { "name": "Ripley", "role": "C Developer" },
+        { "name": "Brett", "role": "Build/CI" },
+        { "name": "Lambert", "role": "Tester" }
+      ],
+      "reason": "Initial team assignment for Hello-World C project. Alien universe selected for C systems programming resonance."
+    }
+  ]
+}
