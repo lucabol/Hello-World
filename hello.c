@@ -2,7 +2,7 @@
 
 void print_message(const char *msg)
 {
-    printf("%s", msg);
+    fputs(msg, stdout);
 }
 
 int main(void)
